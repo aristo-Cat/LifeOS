@@ -27,6 +27,8 @@ This is the first release under the LifeOS name. The project was called PAI (Per
 curl -fsSL https://ourlifeos.ai/install.sh | bash
 ```
 
+> **LifeOS is AI-native — it installs *into* your AI coding harness.** Run the one-liner in your terminal, or paste it to your AI (Claude Code) and say *"install this."* It pulls the LifeOS skill from GitHub, drops it into your harness, then hands off to **`/lifeos-setup`** — a setup *conversation* with your AI that captures your goals and wires everything with your permission. Your AI does the install for you.
+
 That command lays down the entire system:
 
 - The system prompt and the operating rules

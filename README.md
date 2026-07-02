@@ -181,6 +181,9 @@ curl -fsSL https://ourlifeos.ai/install.sh | bash
 
 That's it. LifeOS ships as a single self-contained skill. The installer verifies Bun and Claude Code, deploys the whole system, sets up your DA identity and voice, registers Pulse, and runs the setup interview. An existing `~/.claude/` is backed up before anything is overwritten.
 
+> [!TIP]
+> **LifeOS is AI-native — it installs *into* your AI coding harness.** Run the one-liner in your terminal, or just paste it to your AI (Claude Code) and say *"install this."* It pulls the LifeOS skill from GitHub, drops it into your harness, then hands off to **`/lifeos-setup`** — a setup *conversation* with your AI that captures your goals (TELOS) and wires everything with your permission. No forms, no config files to hand-edit. The whole point: your AI installs and configures LifeOS for you.
+
 **Prefer to inspect first?** [Read the script](https://ourlifeos.ai/install.sh) before piping it.
 
 ### Manual install (clone + run)
