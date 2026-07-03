@@ -134,11 +134,11 @@ The dashboard explains itself on hover, no manual needed.
 
 ---
 
-## 📦 Packs
+## 🧩 Skills
 
-Packs are standalone, AI-installable capabilities you can add to any AI coding harness without installing the full system. Each pack is a self-contained prompt your DA can read and execute — point it at the pack directory and say "install this," and it handles the rest.
+LifeOS installs as one self-contained skill that bundles the whole library — research, security, writing, art, and more. Browse them all on the site.
 
-**[Browse all packs →](Packs/)**
+**[Browse all skills →](https://ourlifeos.ai/skills)**
 
 ---
 
