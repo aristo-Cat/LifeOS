@@ -14,11 +14,17 @@ Paste this to your AI — Claude Code, Cursor, Cline, Codex, Gemini CLI, or any 
 
 That's the primary path. Your AI reads the rest of this page and installs LifeOS for you.
 
-Prefer a terminal? There's a shell shortcut for Claude Code on macOS/Linux:
+Prefer a terminal? There are native shortcuts:
 
-```
+```bash
 curl -fsSL https://ourlifeos.ai/install.sh | bash
 ```
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -Target claude
+```
+
+On Windows, use `-Target codex` for Codex CLI or `-Target both` to update Claude Code and Codex skill roots from the same local checkout/release.
 
 Everything below is written for the AI doing the install.
 
@@ -118,15 +124,15 @@ LifeOS installs in **two tiers**, and you present them that way.
 
 | Component | What it adds | Default |
 |---|---|---|
-| **hooks** | mode routing, the memory loop, voice, per-turn context injection — most behavior needs these (this is step 6) | **recommended** |
+| **hooks** | Claude Code only: mode routing, the memory loop, voice, per-turn context injection | **recommended on Claude Code** |
 | **statusline** | the LifeOS status line in your prompt | optional |
 | **tooltips** | custom Claude Code spinner tips | optional |
 | **spinner verbs** | custom spinner verbs | optional |
 | **agents** | the named agent library | optional |
-| **Pulse** | the Life Dashboard — menu-bar app + `launchd` service on `:31337` | optional |
+| **Pulse** | the Life Dashboard, `launchd` on macOS, Scheduled Task/Startup fallback on Windows, `:31337` | optional |
 | **worksweep / derivedsync** | background `launchd` jobs (work capture, derived-file sync) | optional |
 
-The `launchd` components (Pulse, worksweep, derivedsync) are macOS-only — skip them cleanly on Linux/Windows. Show your human this menu, take their picks, and deploy only those. The **Setup** workflow (step 9) drives the actual deployment of the chosen set and verifies each with real evidence (e.g. Pulse → `curl :31337/healthz` = 200). Everything ships in the payload; nothing activates without its matching yes.
+Pulse deploys on macOS and Windows; `worksweep` and `derivedsync` are macOS `launchd` jobs and should be skipped cleanly on Linux/Windows. Show your human this menu, take their picks, and deploy only those. The **Setup** workflow (step 9) drives the actual deployment of the chosen set and verifies each with real evidence (e.g. Pulse health on `127.0.0.1:31337/healthz` = 200). Everything ships in the payload; nothing activates without its matching yes.
 
 ### 9. Run Setup, then Interview
 
@@ -139,7 +145,7 @@ Run the **Setup** workflow (`Workflows/Setup.md`) to finish integration and veri
 | Harness / OS | Skill + USER data + Pulse | Always-on behavior (mode banner, memory loop, context injection) |
 |---|---|---|
 | **Claude Code — macOS / Linux** | ✅ | ✅ full (native hooks) |
-| **Claude Code — Windows** | ✅ (copy fallback where symlinks need admin) | ✅ full |
+| **Claude Code — Windows** | ✅ (directory junction first, copy fallback if links are blocked) | ✅ full |
 | **Cursor / Cline / Codex / Gemini / other** | ✅ | ⚠️ context loads every session via `AGENTS.md`; workflows run on request; always-on hooks not wired yet (roadmap) |
 | **Chat-only assistants (no files / no commands)** | ❌ | ❌ — install stops at the capability gate |
 

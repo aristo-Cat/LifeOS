@@ -15,7 +15,7 @@
 import { execSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { join, resolve } from "node:path";
+import { isAbsolute, join, resolve } from "node:path";
 
 // ── Types (inlined — the skill ships without the engine's types.ts) ──
 
@@ -34,7 +34,7 @@ export interface ToolInfo {
   path?: string;
 }
 
-export type Harness = "claude-code" | "hermes" | "cursor" | "openclaw" | "unknown";
+export type Harness = "claude-code" | "codex" | "hermes" | "cursor" | "cline" | "gemini" | "openclaw" | "unknown";
 
 export interface HarnessInfo {
   name: Harness;
@@ -98,7 +98,8 @@ export function detectOS(): OsInfo {
 }
 
 export function detectTool(name: string, versionCmd: string): ToolInfo {
-  const path = tryExec(`command -v ${name}`);
+  const found = process.platform === "win32" ? tryExec(`where ${name}`) : tryExec(`command -v ${name}`);
+  const path = found?.split(/\r?\n/).map((line) => line.trim()).find(Boolean);
   if (!path) return { installed: false };
   const out = tryExec(versionCmd);
   const m = out?.match(/(\d+\.\d+[.\d]*)/);
@@ -113,10 +114,32 @@ export function detectTool(name: string, versionCmd: string): ToolInfo {
  * Hermes (~/.hermes) → Cursor (~/.cursor) → OpenClaw (~/.openclaw) → unknown.
  */
 export function detectHarness(home: string): HarnessInfo {
+  if (process.env.CLAUDE_CONFIG_DIR) {
+    const root = process.env.CLAUDE_CONFIG_DIR;
+    return { name: "claude-code", configRoot: root, skillsDir: join(root, "skills") };
+  }
+  if (process.env.CODEX_HOME) {
+    const root = process.env.CODEX_HOME;
+    return { name: "codex", configRoot: root, skillsDir: join(root, "skills") };
+  }
+
+  const moduleDir = import.meta.dir.replace(/\\/g, "/").toLowerCase();
+  if (moduleDir.includes("/.codex/")) {
+    const root = join(home, ".codex");
+    return { name: "codex", configRoot: root, skillsDir: join(root, "skills") };
+  }
+  if (moduleDir.includes("/.claude/")) {
+    const root = join(home, ".claude");
+    return { name: "claude-code", configRoot: root, skillsDir: join(root, "skills") };
+  }
+
   const candidates: Array<{ name: Harness; root: string; skills: string }> = [
-    { name: "claude-code", root: process.env.CLAUDE_CONFIG_DIR || join(home, ".claude"), skills: "skills" },
+    { name: "claude-code", root: join(home, ".claude"), skills: "skills" },
+    { name: "codex", root: join(home, ".codex"), skills: "skills" },
     { name: "hermes", root: join(home, ".hermes"), skills: "skills" },
     { name: "cursor", root: join(home, ".cursor"), skills: "skills" },
+    { name: "cline", root: join(home, ".cline"), skills: "skills" },
+    { name: "gemini", root: join(home, ".gemini"), skills: "skills" },
     { name: "openclaw", root: join(home, ".openclaw"), skills: "skills" },
   ];
   for (const c of candidates) {
@@ -151,7 +174,9 @@ export function detectEnv(): EnvDetection {
   const ssh = !!(process.env.SSH_CONNECTION || process.env.SSH_TTY || process.env.SSH_CLIENT);
   // GUI session: macOS always has one locally; Linux needs DISPLAY/WAYLAND and not pure-SSH.
   const display =
-    os.platform === "darwin" ? !ssh : !!(process.env.DISPLAY || process.env.WAYLAND_DISPLAY) && !ssh;
+    os.platform === "darwin" || os.platform === "windows"
+      ? !ssh
+      : !!(process.env.DISPLAY || process.env.WAYLAND_DISPLAY) && !ssh;
 
   return {
     os,
@@ -307,7 +332,7 @@ export function scanSettingsHooks(settingsPath: string): SettingsHookScan {
 //  follows the proven logic from the legacy engine actions.ts.
 // ════════════════════════════════════════════════════════════════════
 
-import { cpSync, lstatSync, mkdirSync, readdirSync, readlinkSync, renameSync, symlinkSync, writeFileSync } from "node:fs";
+import { cpSync, lstatSync, mkdirSync, readdirSync, readlinkSync, realpathSync, renameSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 
 const TEMPLATE_EXTENSIONS = new Set([".md", ".json", ".txt", ".ts", ".toml", ".yaml", ".yml", ".sh"]);
@@ -454,21 +479,74 @@ function mergeTree(src: string, dst: string, stamp: string): { copied: number; o
   return { copied, overwritten, preserved, failures };
 }
 
+const COPY_FALLBACK_MARKER = ".lifeos-user-copy-fallback.json";
+
+function normalizePathForCompare(path: string): string {
+  const resolved = resolve(path).replace(/^\\\\\?\\/, "");
+  return process.platform === "win32" ? resolved.toLowerCase() : resolved;
+}
+
+function linkTargetMatches(linkPath: string, expected: string): boolean {
+  try {
+    const raw = readlinkSync(linkPath);
+    const target = isAbsolute(raw) ? raw : resolve(dirname(linkPath), raw);
+    if (normalizePathForCompare(target) === normalizePathForCompare(expected)) return true;
+  } catch {
+    // Fall back to realpath below.
+  }
+
+  try {
+    return normalizePathForCompare(realpathSync(linkPath)) === normalizePathForCompare(realpathSync(expected));
+  } catch {
+    return false;
+  }
+}
+
+function createUserLink(target: string, linkPath: string): void {
+  mkdirSync(dirname(linkPath), { recursive: true });
+  symlinkSync(target, linkPath, process.platform === "win32" ? "junction" : "dir");
+}
+
+function copyUserFallback(target: string, linkPath: string, reason: string): { fallbackCopied: number; fallbackFailures: string[] } {
+  const copied = copyMissing(target, linkPath);
+  try {
+    writeFileSync(join(linkPath, COPY_FALLBACK_MARKER), JSON.stringify({
+      target,
+      reason,
+      createdAt: new Date().toISOString(),
+      note: "Windows fallback: directory link creation failed, so LifeOS copied USER into the live runtime tree.",
+    }, null, 2) + "\n");
+  } catch (err) {
+    copied.failures.push(`${COPY_FALLBACK_MARKER}: ${err instanceof Error ? err.message : String(err)}`);
+  }
+  return { fallbackCopied: copied.copied, fallbackFailures: copied.failures };
+}
+
 export function setupUserSeparation(
   configRoot: string,
   configDir: string,
-): { action: "already-linked" | "linked" | "scaffolded-linked"; target: string; copied: number; overwritten?: number; preserved?: number; backup?: string; error?: string } {
+): {
+  action: "already-linked" | "linked" | "scaffolded-linked" | "copied-fallback";
+  target: string;
+  copied: number;
+  overwritten?: number;
+  preserved?: number;
+  backup?: string;
+  warning?: string;
+  fallbackCopied?: number;
+  fallbackFailures?: string[];
+  error?: string;
+} {
   const liveUserDir = join(configRoot, "LIFEOS", "USER");
   const dataUserDir = join(configDir, "USER");
 
   // Branch (a): already a correct symlink → no-op.
   if (existsSync(liveUserDir)) {
-    const st = lstatSync(liveUserDir);
-    if (st.isSymbolicLink()) {
-      try {
-        if (readlinkSync(liveUserDir) === dataUserDir) return { action: "already-linked", target: dataUserDir, copied: 0 };
-      } catch { /* fall through to rebuild */ }
-    }
+    try {
+      if (linkTargetMatches(liveUserDir, dataUserDir)) {
+        return { action: "already-linked", target: dataUserDir, copied: 0 };
+      }
+    } catch { /* fall through to rebuild */ }
   }
 
   mkdirSync(dataUserDir, { recursive: true });
@@ -492,20 +570,43 @@ export function setupUserSeparation(
     const merged = mergeTree(backupDir, dataUserDir, stamp);
     copied = merged.copied;
     try {
-      mkdirSync(dirname(liveUserDir), { recursive: true });
-      symlinkSync(dataUserDir, liveUserDir);
+      createUserLink(dataUserDir, liveUserDir);
       return { action: "linked", target: dataUserDir, copied, overwritten: merged.overwritten, preserved: merged.preserved, backup: backupDir };
     } catch (err) {
+      if (process.platform === "win32") {
+        const reason = err instanceof Error ? err.message : String(err);
+        const fallback = copyUserFallback(dataUserDir, liveUserDir, reason);
+        return {
+          action: "copied-fallback",
+          target: dataUserDir,
+          copied,
+          overwritten: merged.overwritten,
+          preserved: merged.preserved,
+          backup: backupDir,
+          warning: `Windows junction creation failed; USER copied into live tree instead: ${reason}`,
+          ...fallback,
+        };
+      }
       return { action: "linked", target: dataUserDir, copied, overwritten: merged.overwritten, preserved: merged.preserved, backup: backupDir, error: `symlink creation failed (live USER preserved at ${backupDir}): ${err instanceof Error ? err.message : String(err)}` };
     }
   }
 
   // Branch (c): fresh install — scaffold the data home (if empty) + symlink.
   try {
-    mkdirSync(dirname(liveUserDir), { recursive: true });
-    symlinkSync(dataUserDir, liveUserDir);
+    createUserLink(dataUserDir, liveUserDir);
     return { action: "scaffolded-linked", target: dataUserDir, copied };
   } catch (err) {
+    if (process.platform === "win32") {
+      const reason = err instanceof Error ? err.message : String(err);
+      const fallback = copyUserFallback(dataUserDir, liveUserDir, reason);
+      return {
+        action: "copied-fallback",
+        target: dataUserDir,
+        copied,
+        warning: `Windows junction creation failed; USER copied into live tree instead: ${reason}`,
+        ...fallback,
+      };
+    }
     return { action: "scaffolded-linked", target: dataUserDir, copied, error: `symlink creation failed: ${err instanceof Error ? err.message : String(err)}` };
   }
 }
@@ -518,8 +619,22 @@ export function checkSymlinkContract(configRoot: string, configDir: string): { p
   const liveUserDir = join(configRoot, "LIFEOS", "USER");
   const expected = join(configDir, "USER");
   if (!existsSync(liveUserDir)) return { passed: false, detail: `missing: ${liveUserDir}` };
+  if (linkTargetMatches(liveUserDir, expected)) return { passed: true, detail: `${liveUserDir} -> ${expected}` };
   const st = lstatSync(liveUserDir);
-  if (!st.isSymbolicLink()) return { passed: false, detail: `${liveUserDir} is not a symlink (system/user separation broken)` };
+  if (!st.isSymbolicLink()) {
+    const markerPath = join(liveUserDir, COPY_FALLBACK_MARKER);
+    if (existsSync(markerPath)) {
+      try {
+        const marker = JSON.parse(readFileSync(markerPath, "utf-8")) as { target?: string };
+        if (marker.target && normalizePathForCompare(marker.target) === normalizePathForCompare(expected)) {
+          return { passed: true, detail: `${liveUserDir} is a Windows copy fallback for ${expected}` };
+        }
+      } catch {
+        return { passed: false, detail: `copy fallback marker is unreadable: ${markerPath}` };
+      }
+    }
+    return { passed: false, detail: `${liveUserDir} is not linked to ${expected} (system/user separation broken)` };
+  }
   let target: string;
   try {
     target = readlinkSync(liveUserDir);

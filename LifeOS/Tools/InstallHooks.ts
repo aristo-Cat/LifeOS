@@ -15,10 +15,14 @@
  */
 
 import { copyFileSync, cpSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
 import { join } from "node:path";
 import { detectDevTree, mergeHooks } from "./InstallEngine";
 
 interface Args { configRoot: string; skillRoot: string; apply: boolean; allowDev: boolean; }
+type HookEntry = { type?: string; command?: string; url?: string; [k: string]: unknown };
+type MatcherGroup = { matcher?: string; hooks?: HookEntry[]; [k: string]: unknown };
+type HooksMap = Record<string, MatcherGroup[]>;
 
 function parseArgs(): Args {
   const a = process.argv.slice(2);
@@ -26,13 +30,73 @@ function parseArgs(): Args {
     const i = a.indexOf(flag);
     return i >= 0 && a[i + 1] && !a[i + 1].startsWith("--") ? a[i + 1] : undefined;
   };
-  const home = process.env.HOME || "";
+  const home = process.env.HOME || process.env.USERPROFILE || homedir();
   return {
     configRoot: get("--config-root") || process.env.CLAUDE_CONFIG_DIR || join(home, ".claude"),
     skillRoot: get("--skill-root") || join(import.meta.dir, ".."),
     apply: a.includes("--apply"),
     allowDev: a.includes("--allow-dev"),
   };
+}
+
+function psString(value: string): string {
+  return `'${value.replace(/'/g, "''")}'`;
+}
+
+function splitCommandArgs(segment: string): string[] {
+  const matches = segment.match(/"[^"]*"|'[^']*'|\S+/g) ?? [];
+  return matches.map((part) => part.replace(/^["']|["']$/g, ""));
+}
+
+function resolveInstallPath(token: string, configRoot: string): string {
+  return token
+    .replace(/^\$HOME\/\.claude(?=\/|$)/, configRoot.replace(/\\/g, "/"))
+    .replace(/^~\/\.claude(?=\/|$)/, configRoot.replace(/\\/g, "/"))
+    .replace(/\//g, "\\");
+}
+
+function windowsBunSegment(segment: string, configRoot: string): string {
+  const parts = splitCommandArgs(segment.trim());
+  if (parts[0] === "bun") parts.shift();
+  if (parts.length === 0) return "";
+
+  const script = resolveInstallPath(parts[0], configRoot);
+  const args = parts.slice(1).map((arg) => resolveInstallPath(arg, configRoot));
+  if (script.endsWith(".sh")) {
+    return [
+      "$bash = Get-Command bash.exe -ErrorAction SilentlyContinue",
+      `if ($bash) { & $bash.Source ${psString(script)} ${args.map(psString).join(" ")} }`,
+    ].join("; ");
+  }
+  return `bun ${psString(script)} ${args.map(psString).join(" ")}`.trim();
+}
+
+function toWindowsHookCommand(command: string, configRoot: string): string {
+  const segments = command.split(";").map((part) => windowsBunSegment(part, configRoot)).filter(Boolean);
+  const prelude = [
+    `$env:HOME = ${psString(process.env.HOME || process.env.USERPROFILE || homedir())}`,
+    `$env:CLAUDE_CONFIG_DIR = ${psString(configRoot)}`,
+    `$env:LIFEOS_DIR = ${psString(join(configRoot, "LIFEOS"))}`,
+  ];
+  const script = [...prelude, ...segments].join("; ");
+  return `powershell.exe -NoProfile -ExecutionPolicy Bypass -Command ${JSON.stringify(script)}`;
+}
+
+function normalizeHooksForPlatform(hooks: HooksMap, configRoot: string): HooksMap {
+  if (process.platform !== "win32") return hooks;
+  const cloned = JSON.parse(JSON.stringify(hooks)) as HooksMap;
+  for (const groups of Object.values(cloned)) {
+    if (!Array.isArray(groups)) continue;
+    for (const group of groups) {
+      if (!Array.isArray(group.hooks)) continue;
+      for (const hook of group.hooks) {
+        if (hook.type === "command" && typeof hook.command === "string") {
+          hook.command = toWindowsHookCommand(hook.command, configRoot);
+        }
+      }
+    }
+  }
+  return cloned;
 }
 
 function countFilesRec(dir: string): number {
@@ -59,7 +123,8 @@ function main(): void {
     console.log(JSON.stringify({ ok: false, error: `payload hooks.json not found at ${hooksJsonPath}` }, null, 2));
     process.exit(1);
   }
-  const incoming = JSON.parse(readFileSync(hooksJsonPath, "utf-8"))?.hooks ?? {};
+  const rawIncoming = JSON.parse(readFileSync(hooksJsonPath, "utf-8"))?.hooks ?? {};
+  const incoming = normalizeHooksForPlatform(rawIncoming, configRoot);
 
   // The hook SCRIPTS (*.hook.ts|sh + lib/**) live beside hooks.json in the payload.
   // Merging hooks.json into settings.json wires commands that point at these files,

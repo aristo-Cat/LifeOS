@@ -11,6 +11,7 @@
  */
 
 import { join } from "node:path";
+import { homedir } from "node:os";
 import { checkSymlinkContract, detectDevTree, setupUserSeparation } from "./InstallEngine";
 
 function main(): void {
@@ -19,7 +20,7 @@ function main(): void {
     const i = a.indexOf(f);
     return i >= 0 && a[i + 1] && !a[i + 1].startsWith("--") ? a[i + 1] : undefined;
   };
-  const home = process.env.HOME || "";
+  const home = process.env.HOME || process.env.USERPROFILE || homedir();
   const configRoot = get("--config-root") || process.env.CLAUDE_CONFIG_DIR || join(home, ".claude");
   const configDir = get("--config-dir") || process.env.LIFEOS_CONFIG_DIR || join(home, ".config", "LIFEOS");
   const apply = a.includes("--apply");

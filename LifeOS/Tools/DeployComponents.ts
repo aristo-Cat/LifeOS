@@ -34,6 +34,7 @@
 
 import { execFileSync } from "node:child_process";
 import { chmodSync, copyFileSync, cpSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { copyMissing, detectDevTree } from "./InstallEngine";
 
@@ -51,6 +52,7 @@ interface Ctx {
   home: string;
   launchAgents: string;
   apply: boolean;
+  platform: NodeJS.Platform;
 }
 
 interface ComponentResult {
@@ -125,6 +127,20 @@ function launchctl(args: string[]): { ok: boolean; out: string } {
 }
 
 function httpCode(url: string): string {
+  if (process.platform === "win32") {
+    try {
+      return execFileSync("powershell.exe", [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-Command",
+        "$ProgressPreference='SilentlyContinue'; try { [int](Invoke-WebRequest -UseBasicParsing -TimeoutSec 3 -Uri $args[0]).StatusCode } catch { '000' }",
+        url,
+      ]).toString().trim();
+    } catch {
+      return "000";
+    }
+  }
   try {
     return execFileSync("curl", ["-s", "-o", "/dev/null", "-w", "%{http_code}", "--max-time", "3", url]).toString().trim();
   } catch {
@@ -132,10 +148,66 @@ function httpCode(url: string): string {
   }
 }
 
+function psFile(file: string, args: string[] = [], timeout = 60000): string {
+  return execFileSync("powershell.exe", [
+    "-NoProfile",
+    "-ExecutionPolicy",
+    "Bypass",
+    "-File",
+    file,
+    ...args,
+  ], { stdio: ["pipe", "pipe", "pipe"], timeout }).toString();
+}
+
+function windowsCommandForPsFile(file: string): string {
+  return `powershell.exe -NoProfile -ExecutionPolicy Bypass -File ${JSON.stringify(file)}`;
+}
+
 // ── component deployers ──────────────────────────────────────────────
+
+function deployPulseWindows(ctx: Ctx): ComponentResult {
+  const r: ComponentResult = { component: "pulse", ready: false, actions: [], blockers: [] };
+  const av = availability("PULSE", ctx);
+  const pulseDir = join(ctx.lifeosDir, "PULSE");
+  const manage = join(pulseDir, "manage.ps1");
+
+  if (!av.inLive && !av.inPayload) {
+    r.blockers.push(`PULSE not in live tree (${pulseDir}) or payload (${join(ctx.payloadRoot, "PULSE")})`);
+    return r;
+  }
+
+  r.ready = true;
+  if (!ctx.apply) {
+    if (!av.inLive) r.actions.push(`copy PULSE from payload -> ${pulseDir}`);
+    r.actions.push(`run ${windowsCommandForPsFile(manage)} install`, "verify http://127.0.0.1:31337/healthz");
+    return r;
+  }
+
+  try {
+    ensurePresent("PULSE", ctx);
+    if (!existsSync(manage)) {
+      r.blockers.push(`Windows Pulse manager missing: ${manage}`);
+      return r;
+    }
+    const out = psFile(manage, ["install"], 120000);
+    r.applied = true;
+    let code = "000";
+    for (let i = 0; i < 12; i++) {
+      code = httpCode("http://127.0.0.1:31337/healthz");
+      if (code === "200") break;
+      Bun.sleepSync(500);
+    }
+    r.probe = { name: "pulse-healthz", passed: code === "200", detail: `healthz -> ${code}${out.trim() ? ` (${out.trim().split(/\r?\n/).slice(-1)[0]})` : ""}` };
+  } catch (err) {
+    r.error = err instanceof Error ? err.message : String(err);
+  }
+  return r;
+}
 
 /** Pulse: ensure the PULSE tree is laid down, then install + load its plist. */
 function deployPulse(ctx: Ctx): ComponentResult {
+  if (ctx.platform === "win32") return deployPulseWindows(ctx);
+
   const r: ComponentResult = { component: "pulse", ready: false, actions: [], blockers: [] };
   const av = availability("PULSE", ctx);
   const pulseDir = join(ctx.lifeosDir, "PULSE");
@@ -192,30 +264,33 @@ function deployPulse(ctx: Ctx): ComponentResult {
 /** Statusline: place the script, chmod +x, wire settings.json statusLine. */
 function deployStatusline(ctx: Ctx): ComponentResult {
   const r: ComponentResult = { component: "statusline", ready: false, actions: [], blockers: [] };
-  const av = availability("LIFEOS_StatusLine.sh", ctx);
-  const scriptPath = join(ctx.lifeosDir, "LIFEOS_StatusLine.sh");
+  const scriptRel = ctx.platform === "win32" ? "LIFEOS_StatusLine.ps1" : "LIFEOS_StatusLine.sh";
+  const av = availability(scriptRel, ctx);
+  const scriptPath = join(ctx.lifeosDir, scriptRel);
   const settingsPath = join(ctx.configRoot, "settings.json");
   // Build the settings.json command from the ACTUAL install root (ctx.lifeosDir),
   // not a hardcoded ~/.claude — a custom --config-root (e.g. ~/.claude-fable) places
   // the script under its own LIFEOS/, and the old literal pointed at the wrong tree.
-  const command = scriptPath.startsWith(`${ctx.home}/`)
+  const unixCommand = scriptPath.startsWith(`${ctx.home}/`)
     ? `$HOME/${scriptPath.slice(ctx.home.length + 1)}`
     : scriptPath;
+  const command = ctx.platform === "win32" ? windowsCommandForPsFile(scriptPath) : unixCommand;
 
   if (!av.inLive && !av.inPayload) {
-    r.blockers.push(`LIFEOS_StatusLine.sh not in live tree (${scriptPath}) or payload`);
+    r.blockers.push(`${scriptRel} not in live tree (${scriptPath}) or payload`);
     return r;
   }
   r.ready = true;
   if (!ctx.apply) {
-    if (!av.inLive) r.actions.push(`copy LIFEOS_StatusLine.sh from payload → ${scriptPath}`);
-    r.actions.push(`chmod +x ${scriptPath}`, `wire settings.json statusLine → ${command}`);
+    if (!av.inLive) r.actions.push(`copy ${scriptRel} from payload -> ${scriptPath}`);
+    if (ctx.platform !== "win32") r.actions.push(`chmod +x ${scriptPath}`);
+    r.actions.push(`wire settings.json statusLine -> ${command}`);
     return r;
   }
 
   try {
-    ensurePresent("LIFEOS_StatusLine.sh", ctx);
-    chmodSync(scriptPath, 0o755);
+    ensurePresent(scriptRel, ctx);
+    if (ctx.platform !== "win32") chmodSync(scriptPath, 0o755);
 
     // A populated-but-unparseable settings.json must NOT be rewritten from {} —
     // that would silently drop the user's whole config. Abort with a blocker.
@@ -238,9 +313,11 @@ function deployStatusline(ctx: Ctx): ComponentResult {
     r.applied = !alreadyWired;
     const reread = JSON.parse(readFileSync(settingsPath, "utf-8"));
     const wired = (reread.statusLine as Record<string, unknown> | undefined)?.command === command;
-    let executable = false;
-    try { execFileSync("test", ["-x", scriptPath]); executable = true; } catch { executable = false; }
-    r.probe = { name: "statusline-wired", passed: wired && executable, detail: `wired=${wired} executable=${executable}${alreadyWired ? " (idempotent)" : ""}` };
+    let runnable = existsSync(scriptPath);
+    if (ctx.platform !== "win32") {
+      try { execFileSync("test", ["-x", scriptPath]); runnable = true; } catch { runnable = false; }
+    }
+    r.probe = { name: "statusline-wired", passed: wired && runnable, detail: `wired=${wired} runnable=${runnable}${alreadyWired ? " (idempotent)" : ""}` };
   } catch (err) {
     r.error = err instanceof Error ? err.message : String(err);
   }
@@ -250,6 +327,14 @@ function deployStatusline(ctx: Ctx): ComponentResult {
 /** Delegate a launchd job to its own standalone installer (no-arg = install). */
 function deployLaunchdJob(component: Component, installerRel: string, ctx: Ctx): ComponentResult {
   const r: ComponentResult = { component, ready: false, actions: [], blockers: [] };
+  if (ctx.platform !== "darwin") {
+    r.ready = true;
+    r.applied = false;
+    r.actions.push(`${component} is macOS launchd-only; skipped on ${ctx.platform}`);
+    r.probe = { name: `${component}-skipped`, passed: true, detail: `launchd unavailable on ${ctx.platform}` };
+    return r;
+  }
+
   const av = availability(installerRel, ctx);
   // The installer needs sibling TOOLS files (templates, WorkSweep.ts, …), so the
   // unit of staging is the whole TOOLS dir — uniform with pulse/statusline.
@@ -377,7 +462,7 @@ function deploy(component: Component, ctx: Ctx): ComponentResult {
 
 function main(): void {
   const a = process.argv.slice(2);
-  const home = process.env.HOME || "";
+  const home = process.env.HOME || process.env.USERPROFILE || homedir();
   const configRoot = arg(a, "--config-root") || process.env.CLAUDE_CONFIG_DIR || join(home, ".claude");
   const skillRoot = arg(a, "--skill-root") || join(import.meta.dir, "..");
   const apply = a.includes("--apply");
@@ -419,6 +504,7 @@ function main(): void {
     home,
     launchAgents: join(home, "Library", "LaunchAgents"),
     apply,
+    platform: process.platform,
   };
 
   const results = selected.map((c) => deploy(c, ctx));
