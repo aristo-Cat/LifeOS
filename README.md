@@ -25,7 +25,9 @@ LifeOS is a Life Operating System. It captures who you are, what you care about,
 
 **Give it to your AI.** LifeOS is installed *by* an AI, so the install is just a prompt. Paste this into your AI coding harness — Claude Code, Cursor, Codex, or any capable agent — and it does the whole setup for you:
 
-> **Read https://ourlifeos.ai/install and install LifeOS for me.**
+```
+Read https://ourlifeos.ai/install and install LifeOS for me.
+```
 
 Your AI reads the install page and walks the setup, asking permission before it touches anything.
 
