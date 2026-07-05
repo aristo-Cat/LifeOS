@@ -5,14 +5,22 @@
 #
 # Install both Claude Code and Codex skill roots:
 #   powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -Target both
+#
+# Standalone bootstrap:
+#   downloads the latest GitHub Release when the repo has one; otherwise falls
+#   back to the Windows-compatible branch ref so it never installs a non-Windows
+#   payload by accident.
 
 [CmdletBinding()]
 param(
   [ValidateSet("claude", "codex", "both")]
   [string]$Target = "claude",
 
-  [string]$Version = "6.0.3",
   [string]$Repo = "aristo-Cat/LifeOS",
+  [string]$Version = "",
+  [string]$Tag = "",
+  [string]$Ref = "windows-compat-v6",
+  [string]$FallbackTag = "v6.0.5",
   [string]$ArchiveUrl = "",
   [string]$Source = "",
   [string]$SkillsDir = "",
@@ -27,6 +35,13 @@ if (-not $env:HOME) { $env:HOME = $HomeDir }
 
 $BlockStart = "<!-- LIFEOS-CODEX-COMPAT:START -->"
 $BlockEnd = "<!-- LIFEOS-CODEX-COMPAT:END -->"
+
+if ($env:LIFEOS_REPO) { $Repo = $env:LIFEOS_REPO }
+if ($env:LIFEOS_VERSION) { $Version = $env:LIFEOS_VERSION }
+if ($env:LIFEOS_TAG) { $Tag = $env:LIFEOS_TAG }
+if ($env:LIFEOS_REF) { $Ref = $env:LIFEOS_REF }
+if ($env:LIFEOS_FALLBACK_TAG) { $FallbackTag = $env:LIFEOS_FALLBACK_TAG }
+if ($env:LIFEOS_ARCHIVE_URL) { $ArchiveUrl = $env:LIFEOS_ARCHIVE_URL }
 
 function Test-LifeOSSkill {
   param([string]$Path)
@@ -52,15 +67,66 @@ function Resolve-LocalSkillSource {
   return ""
 }
 
+function Resolve-ArchiveDownload {
+  if ($ArchiveUrl) {
+    return @{ Label = "custom archive"; Url = $ArchiveUrl }
+  }
+
+  if ($Version) {
+    $ResolvedTag = if ($Version.StartsWith("v")) { $Version } else { "v$Version" }
+    return @{
+      Label = $ResolvedTag
+      Url = "https://github.com/$Repo/archive/refs/tags/$ResolvedTag.zip"
+    }
+  }
+
+  if ($Tag) {
+    return @{
+      Label = $Tag
+      Url = "https://github.com/$Repo/archive/refs/tags/$Tag.zip"
+    }
+  }
+
+  try {
+    $Latest = Invoke-RestMethod -UseBasicParsing -Uri "https://api.github.com/repos/$Repo/releases/latest" -Headers @{ "User-Agent" = "LifeOS-Windows-Installer" }
+    if ($Latest.tag_name) {
+      return @{
+        Label = $Latest.tag_name
+        Url = "https://github.com/$Repo/archive/refs/tags/$($Latest.tag_name).zip"
+      }
+    }
+  } catch {
+    Write-Host "No latest GitHub Release found for $Repo; falling back to ref/tag."
+  }
+
+  if ($Ref) {
+    return @{
+      Label = $Ref
+      Url = "https://github.com/$Repo/archive/refs/heads/$Ref.zip"
+    }
+  }
+
+  return @{
+    Label = $FallbackTag
+    Url = "https://github.com/$Repo/archive/refs/tags/$FallbackTag.zip"
+  }
+}
+
 function Get-ArchiveSkillSource {
-  $Tag = "v$Version"
-  $Url = if ($ArchiveUrl) { $ArchiveUrl } else { "https://github.com/$Repo/archive/refs/tags/$Tag.zip" }
+  $Download = Resolve-ArchiveDownload
+
+  if ($DryRun) {
+    Write-Host "  [dry-run] would download LifeOS $($Download.Label) from $Repo"
+    Write-Host "  [dry-run] archive URL: $($Download.Url)"
+    return $Download.Url
+  }
+
   $Tmp = Join-Path ([System.IO.Path]::GetTempPath()) ("lifeos-install-" + [System.Guid]::NewGuid().ToString("N"))
   $Zip = Join-Path $Tmp "lifeos.zip"
   New-Item -ItemType Directory -Force -Path $Tmp | Out-Null
 
-  Write-Host "Downloading LifeOS $Tag from $Repo..."
-  Invoke-WebRequest -UseBasicParsing -Uri $Url -OutFile $Zip
+  Write-Host "Downloading LifeOS $($Download.Label) from $Repo..."
+  Invoke-WebRequest -UseBasicParsing -Uri $Download.Url -OutFile $Zip
   Expand-Archive -LiteralPath $Zip -DestinationPath $Tmp -Force
 
   $Extracted = Get-ChildItem -LiteralPath $Tmp -Directory | Select-Object -First 1

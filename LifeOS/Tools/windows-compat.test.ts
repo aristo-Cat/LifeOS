@@ -23,6 +23,12 @@ describe("Windows compatibility guardrails", () => {
     const rootInstaller = read("install.ps1");
     expect(rootInstaller).toContain('[ValidateSet("claude", "codex", "both")]');
     expect(rootInstaller).toContain('[string]$Target = "claude"');
+    expect(rootInstaller).toContain('[string]$Version = ""');
+    expect(rootInstaller).toContain('[string]$Ref = "windows-compat-v6"');
+    expect(rootInstaller).toContain('[string]$FallbackTag = "v6.0.5"');
+    expect(rootInstaller).toContain("releases/latest");
+    expect(rootInstaller).toContain("archive/refs/heads/$Ref.zip");
+    expect(rootInstaller).not.toContain('[string]$Version = "6.0.3"');
     expect(rootInstaller).toContain("CODEX_HOME");
     expect(rootInstaller).toContain("LIFEOS-CODEX-COMPAT:START");
 

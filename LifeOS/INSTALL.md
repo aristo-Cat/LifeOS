@@ -25,6 +25,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -Target cl
 ```
 
 On Windows, use `-Target codex` for Codex CLI or `-Target both` to update Claude Code and Codex skill roots from the same local checkout/release.
+If the PowerShell bootstrap runs without a local `LifeOS/` directory beside it, it resolves the latest GitHub Release when available; for this Windows-compatible fork it falls back to the `windows-compat-v6` branch so it does not install a non-Windows payload by accident.
 
 Everything below is written for the AI doing the install.
 
