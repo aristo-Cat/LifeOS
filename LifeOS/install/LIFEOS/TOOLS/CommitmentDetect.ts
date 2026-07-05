@@ -12,7 +12,7 @@
  *     reasoning?: string
  *   }
  *
- *   bun ~/.claude/LIFEOS/TOOLS/CommitmentDetect.ts --text "I'll send Bryan the brief by Friday"
+ *   bun ~/.claude/LIFEOS/TOOLS/CommitmentDetect.ts --text "I'll send Alex the brief by Friday"
  *   echo "thanks" | bun ~/.claude/LIFEOS/TOOLS/CommitmentDetect.ts --stdin
  *
  * Routes through Inference.ts level: low (haiku-tier, 15s timeout, subscription billing).

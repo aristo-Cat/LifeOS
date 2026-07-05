@@ -584,7 +584,7 @@ async function smokeTest(): Promise<number> {
       // this is exactly the curation/eviction that was impossible before.
       const kept = original.slice(0, Math.min(original.length, 47));
       const desired = [...kept, "NAME: SmokeTest MemorySystem ~explicit"];
-      const r2 = add({ type: "memory", actor: "daniel", op: "set", entries: desired });
+      const r2 = add({ type: "memory", actor: "principal", op: "set", entries: desired });
       check("ISC-1/154: memory op:set write succeeded (lands even at cap via drop)", r2.ok,
         r2.ok ? `now ${desired.length} entries` : (r2 as any).message);
       if (r2.ok) {
@@ -595,7 +595,7 @@ async function smokeTest(): Promise<number> {
         }
       }
       // ISC-3 cap still enforced on the set path: 49 entries must be rejected.
-      const over = add({ type: "memory", actor: "daniel", op: "set", entries: Array.from({ length: 49 }, (_, i) => `RULE: over ${i} ~explicit`) });
+      const over = add({ type: "memory", actor: "principal", op: "set", entries: Array.from({ length: 49 }, (_, i) => `RULE: over ${i} ~explicit`) });
       check("ISC-3: op:set with 49 entries rejected (cap enforced)", !over.ok && (over as any).message?.includes("cap"));
     } finally {
       // Restore the original file verbatim.

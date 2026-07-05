@@ -231,4 +231,4 @@ A: Use `debug-tweet-structure.ts` to inspect raw data, check console output.
 - ✅ 4 production-ready scripts
 - ✅ Comprehensive documentation
 
-**This is now the standard for all Twitter operations in PAI.**
+**This is now the standard for all Twitter operations in LifeOS.**

@@ -12,7 +12,7 @@ LifeOS configuration follows the **system/user separation** contract (`LIFEOS/DO
 ├── settings.system.json                         # SYSTEM defaults (public-safe, ships in LifeOS)
 ├── CLAUDE.md                                    # SYSTEM routing table (public-safe)
 ├── LIFEOS/LIFEOS_SYSTEM_PROMPT.md                     # SYSTEM constitutional rules (public-safe)
-├── LIFEOS/TOOLS/PaiConfig.ts                       # SYSTEM typed loader (INTERFACE)
+├── LIFEOS/TOOLS/LifeosConfig.ts                       # SYSTEM typed loader (INTERFACE)
 ├── LIFEOS/TOOLS/MergeSettings.ts                   # SYSTEM merge driver (INTERFACE)
 └── LIFEOS/USER → ~/.config/LIFEOS/USER                # Symlink to USER tree
 
@@ -33,13 +33,13 @@ LifeOS configuration follows the **system/user separation** contract (`LIFEOS/DO
 | File | Tree | Purpose |
 |------|------|---------|
 | `settings.json` | SYSTEM (generated) | Merged at SessionStart by `MergeSettings.ts` from `settings.system.json` + `settings.user.json`. Read-only at runtime — manual edits get overwritten next session. |
-| `settings.system.json` | SYSTEM | Defaults: hooks, permissions, env, daidentity defaults, notifications, tips. Ships in public PAI. |
+| `settings.system.json` | SYSTEM | Defaults: hooks, permissions, env, daidentity defaults, notifications, tips. Ships in public LifeOS. |
 | `LIFEOS/USER/CONFIG/settings.user.json` | USER | Per-principal overlay: identity values, voice IDs, principal name + timezone, custom `spinnerVerbs` + `spinnerTipsOverride`, env overrides. Deep-merged into system defaults; USER always wins. |
 | `CLAUDE.md` | SYSTEM (with USER `@`-imports) | Routing table + top-level `@`-imports of USER identity files. Public release template at `skills/_LIFEOS/RELEASE_TEMPLATES/CLAUDE.public.md`. |
 | `LIFEOS/LIFEOS_SYSTEM_PROMPT.md` | SYSTEM | Constitutional rules (system prompt layer, loaded via `--append-system-prompt-file`). |
 | `LIFEOS/USER/CONFIG/OPERATIONAL_RULES.md` | USER | Per-principal operational rules: repo conventions, env paths, vendor-specific doctrine (Cloudflare token, deploy semantics). `@`-imported directly from `CLAUDE.md` — CC does not follow transitive `@`-imports. |
-| `LIFEOS/USER/CONFIG/LIFEOS_CONFIG.toml` | USER | Typed user config (identity name/pronunciation/timezone, integration credentials, paths). Read via `PaiConfig.load()`. |
-| `LIFEOS/TOOLS/PaiConfig.ts` | SYSTEM (INTERFACE) | Typed loader. Returns a strongly-typed object; the schema is the SYSTEM↔USER contract. |
+| `LIFEOS/USER/CONFIG/LIFEOS_CONFIG.toml` | USER | Typed user config (identity name/pronunciation/timezone, integration credentials, paths). Read via `LifeosConfig.load()`. |
+| `LIFEOS/TOOLS/LifeosConfig.ts` | SYSTEM (INTERFACE) | Typed loader. Returns a strongly-typed object; the schema is the SYSTEM↔USER contract. |
 | `LIFEOS/TOOLS/MergeSettings.ts` | SYSTEM | Deep-merge driver that produces `settings.json` from `settings.system.json` + `settings.user.json` at SessionStart. |
 | `LIFEOS/USER/INTEGRATIONS/{homebridge,unifi,airgradient}.yaml` | USER | Per-integration credentials/endpoints for private `_*` skills. |
 | `LIFEOS/USER/WORK/config.yaml` | USER (optional) | `WORK.REPO` for the Work System. |
@@ -48,7 +48,7 @@ LifeOS configuration follows the **system/user separation** contract (`LIFEOS/DO
 
 1. **SessionStart** — `MergeSettings.ts` reads `settings.system.json` + `LIFEOS/USER/CONFIG/settings.user.json`, deep-merges (USER wins on conflict), writes `settings.json`. This file is what Claude Code reads for hooks, permissions, env, identity.
 2. **Identity** — DA and principal values live in `settings.json` under `daidentity` and `principal` keys (provenance: USER overlay). Hooks read these via `hooks/lib/identity.ts` (`getIdentity()`, `getPrincipal()`, `getDAName()`, `getVoiceId()`).
-3. **Skills** — private `_*` skills that need credentials/integration data read `LIFEOS_CONFIG.toml` via `PaiConfig.load()` (e.g. `_HOMEBRIDGE` reads Homebridge token; `_NETWORK` reads UniFi creds).
+3. **Skills** — private `_*` skills that need credentials/integration data read `LIFEOS_CONFIG.toml` via `LifeosConfig.load()` (e.g. `_HOMEBRIDGE` reads Homebridge token; `_NETWORK` reads UniFi creds).
 4. **CLAUDE.md `@`-imports** — at session start, CC loads files referenced by top-level `@`-imports in `CLAUDE.md` (ARCHITECTURE_SUMMARY, PRINCIPAL_TELOS, PRINCIPAL_IDENTITY, DA_IDENTITY, PROJECTS, OPERATIONAL_RULES). CC does NOT follow transitive `@`-imports from inside imported files, so identity files must be listed in `CLAUDE.md` directly.
 
 ## Editing
@@ -93,13 +93,13 @@ The `<your-release-skill>` skill workflows:
 - **Phase B (2026-05-21)** — `settings.json` split into `settings.system.json` (public) + `settings.user.json` (USER). `MergeSettings.ts` merges at SessionStart.
 - **Phase C (2026-05-22)** — `CLAUDE.md` becomes thin router with direct `@`-imports of USER identity files. `OPERATIONAL_RULES.md` created in `LIFEOS/USER/CONFIG/`. `CLAUDE.user.md` sidecar created and then deleted 2026-05-23 (merged back into `CLAUDE.md`) because CC doesn't follow transitive `@`-imports.
 - **Phase E (2026-05-22)** — `SystemFileGuard.hook.ts` runtime write-time enforcement begins.
-- **Phase F (2026-05-22)** — `PaiConfig.ts` typed loader + `LIFEOS_CONFIG.toml` populated. Private skills migrated from hardcoded credentials to `PaiConfig.load()`.
+- **Phase F (2026-05-22)** — `LifeosConfig.ts` typed loader + `LIFEOS_CONFIG.toml` populated. Private skills migrated from hardcoded credentials to `LifeosConfig.load()`.
 - **Phase G (2026-05-22→23)** — separate private GitHub repo created for USER data. `~/.claude/LIFEOS/USER` becomes symlink to `~/.config/LIFEOS/USER`. Pre-push hook installed for two-repo sync. A two-repo-push workflow ("update the kai repo" / "push both repos") ships in the private `<your-release-skill>` skill with four boundary gates.
 - **Phase H (deferred)** — PR-time `DenyListCheck` via GitHub Actions; community v5→v6 migration tool.
 
 ## Pre-v6.0 history
 
-The pre-Phase-A model used `LIFEOS_CONFIG.yaml` as a credentials store and a single `settings.json` directly edited by hand. There was no system/user boundary enforced at write time; defenses were release-time only. That model is retired — the contemporary architecture is the split + symlink + `PaiConfig.ts` described above. The release tooling preserves a `settings.public.json` template for the public release path but the live system reads only from the split files.
+The pre-Phase-A model used `LIFEOS_CONFIG.yaml` as a credentials store and a single `settings.json` directly edited by hand. There was no system/user boundary enforced at write time; defenses were release-time only. That model is retired — the contemporary architecture is the split + symlink + `LifeosConfig.ts` described above. The release tooling preserves a `settings.public.json` template for the public release path but the live system reads only from the split files.
 
 ## Cross-references
 

@@ -9,7 +9,7 @@
  * TRIGGER: UserPromptSubmit
  *
  * NOTE: Mode/tier classification is NOT handled here — that lives in
- * EffortRouter.hook.ts (which runs on the same UserPromptSubmit event,
+ * TheRouter.hook.ts (which runs on the same UserPromptSubmit event,
  * before this hook, and emits MODE/TIER to additionalContext via
  * hookSpecificOutput). Satisfaction/rating capture is handled by the
  * dedicated SatisfactionCapture.hook.ts. This hook does only:
@@ -828,11 +828,11 @@ async function main() {
       isMinimalInteraction ? 'minimal' :
       !isNativeMode(prompt) ? 'algorithm' : 'native';
 
-    // The tab's mode/tier token is OWNED by EffortRouter (the authoritative
+    // The tab's mode/tier token is OWNED by TheRouter (the authoritative
     // classifier), not derived here. PromptProcessing used to stamp "N" from its
-    // own 8-verb isNativeMode() shadow-classifier, which diverged from EffortRouter
+    // own 8-verb isNativeMode() shadow-classifier, which diverged from TheRouter
     // and showed "N" on ALGORITHM turns. Now PromptProcessing only sets the working
-    // DESCRIPTION and recovers whatever token EffortRouter stamped (see stampWorkingTab).
+    // DESCRIPTION and recovers whatever token TheRouter stamped (see stampWorkingTab).
 
     // ── Slash-command / skill invocation: name deterministically from the command ──
     // A command name (e.g. "/Upgrade") can never satisfy the natural-language
@@ -915,10 +915,10 @@ async function main() {
       if (algoIteration) {
         setPhaseTab(priorPhase as AlgorithmTabPhase, sessionId, rawTitle, priorToken!);
       } else {
-        // Do NOT self-classify the mode token — EffortRouter owns it. Recover the
+        // Do NOT self-classify the mode token — TheRouter owns it. Recover the
         // token already on the tab, but ONLY when the tab shows live work; a stale
         // completion/idle token from the prior turn is dropped so it can't leak into
-        // this turn (EffortRouter stamps the authoritative token ~concurrently).
+        // this turn (TheRouter stamps the authoritative token ~concurrently).
         const cur = readTabState(sessionId);
         const liveToken = cur && cur.state !== 'completed' && cur.state !== 'idle'
           ? (extractModeToken(cur.title) || undefined)

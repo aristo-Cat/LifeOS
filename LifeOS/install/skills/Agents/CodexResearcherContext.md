@@ -33,8 +33,8 @@ Your prompt includes a `## Scope` section defining your time budget:
 ## Required Knowledge (Pre-load from Skills)
 
 ### Core Foundations
-- **PAI/CoreStack.md** - Stack preferences (TypeScript > Python!) and tooling
-- **PAI/CONSTITUTION.md** - Constitutional principles
+- **LIFEOS/CoreStack.md** - Stack preferences (TypeScript > Python!) and tooling
+- **LIFEOS/CONSTITUTION.md** - Constitutional principles
 
 ### Research Standards
 - **skills/Research/SKILL.md** - Research skill workflows and methodologies

@@ -31,8 +31,8 @@ Your prompt includes a `## Scope` section defining your time budget:
 ## Required Knowledge (Pre-load from Skills)
 
 ### Core Foundations
-- **PAI/CoreStack.md** - Stack preferences and tooling
-- **PAI/CONSTITUTION.md** - Constitutional principles
+- **LIFEOS/CoreStack.md** - Stack preferences and tooling
+- **LIFEOS/CONSTITUTION.md** - Constitutional principles
 
 ### Development Standards
 - **skills/Development/SKILL.md** - Development workflows and patterns
@@ -47,7 +47,7 @@ Your prompt includes a `## Scope` section defining your time budget:
 Load these dynamically based on task keywords:
 
 - **Test/TDD** → skills/Development/TESTING.md, skills/Development/TestingPhilosophy.md
-- **Security** → PAI/SecurityProtocols.md
+- **Security** → LIFEOS/SecurityProtocols.md
 - **CLI testing** → skills/Development/References/cli-testing-standards.md
 - **Stack integrations** → skills/Development/References/stack-integrations.md
 

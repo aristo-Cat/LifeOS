@@ -50,7 +50,7 @@ The Router does **not** pick which context files to read — that is the Algorit
 
 Every prompt flows through four stages, in this order. Each has a load-bearing source file; the doc's accuracy is anchored to those files. The order matters: the effort posture is decided first, and the model is a lookup against it — you cannot select a model before the level exists.
 
-### 1. Classify — `hooks/EffortRouter.hook.ts`
+### 1. Classify — `hooks/TheRouter.hook.ts`
 
 A `UserPromptSubmit` hook turns the raw prompt into a mode and (if ALGORITHM) a tier. It's a three-stage cascade, cheapest first:
 
@@ -149,7 +149,7 @@ So "route the hard reasoning to a frontier open model" is a Router decision boun
 
 | File | Role in the Router |
 |------|--------------------|
-| `hooks/EffortRouter.hook.ts` | **Classify.** The three-stage cascade, goal-signal detector, interview eligibility, remote-channel short-circuit, telemetry. |
+| `hooks/TheRouter.hook.ts` | **Classify.** The three-stage cascade, goal-signal detector, interview eligibility, remote-channel short-circuit, telemetry. |
 | `LIFEOS/ALGORITHM/v{VERSION}.md` | **Route the effort + dispatch policy.** Mode Classification, the tier→level table, Core-System Override, Per-Task Intelligence Routing, keystone pins. |
 | `LIFEOS/TOOLS/models.ts` | **Select the model.** `EFFORT_MODEL` four-level abstraction, `CURRENT`/`ALIAS` IDs, the three-axes reconciliation, cross-vendor pins, egress ceilings. |
 | `LIFEOS/TOOLS/Inference.ts` | **Utility select-model.** The same four levels for non-agent inference (summaries, classification, vision) plus the Advisor escalation. |

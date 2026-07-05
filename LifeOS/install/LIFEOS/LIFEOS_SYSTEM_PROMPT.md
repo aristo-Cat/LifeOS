@@ -101,7 +101,7 @@ The trigger that distinguishes NATIVE from ALGORITHM is **not** complexity, file
 
 ### Routing
 
-**Mode is decided by a classifier at UserPromptSubmit, not by you.** `hooks/EffortRouter.hook.ts` runs on every top-level prompt and writes a single line to additionalContext:
+**Mode is decided by a classifier at UserPromptSubmit, not by you.** `hooks/TheRouter.hook.ts` runs on every top-level prompt and writes a single line to additionalContext:
 
 ```
 MODE: MINIMAL | NATIVE | ALGORITHM

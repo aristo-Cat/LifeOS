@@ -6,4 +6,4 @@
 
 **How it gets populated:** By the Daemon skill automatically, on-demand or on a schedule. The skill reads your private LifeOS context, applies its scrub rules, and writes the public profile here. You can edit the output before publishing if you want finer control.
 
-**Sample state for fresh installs:** Empty / Just this README. Real content appears as you use PAI.
+**Sample state for fresh installs:** Empty / Just this README. Real content appears as you use LifeOS.

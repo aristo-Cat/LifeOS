@@ -3,14 +3,14 @@ import { readdir, readFile, writeFile, rename, mkdir } from "node:fs/promises"
 import { existsSync } from "node:fs"
 import { homedir } from "node:os"
 import { join } from "node:path"
-import { loadPaiConfig } from "./PaiConfig"
+import { loadLifeosConfig } from "./LifeosConfig"
 
 const INBOX = join(homedir(), "Library/Mobile Documents/com~apple~CloudDocs/PAI/health/inbox")
 const PROCESSED = join(homedir(), "Library/Mobile Documents/com~apple~CloudDocs/PAI/health/processed")
-// Health snapshots live under the user's TELOS dir; resolve via PaiConfig so
+// Health snapshots live under the user's TELOS dir; resolve via LifeosConfig so
 // a relocated LIFEOS_USER_DIR Just Works.
 const SNAPSHOTS = ((): string => {
-  try { return join(loadPaiConfig().paths.userDir, "TELOS/HEALTH/snapshots") }
+  try { return join(loadLifeosConfig().paths.userDir, "TELOS/HEALTH/snapshots") }
   catch { return join(homedir(), ".claude/LIFEOS/USER/TELOS/HEALTH/snapshots") }
 })()
 

@@ -1,6 +1,6 @@
 # Science Methodology - The Deep Dive
 
-**This document elaborates on each phase of the scientific method as applied within PAI.**
+**This document elaborates on each phase of the scientific method as applied within LifeOS.**
 
 The power of this methodology is its universality and its iteration speed. Apply it at micro-scale (TDD cycles) or macro-scale (product strategy). The pattern remains the same.
 

@@ -236,10 +236,11 @@ interceptor --version
 interceptor status
 interceptor status --verbose
 interceptor contexts
+interceptor diagnose --no-skills-hint    # 0.22.2+: daemon exec path, per-context probe, split-brain check
 interceptor open "https://example.com"
 ```
 
-`status` reports both `daemon` and `bridge` lines (bridge shows "not running" if you skipped step 6 — that's fine for `--browser-only`). `open` should return tree + extracted text.
+`status` reports both `daemon` and `bridge` lines (bridge shows "not running" if you skipped step 6 — that's fine for `--browser-only`). `open` should return tree + extracted text. **`diagnose` is the new must-run check** — it prints the daemon's real exec path and flags a **binary split-brain** (Chrome spawns one daemon binary while the CLI talks to another). If it reports a mismatch, point the NMH manifest `path` at `/opt/homebrew/bin/interceptor-daemon` and `pkill -f interceptor-daemon`. See SKILL.md Gotchas for the full bridge-signing / iCloud / launchd-throttle recovery sequence.
 
 ## Notes
 

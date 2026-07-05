@@ -3,7 +3,7 @@
  * LoadMemory — UserPromptSubmit hook that injects the two hot-layer memory
  * files (PRINCIPAL_MEMORY.md, DA_MEMORY.md) as additionalContext on every
  * prompt, so the Claude Code CLI session sees the same memory the Telegram
- * pipeline already injects via buildPaiContextBlock.
+ * pipeline already injects via buildLifeosContextBlock.
  *
  * Closes the CLI-vs-Telegram parity gap (the autonomic loop was writing
  * memory files but the CLI session was never reading them in-prompt).

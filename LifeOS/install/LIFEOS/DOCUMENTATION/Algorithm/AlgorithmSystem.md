@@ -175,7 +175,7 @@ These are the six tabs in the Pulse Agents page (`LIFEOS/PULSE/Observability/src
 ### What gets set when
 
 - **Iterate / Optimize / Ideate / Loop** — Algorithm modes. Set in ISA frontmatter `mode:` at OBSERVE via deterministic trigger detection or skill invocation. Drive the Algorithm's execution pattern.
-- **Native** — response-mode crossover. Set by `hooks/EffortRouter.hook.ts` classifier at UserPromptSubmit when classifier emits `MODE: NATIVE`. Captured in session metadata for Pulse display; no full ISA created.
+- **Native** — response-mode crossover. Set by `hooks/TheRouter.hook.ts` classifier at UserPromptSubmit when classifier emits `MODE: NATIVE`. Captured in session metadata for Pulse display; no full ISA created.
 - **Ladder** — not a LifeOS mode. Surfaced from the standalone Ladder project at `~/Projects/Ladder`.
 
 ### Phase compression

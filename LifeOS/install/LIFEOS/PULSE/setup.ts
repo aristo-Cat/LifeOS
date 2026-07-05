@@ -253,9 +253,9 @@ async function setupLocalHTTPS(): Promise<void> {
 
   // Check if 'pai' hostname is in /etc/hosts
   const hostsContent = await Bun.file("/etc/hosts").text()
-  const hasPaiHost = /^\s*127\.0\.0\.1\s+.*\bpai\b/m.test(hostsContent)
+  const hasLifeosHost = /^\s*127\.0\.0\.1\s+.*\bpai\b/m.test(hostsContent)
 
-  if (!hasPaiHost) {
+  if (!hasLifeosHost) {
     console.log(`
   The 'pai' hostname needs to be added to /etc/hosts.
   This requires sudo. The following line will be appended:

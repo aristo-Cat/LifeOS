@@ -16,7 +16,7 @@ import { disambiguateHomographs } from "../lib/homographs"
 import { join } from "path"
 import { appendFile, mkdir, readFile, rm } from "fs/promises"
 import { inference } from "../../TOOLS/Inference"
-import { loadPaiConfig } from "../../TOOLS/PaiConfig"
+import { loadLifeosConfig } from "../../TOOLS/LifeosConfig"
 import { read as readMemory, type ReadResult as MemoryReadResult } from "../../TOOLS/MemoryWriter"
 import { getRelevantContext } from "../../TOOLS/MemoryRetriever"
 import {
@@ -79,13 +79,13 @@ const MEANINGFUL_REPLY_WORDS = 25               // when a reply is at least this
 const LIFEOS_DIR = join(HOME, ".claude", "LIFEOS")
 
 // Voice ID for outbound voice summaries. Read at module import from
-// PaiConfig — `[da.voices.main] voice_id` in LIFEOS/USER/CONFIG/LIFEOS_CONFIG.toml.
-// PaiConfig is the typed interface between system code (this file) and user
+// LifeosConfig — `[da.voices.main] voice_id` in LIFEOS/USER/CONFIG/LIFEOS_CONFIG.toml.
+// LifeosConfig is the typed interface between system code (this file) and user
 // data (the voice ID); the migration from direct settings.json reads to
-// PaiConfig is the Phase F win — one source of truth, no parallel paths.
+// LifeosConfig is the Phase F win — one source of truth, no parallel paths.
 //
 // Fallback: ElevenLabs' public "Rachel" voice (21m00Tcm4TlvDq8ikWAM) — used
-// only when PaiConfig is unavailable or missing required fields. Matches the
+// only when LifeosConfig is unavailable or missing required fields. Matches the
 // public release's bootstrap DA_IDENTITY template default so a fresh install
 // that hasn't run Interview yet still gets a functional (if generic) voice.
 // The fallback must remain a public voice — release-time scrubbing trusts
@@ -96,7 +96,7 @@ const LIFEOS_DIR = join(HOME, ".claude", "LIFEOS")
 // caused Telegram and CLI voices to diverge.
 const DA_VOICE_ID = ((): string => {
   try {
-    const v = loadPaiConfig().da.voices.main.voiceId
+    const v = loadLifeosConfig().da.voices.main.voiceId
     if (v && typeof v === "string" && v.length > 0) return v
   } catch { /* fall through to public default */ }
   return "21m00Tcm4TlvDq8ikWAM"  // ElevenLabs "Rachel" — public voice
@@ -196,7 +196,7 @@ function formatMemoryBlock(title: string, r: MemoryReadResult): string {
  * its own try/catch so a missing source degrades to a placeholder rather than
  * blowing up the whole turn.
  */
-export async function buildPaiContextBlock(query?: string): Promise<string> {
+export async function buildLifeosContextBlock(query?: string): Promise<string> {
   const { stat } = await import("fs/promises")
 
   // Cheap mtime probe to decide if the cache is still valid. Both the four
@@ -462,7 +462,7 @@ export async function summarizeForVoice(replyText: string): Promise<VoiceSummary
     "Voice samples in {{DA_NAME}}'s style:",
     "  'Done. Hooks fired, ISA is 14/14, you're good to ship.'",
     "  'Lean B. A's faster but you'll rewrite it in a month.'",
-    "  'Three unread, two from Bryan about UL. None urgent.'",
+    "  'Three unread, two from Alex about Acme. None urgent.'",
     "  'Bot's listening. Try again — should respond instantly now.'",
     "Match that rhythm. Output the summary text only — no other content.",
   ].join("\n")
@@ -803,7 +803,7 @@ export async function startTelegram(config: TelegramConfig): Promise<void> {
       // Build per-turn LifeOS memory context — who {{PRINCIPAL_NAME}} is, who {{DA_NAME}} is, what
       // {{PRINCIPAL_NAME}}'s goals are, what's in flight today, AND any relevant prior
       // memory pulled by BM25 against the current message.
-      const contextBlock = await buildPaiContextBlock(sanitized)
+      const contextBlock = await buildLifeosContextBlock(sanitized)
 
       // Build prompt with conversation history context, scoped to the current
       // thread only. After an idle reset, threadStartedAt is "now" and this
@@ -861,7 +861,7 @@ You are {{DA_NAME}}, responding to {{PRINCIPAL_NAME}} via Telegram from his phon
 
 ### TELEGRAM_DIRECTIVE (OVERRIDES CLAUDE.md mode-template rule)
 
-EffortRouter has injected a TELEGRAM_DIRECTIVE in this turn's additionalContext. That directive replaces the constitutional "every response uses MINIMAL/NATIVE/ALGORITHM template" rule for this surface. The terminal modes are for the terminal — Telegram is a chat surface and uses plain conversational prose.
+TheRouter has injected a TELEGRAM_DIRECTIVE in this turn's additionalContext. That directive replaces the constitutional "every response uses MINIMAL/NATIVE/ALGORITHM template" rule for this surface. The terminal modes are for the terminal — Telegram is a chat surface and uses plain conversational prose.
 
 DO NOT emit ANY of these:
 - Mode banner labels: bare "MINIMAL", "NATIVE", "ALGORITHM" on a line of their own
@@ -974,7 +974,7 @@ A belt-and-suspenders egress sanitizer (LIFEOS/PULSE/lib/strip-mode-scaffolding.
 
       // Egress sanitizer. Strip any CLAUDE.md mode
       // scaffolding the model leaked despite the TELEGRAM_DIRECTIVE override
-      // (EffortRouter additionalContext + system-prompt override). Defense in
+      // (TheRouter additionalContext + system-prompt override). Defense in
       // depth — Layer 1 (directive) is primary; this is Layer 2. Log on hit
       // so we can tune the directive when leaks happen.
       // Source: LIFEOS/PULSE/lib/strip-mode-scaffolding.ts.

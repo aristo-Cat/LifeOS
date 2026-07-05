@@ -11,7 +11,7 @@
  * - low:    quick tasks, simple generation, basic classification
  * - medium: balanced reasoning, typical analysis
  * - high:   deep reasoning, strategic decisions, complex analysis
- * - max:    keystone decisions — the Advisor + Algorithm E4/E5 dispatch (max=Fable, 2026-07-01; the EffortRouter classifier moved to 'high' the same day)
+ * - max:    keystone decisions — the Advisor + Algorithm E4/E5 dispatch (max=Fable, 2026-07-01; the TheRouter classifier moved to 'high' the same day)
  * - Advisor: max-level escalation for commitment-boundary review (Algorithm v3.23+ VERIFY doctrine)
  *
  * USAGE:
@@ -95,7 +95,7 @@ export interface InferenceOptions {
   imagePaths?: string[];
   /** Optional cap (ms) for the max→high fallback attempt. Bounds the fallback
    * for a max-level caller under a hook ceiling (the fable attempt + opus
-   * fallback must fit inside it). The EffortRouter classifier FORMERLY set this;
+   * fallback must fit inside it). The TheRouter classifier FORMERLY set this;
    * it now runs at `high` directly (2026-07-01), so no caller sets it today —
    * retained for any future hook-bound max caller. Callers WITHOUT a hook
    * ceiling (e.g. the advisor, timeout 120s) omit it, so the fallback inherits
@@ -125,7 +125,7 @@ const LEVEL_CONFIG: Record<InferenceLevel, { model: string; defaultTimeout: numb
   medium: { model: modelForEffort('medium'), defaultTimeout: 30000, effort: LEVEL_TO_HARNESS_EFFORT.medium },
   high: { model: modelForEffort('high'), defaultTimeout: 90000, effort: LEVEL_TO_HARNESS_EFFORT.high },
   // max powers the advisor (commitment-boundary review) AND Algorithm E4/E5 +
-  // Core-System dispatch. max is Fable (2026-07-01). The EffortRouter classifier
+  // Core-System dispatch. max is Fable (2026-07-01). The TheRouter classifier
   // moved OFF max to 'high' the same day — it fires on every prompt, so the
   // per-prompt keystone stays on cheap/fast Opus. Pinned ID (not alias): the
   // top-rung CLI alias is unverified from a nested-session-blocked context.
@@ -393,7 +393,7 @@ export async function inference(options: InferenceOptions): Promise<InferenceRes
     : 'low';
   console.error(`[Inference] max-level model failed (${first.error}); falling back to ${modelForEffort(fallbackLevel)} (level=${fallbackLevel}, distinct from max)`);
   // The retry uses `fallbackTimeoutMs` when the caller set one — only the
-  // EffortRouter classifier does, because its hook has a hard ceiling and the max
+  // TheRouter classifier does, because its hook has a hard ceiling and the max
   // attempt + fallback must fit inside it. Callers without a ceiling (advisor) omit
   // it, so the fallback inherits the full `timeout` and degrades gracefully.
   const fallbackTimeout = options.fallbackTimeoutMs ?? options.timeout ?? config.defaultTimeout;

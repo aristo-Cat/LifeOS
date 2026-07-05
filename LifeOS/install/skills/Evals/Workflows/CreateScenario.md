@@ -28,7 +28,7 @@ Ask for and confirm:
    ```ts
    import { anthropic } from '@ai-sdk/anthropic';
    import scenario, { type ScenarioConfig } from '@langwatch/scenario';
-   import { PAIAgentAdapter } from '../Tools/LifeosAgentAdapter.ts';
+   import { LifeosAgentAdapter } from '../Tools/LifeosAgentAdapter.ts';
 
    const judgeModel = anthropic('claude-sonnet-4-6');
 
@@ -36,7 +36,7 @@ Ask for and confirm:
      name: '<scenario-name>',
      description: '<what happens in plain English>',
      agents: [
-       new PAIAgentAdapter({
+       new LifeosAgentAdapter({
          name: '<agent-name>',
          systemPrompt: '<system prompt for the agent under test>',
          level: 'medium',

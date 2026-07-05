@@ -18,7 +18,7 @@
 import { readdirSync, existsSync, readFileSync } from "fs";
 import { join } from "path";
 import { spawnSync } from "child_process";
-import { paiUserDir } from "./PaiConfig";
+import { paiUserDir } from "./LifeosConfig";
 
 const HOME = process.env.HOME!;
 const CLAUDE_DIR = join(HOME, ".claude");
@@ -483,7 +483,7 @@ function center(str: string, width: number): string {
 // Generate LifeOS ASCII Art
 // ═══════════════════════════════════════════════════════════════════════
 
-function generatePaiArt(): string[] {
+function generateLifeosArt(): string[] {
   const name = "LifeOS";
   const letterColors = [COLORS.blue, COLORS.magenta, COLORS.cyan];
   const rows: string[] = ["", "", "", "", ""];
@@ -648,7 +648,7 @@ function createNeofetchBanner(): string {
   lines.push("");
 
   // LifeOS ASCII Art
-  const paiArt = generatePaiArt();
+  const paiArt = generateLifeosArt();
   for (const row of paiArt) {
     lines.push(center(row, width));
   }

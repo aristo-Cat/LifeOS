@@ -34,7 +34,7 @@ The loop under everything. Your ideal state is the top of the hill, broken into 
 
 ### 3. TELOS
 
-Where you write down who you are and what you're trying to do: your mission, goals, problems, strategies, beliefs, and challenges. You don't start from a blank file — LifeOS interviews you to draw it out, then writes it down for you. From then on every recommendation is framed against it, so the system works toward your actual life, not a generic answer.
+Where you write down who you are and what you're trying to do: your mission, goals, problems, strategies, beliefs, and challenges. You don't start from a blank file — LifeOS interviews you to draw it out, asking what you're building, who matters to you, and where you want to go, then writes it down for you. From then on every recommendation is framed against it, so the system works toward your actual life, not a generic answer.
 
 → `LifeOs/LifeOsThesis.md`
 

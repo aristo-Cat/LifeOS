@@ -130,5 +130,5 @@ If `~/.claude/LIFEOS/USER/CUSTOMIZATIONS/SKILLS/Webdesign/PREFERENCES.md` exists
 - **Skipping Step 0** — losing the doctrine and reverting to AI defaults. Always read the philosophy file first.
 - **Skipping Step 1's explicit aesthetic declaration** — the model drifts into generic "modern clean" when the register isn't named on screen.
 - **Picking the same register every session** — convergence is the AI-slop signal. Vary deliberately.
-- **Saying `verified` without an Interceptor screenshot** — that is a doctrine violation in PAI. The screenshot is the verification.
+- **Saying `verified` without an Interceptor screenshot** — that is a doctrine violation in LifeOS. The screenshot is the verification.
 - **Maximalism without commitment** — half-committed maximalism reads as cluttered. If you choose maximalist, *commit*: more layers, more motion, more density. Same for any register at any pole.

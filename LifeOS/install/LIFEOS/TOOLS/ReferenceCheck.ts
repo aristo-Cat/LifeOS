@@ -604,8 +604,8 @@ for (const [file, refs] of fileRefs) {
 if (includeOrphans) {
   for (const file of allFiles) {
     const rel = relative(CLAUDE_DIR, file);
-    const isPaiTopMd = /^LifeOS\/[^/]+\.md$/.test(rel);
-    if (!isPaiTopMd) continue;
+    const isLifeosTopMd = /^LifeOS\/[^/]+\.md$/.test(rel);
+    if (!isLifeosTopMd) continue;
     if (!referenced.has(file)) {
       findings.push({
         type: 'orphan',

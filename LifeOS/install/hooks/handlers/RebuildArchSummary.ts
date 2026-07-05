@@ -19,10 +19,10 @@
 import { statSync, readdirSync, existsSync } from "fs";
 import { join } from "path";
 import { spawn } from "child_process";
-import { getPaiDir, getClaudeDir } from "../lib/paths";
+import { getLifeosDir, getClaudeDir } from "../lib/paths";
 
 export async function handleRebuildArchSummary(): Promise<void> {
-  const paiDir = getPaiDir();
+  const paiDir = getLifeosDir();
   const claudeDir = getClaudeDir();
   const output = join(paiDir, "DOCUMENTATION", "LIFEOS_ARCHITECTURE_SUMMARY.md");
   const generator = join(paiDir, "Tools/ArchitectureSummaryGenerator.ts");

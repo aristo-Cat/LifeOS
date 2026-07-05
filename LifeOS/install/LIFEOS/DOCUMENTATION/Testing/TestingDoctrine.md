@@ -18,7 +18,7 @@ This document is the result of a deep analysis of how the Bun project itself (`o
 
 ## Why this doctrine exists
 
-LifeOS ships a lot of TypeScript across hooks, skills, tools, Pulse, Arbol Workers, and the release pipeline. Verification has been ad-hoc — `curl` checks, manual `bun run` invocations, eyeballing diffs. Several recurring failure modes (silent OAuth/API-key billing, identity-grep gates, ISA parsing, Pulse VoiceServer, EffortRouter classifier) are exactly the class of bugs a real harness catches.
+LifeOS ships a lot of TypeScript across hooks, skills, tools, Pulse, Arbol Workers, and the release pipeline. Verification has been ad-hoc — `curl` checks, manual `bun run` invocations, eyeballing diffs. Several recurring failure modes (silent OAuth/API-key billing, identity-grep gates, ISA parsing, Pulse VoiceServer, TheRouter classifier) are exactly the class of bugs a real harness catches.
 
 The ISA already declares the test surface (Algorithm v6.3.0 doctrine: *"the ISA IS the test harness because the ISCs are the tests"*). What's been missing is the *invocable probe* behind each ISC. This doctrine closes that gap by making `bun test path/to/foo.test.ts` the canonical answer to "how does this ISC actually verify?"
 
@@ -30,12 +30,12 @@ The ISA already declares the test surface (Algorithm v6.3.0 doctrine: *"the ISA 
 |---------|-----------|--------------|
 | **Single shared harness, zero external deps** | `test/harness.ts` (1985 lines, 98 exports, header comment forbids external deps) | `~/.claude/test/harness.ts` |
 | **Parallel `test/` tree mirroring API surface, not co-location** | `src/bun.js/api/spawn.zig` → `test/js/bun/spawn/*.test.ts` | `hooks/<Hook>.hook.ts` → `test/hooks/<Hook>.hook.test.ts` |
-| **Subprocess testing for CLI behavior** | 591 of 1526 test files spawn `bun` | `Inference.ts`, `EffortRouter.hook.ts`, hook handlers tested via `Bun.spawn` |
+| **Subprocess testing for CLI behavior** | 591 of 1526 test files spawn `bun` | `Inference.ts`, `TheRouter.hook.ts`, hook handlers tested via `Bun.spawn` |
 | **`tempDir` with `DisposableString`** | `test/harness.ts:263-294` | `paiTempDir(prefix, fileMap)` returns `using`-disposable |
 | **Scrubbed env constant** | `bunEnv` in `test/harness.ts:50-104` | `paiTestEnv` scrubs API keys, OAuth tokens, real `HOME` |
 | **`await using proc` + 3-way `Promise.all`** | `test/cli/heap-prof.test.ts` | Standard subprocess capture pattern |
 | **Inline snapshots with normalization** | `test/js/web/console/console-log.test.ts:75-150` | Strip absolute paths, ISO timestamps, ANSI codes before snapshot |
-| **Platform predicates** | `isMacOS`, `isLinux`, `isCI`, `isFlaky`, `isMusl`, etc. | `isCI`, `isMacOS`, `isFlaky`, `isPaiDev` |
+| **Platform predicates** | `isMacOS`, `isLinux`, `isCI`, `isFlaky`, `isMusl`, etc. | `isCI`, `isMacOS`, `isFlaky`, `isLifeosDev` |
 | **Custom matchers via module augmentation** | `expect.extend({toRun, toThrowWithCode, …})` with `declare module "bun:test"` | `toBeValidISA`, `toBeValidClassifierLine`, `toHavePassedAllISCs` |
 | **`test.todoIf` for flake demotion (not retry)** | `isFlaky = isCI; test.todoIf(isFlaky && isMacOS)("…")` | Same — flakes get tagged + tracked, never retried |
 | **Regression test convention `test/regression/issue/{N}.test.ts`** | Same path | `test/regression/{slug}.test.ts` keyed by ISA decision IDs |
@@ -299,7 +299,7 @@ If a test needs to render a webpage and inspect the DOM → Interceptor. Otherwi
 ## Adoption sequence
 
 1. **Phase 1 (this work).** Doctrine doc, `bunfig.toml`, `test/harness.ts` skeleton, one reference test (`test/tools/Inference.test.ts`) proving the path. → THIS DELIVERABLE.
-2. **Phase 2.** Cover the load-bearing critical paths: `Inference.ts`, `EffortRouter.hook.ts`, `ISASync.hook.ts`, `RemoveTrailingNewline.hook.ts`, `Pulse VoiceServer`, every release-gate handler, the ISA Append workflow's C/R/L parser. Per-path coverage threshold at 80% line.
+2. **Phase 2.** Cover the load-bearing critical paths: `Inference.ts`, `TheRouter.hook.ts`, `ISASync.hook.ts`, `RemoveTrailingNewline.hook.ts`, `Pulse VoiceServer`, every release-gate handler, the ISA Append workflow's C/R/L parser. Per-path coverage threshold at 80% line.
 3. **Phase 3.** Cover every active skill workflow (Scaffold, Append, Reconcile, Seed, CheckCompleteness for ISA; equivalent core paths for other skills).
 4. **Phase 4.** Add the validation-pass layers: a `pai-doctrine.test.ts` that asserts `CLAUDE.md` and `LIFEOS_SYSTEM_PROMPT.md` cross-references resolve; a `pai-secrets.test.ts` that asserts no API keys leak into the public release staging dir.
 5. **Phase 5.** Wire `bun test` into the VERIFY-phase tool-table rule of the next Algorithm minor version.

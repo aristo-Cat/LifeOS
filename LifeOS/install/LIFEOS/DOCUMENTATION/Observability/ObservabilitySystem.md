@@ -38,7 +38,7 @@ JSONL Sources (local disk)
 | Voice events | `MEMORY/VOICE/voice-events.jsonl` | 50 | Voice notification server |
 | Subagent events | `MEMORY/OBSERVABILITY/subagent-events.jsonl` | 50 | `AgentInvocation.hook.ts` (PreToolUse:Agent / PostToolUse:Agent) |
 | Agent watchdog | stdout (Monitor notifications) | — | `Tools/AgentWatchdog.ts` via Monitor tool. Reads tool-activity.jsonl + subagent-starts.json; alerts on 90s silence with active agents. Auto-triggered by Pulse agent-guard hook on background agent spawn. |
-| Effort routing | `MEMORY/OBSERVABILITY/effort-router.jsonl` | — | `EffortRouter.hook.ts` (UserPromptSubmit). MODE + TIER classification per prompt; tail consumed by `MemoryReviewTrigger.hook.ts` to skip MINIMAL-mode. |
+| Effort routing | `MEMORY/OBSERVABILITY/effort-router.jsonl` | — | `TheRouter.hook.ts` (UserPromptSubmit). MODE + TIER classification per prompt; tail consumed by `MemoryReviewTrigger.hook.ts` to skip MINIMAL-mode. |
 | ISA rework | `MEMORY/OBSERVABILITY/isa-rework.jsonl` | — | `ISASync.hook.ts` Resume-After-Complete path (Algorithm v6.9.0, 2026-05-22). One row per auto-rewind: ts, session_id, slug, prev_phase, new_phase, prev_iteration, new_iteration, body_delta_bytes. |
 | Frame drift | `MEMORY/OBSERVABILITY/frame-drift.jsonl` | — | Algorithm VERIFY-phase emitter (v6.8.0). T1/T2/T3 boolean tests per ISA at VERIFY entry. |
 | Reviewer runs | `MEMORY/OBSERVABILITY/reviewer-runs.jsonl` | — | `MemoryReviewer.ts` (autonomic memory). One row per reviewer execution: runId, transcript path, exchanges read, inference_duration_ms, parse_ok, dispatch_summary { total, by_type, succeeded, failed, failures }. |
@@ -54,10 +54,10 @@ Per-source counts are configured inline in `Pulse/Observability/observability.ts
 
 ## Event Format
 
-All events conform to the `PAIEvent` interface:
+All events conform to the `LifeosEvent` interface:
 
 ```typescript
-interface PAIEvent {
+interface LifeosEvent {
   timestamp: string;     // ISO-8601 with timezone
   session_id: string;    // Claude Code session ID
   source: string;        // "tool-activity" | "tool-failure" | "voice" | "subagent"

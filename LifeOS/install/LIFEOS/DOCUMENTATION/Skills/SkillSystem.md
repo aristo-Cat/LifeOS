@@ -49,7 +49,7 @@ If a skill does not follow this structure, it is not properly configured and wil
 
 **TitleCase rules** (apply to public skill dirs and ALL sub-files): first letter of each word capitalized; no hyphens, underscores, or spaces; single words capitalize first letter (`Blogging`, `Daemon`); multi-word concatenate with each capitalized (`UpdateDaemonInfo`).
 
-**`_ALLCAPS` rules** (apply to private skill dirs only): leading underscore + uppercase letters; internal underscores tolerated for compound names (`_RL_COMPETITIVE_INTELLIGENCE`, `_JAVASCRIPT_ANALYSIS`).
+**`_ALLCAPS` rules** (apply to private skill dirs only): leading underscore + uppercase letters; internal underscores tolerated for compound names (`_CLIENT_PROJECT`, `_JAVASCRIPT_ANALYSIS`).
 
 **Exception:** `SKILL.md` is always uppercase (convention for the main skill file in every skill).
 

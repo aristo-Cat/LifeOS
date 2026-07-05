@@ -1,4 +1,4 @@
-# LifeOS 6.0.3 — LifeOS (the Life Operating System)
+# LifeOS 6.0.5 — LifeOS (the Life Operating System)
 
 > **LifeOS is the Life OS. The DA is the principal's AI assistant. Pulse is the Life Dashboard.**
 > Canonical thesis: `LIFEOS/DOCUMENTATION/LifeOs/LifeOsThesis.md`. Everyone running LifeOS names their own DA. LifeOS targets AS3 on the LifeOS Maturity Model, with lineage from "The Real Internet of Things" (2016).

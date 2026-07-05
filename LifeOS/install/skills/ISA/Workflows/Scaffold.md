@@ -58,7 +58,7 @@ Run the four-signal detector on the prompt:
 
 **Multi-literal:** if multiple candidates ("do X and Y by Z"), **first wins as `principal_stated_goal:`**; others demote to derived Constraints with `derived_from: principal_stated_goal compound` annotation.
 
-**Classifier handshake:** `EffortRouter.hook.ts` may emit `GOAL_SIGNAL: <1|2|3|4|none>` in additionalContext. Trust as hint, re-validate via the detector above.
+**Classifier handshake:** `TheRouter.hook.ts` may emit `GOAL_SIGNAL: <1|2|3|4|none>` in additionalContext. Trust as hint, re-validate via the detector above.
 
 When detection fires + min-content passes, write the four frontmatter fields:
 
@@ -84,13 +84,13 @@ Distill what remains:
 
 ### Step 3.5 — Density preflight (v6.5.0 — MANDATORY at E3+; v6.7.0 — EXTENDED to E1/E2 with permissive thresholds)
 
-**Stage 2 of the density × tier gate.** Stage 1 (eligibility) ran in `EffortRouter.hook.ts`; this stage measures whether the prompt + recent conversation carry enough signal to scaffold the tier's required sections without speculation.
+**Stage 2 of the density × tier gate.** Stage 1 (eligibility) ran in `TheRouter.hook.ts`; this stage measures whether the prompt + recent conversation carry enough signal to scaffold the tier's required sections without speculation.
 
 **v6.7.0 extension:** eligibility now extends to E1 and E2 with permissive thresholds. At E1, the section-fillability term is skipped (ISA at E1 is inline/optional — depending on the term would be circular); the score uses signals 1-6 (the prompt-derived signals) only.
 
 #### Stage 1 → Stage 2 handoff (how Scaffold reads INTERVIEW_ELIGIBLE)
 
-`EffortRouter.hook.ts` emits a 4-line block into `additionalContext` on every UserPromptSubmit:
+`TheRouter.hook.ts` emits a 4-line block into `additionalContext` on every UserPromptSubmit:
 
 ```
 MODE: ALGORITHM | TIER: E4 | REASON: … | SOURCE: classifier

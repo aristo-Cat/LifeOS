@@ -178,7 +178,7 @@ function main(): number {
 
   // 2026-05-24 (realtime-phase-tracking): If session is currently a 'native'
   // placeholder for an algorithm session (created by PromptProcessing before
-  // EffortRouter pre-emit landed), upgrade it in place. Otherwise just set
+  // TheRouter pre-emit landed), upgrade it in place. Otherwise just set
   // the phase.
   if ((session.mode === 'native' || session.mode === 'starting') && args.phase !== 'starting') {
     session.mode = 'interactive';

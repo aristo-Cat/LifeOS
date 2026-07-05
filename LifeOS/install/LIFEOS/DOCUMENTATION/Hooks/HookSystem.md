@@ -156,7 +156,7 @@ Claude Code supports the following hook events:
       "hooks": [
         {
           "type": "command",
-          "command": "$HOME/.claude/hooks/EffortRouter.hook.ts",
+          "command": "$HOME/.claude/hooks/TheRouter.hook.ts",
           "timeout": 30,
           "async": true
         }
@@ -198,8 +198,8 @@ Claude Code supports the following hook events:
 
 **What It Does (current state, 2026-05-06):**
 
-**EffortRouter.hook.ts** — Mode + Tier classification. **Owns the classifier role.**
-- Three-stage cascade: deterministic fast-paths (`/eN`, ratings, praise, system text) → 60s decision cache → EffortRouter classifier (`Inference.ts --level high` — Opus; re-pinned off `max` on 2026-07-01 so the per-prompt keystone doesn't ride Fable, while `max`=Fable stays for E4/E5 + the advisor)
+**TheRouter.hook.ts** — Mode + Tier classification. **Owns the classifier role.**
+- Three-stage cascade: deterministic fast-paths (`/eN`, ratings, praise, system text) → 60s decision cache → TheRouter classifier (`Inference.ts --level high` — Opus; re-pinned off `max` on 2026-07-01 so the per-prompt keystone doesn't ride Fable, while `max`=Fable stays for E4/E5 + the advisor)
 - Emits `MODE: MINIMAL|NATIVE|ALGORITHM | TIER: E1-E5 | REASON: … | SOURCE: classifier|fail-safe|fast-path|cache|explicit` to `additionalContext` via `hookSpecificOutput`
 - **Fail-safe:** classifier timeout/error → `ALGORITHM E3 | SOURCE: fail-safe` (under-escalation is the failure mode the system is built to prevent — Algorithm v6.3.0 line 97)
 - **Inference:** Sonnet via `claude` subscription-billed subprocess (Inference.ts pattern)
@@ -208,7 +208,7 @@ Claude Code supports the following hook events:
 
 **PromptProcessing.hook.ts** — Tab Title + Session Naming via Haiku
 - Single responsibility: terminal tab title updates and session auto-naming
-- Does NOT do mode/tier classification (EffortRouter), rating capture (SatisfactionCapture), or repeat detection (removed 2026-05-06).
+- Does NOT do mode/tier classification (TheRouter), rating capture (SatisfactionCapture), or repeat detection (removed 2026-05-06).
 - Fast paths: deterministic tab title on first prompt, deterministic session name fallback
 - Inference: one Haiku call returning `{ tab_title, session_name }`
 - Writes to: `session-names.json`, `work.json`, tab state, voice server
@@ -226,8 +226,8 @@ Claude Code supports the following hook events:
 
 > **Migration notes (2026-05-06):**
 > - The v4.0 Inspector Pipeline (PromptGuard, ContentScanner, SmartApprover, SecurityPipeline, ContainmentGuard) was deleted in the security simplification. See `LIFEOS/DOCUMENTATION/Security/README.md`.
-> - `RepeatDetection.hook.ts` was cut as a pre-classifier-era safety net now redundant with EffortRouter + Opus reading conversation context. Pre-state tag: `pre-bpe-cuts-2026-05-06`.
-> - The ModeClassifier/ClassifierTelemetry consolidation hinted at in older docs was reverted: classifier (EffortRouter) and namer/tab-setter (PromptProcessing) are separate hooks again, in that order, on UserPromptSubmit.
+> - `RepeatDetection.hook.ts` was cut as a pre-classifier-era safety net now redundant with TheRouter + Opus reading conversation context. Pre-state tag: `pre-bpe-cuts-2026-05-06`.
+> - The ModeClassifier/ClassifierTelemetry consolidation hinted at in older docs was reverted: classifier (TheRouter) and namer/tab-setter (PromptProcessing) are separate hooks again, in that order, on UserPromptSubmit.
 
 ---
 
@@ -1411,7 +1411,7 @@ SESSION START (2 hooks):
   LoadContext.hook.ts             Dynamic context injection (relationship, learning, work)
 
 USER PROMPT SUBMIT (5 hooks, in fire order; verified 2026-05-23):
-  EffortRouter.hook.ts            Mode + Tier classifier → additionalContext
+  TheRouter.hook.ts            Mode + Tier classifier → additionalContext
   PromptProcessing.hook.ts        Tab title + session naming via Haiku
   SatisfactionCapture.hook.ts    User satisfaction signal capture (reads last-response.txt)
   ReminderRouter.hook.ts         /remind parser → labeled GitHub issue
@@ -1459,7 +1459,7 @@ SUBAGENT STOP (0 hooks):
   (empty — see PostToolUse:Agent → AgentInvocation.hook.ts)
 
 PERMISSION REQUEST (1 hook):
-  Safety.hook.ts                 Shape-classifier auto-approve [Bash, Write, Edit, MultiEdit, mcp__reversinglabs__.*]
+  Safety.hook.ts                 Shape-classifier auto-approve [Bash, Write, Edit, MultiEdit, mcp__.*]
                                  — same file as PostToolUse hook above; dispatches by event.
                                  PermissionRequest path uses lib/safety-classifier.ts to allow safe shapes
                                  (read-only commands, dev binaries, trusted-workspace targets, mcp pre-vetted,

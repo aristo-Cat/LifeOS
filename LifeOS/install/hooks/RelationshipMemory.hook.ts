@@ -30,7 +30,7 @@
 
 import { writeFileSync, existsSync, mkdirSync, appendFileSync } from 'fs';
 import { join } from 'path';
-import { getPaiDir } from './lib/paths';
+import { getLifeosDir } from './lib/paths';
 import { getPSTComponents } from './lib/time';
 import { getDAName, getPrincipalName } from './lib/identity';
 import { parseTranscript } from '../LIFEOS/TOOLS/TranscriptParser';
@@ -261,7 +261,7 @@ async function main() {
     }
 
     // Write to daily relationship file
-    const paiDir = getPaiDir();
+    const paiDir = getLifeosDir();
     const filepath = ensureRelationshipDir(paiDir);
     initDailyFile(filepath);
 

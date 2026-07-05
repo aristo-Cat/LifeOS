@@ -39,7 +39,7 @@
 
 import { readFileSync, existsSync, readdirSync } from 'fs';
 import { join } from 'path';
-import { getPaiDir, getSettingsPath } from './lib/paths';
+import { getLifeosDir, getSettingsPath } from './lib/paths';
 import { recordSessionStart } from './lib/notifications';
 import { loadLearningDigest, loadWisdomFrames, loadFailurePatterns, loadSignalTrends, loadSynthesisPatterns } from './lib/learning-readback';
 import { findArtifactPath } from './lib/isa-utils';
@@ -394,7 +394,7 @@ async function main() {
       process.exit(0);
     }
 
-    const paiDir = getPaiDir();
+    const paiDir = getLifeosDir();
 
     // Tab reset is handled by KittyEnvPersist.hook.ts (runs before this hook)
 

@@ -35,7 +35,7 @@ Public-by-construction code, documentation, and templates that ship in every Lif
 | `~/.claude/LIFEOS/LIFEOS_StatusLine.sh` | SYSTEM |
 | `~/.claude/LIFEOS/ALGORITHM/**` | SYSTEM |
 | `~/.claude/LIFEOS/DOCUMENTATION/**` | SYSTEM (after Phase D — categorical placeholders only) |
-| `~/.claude/LIFEOS/PULSE/` (source code only — excludes `Assistant/state/`, `state/`, `logs/`, `Plans/`, `Observability/out/`) | SYSTEM (after Phase F — parameterized via PaiConfig) |
+| `~/.claude/LIFEOS/PULSE/` (source code only — excludes `Assistant/state/`, `state/`, `logs/`, `Plans/`, `Observability/out/`) | SYSTEM (after Phase F — parameterized via LifeosConfig) |
 | `~/.claude/LIFEOS/TOOLS/**` (after the few user-path leaks are scrubbed) | SYSTEM |
 | `~/.claude/LIFEOS/ScheduledTasks/**` (system-shipped scheduled task templates, NOT user instances) | SYSTEM |
 | `~/.claude/hooks/**` | SYSTEM |
@@ -68,7 +68,7 @@ The boundary itself — the documented contract by which SYSTEM code reads USER 
 
 | Path | Status |
 |------|--------|
-| `~/.claude/LIFEOS/TOOLS/PaiConfig.ts` | INTERFACE — typed loader, ships in SYSTEM (after Phase F) |
+| `~/.claude/LIFEOS/TOOLS/LifeosConfig.ts` | INTERFACE — typed loader, ships in SYSTEM (after Phase F) |
 | `~/.claude/LIFEOS/USER/CONFIG/LIFEOS_CONFIG.{json\|yaml\|toml}` | INTERFACE — user-supplied implementation (after Phase F; format pending ISC-56.1) |
 | `~/.claude/LIFEOS/USER/CONFIG/settings.user.json` | INTERFACE — user settings overlay (after Phase B) |
 | `~/.claude/LIFEOS/USER/CONFIG/OPERATIONAL_RULES.md` | INTERFACE — user-specific operational rules (after Phase C); @-imported directly from `~/.claude/CLAUDE.md` since CC does not follow transitive @-imports |
@@ -82,7 +82,7 @@ Harness-owned or LifeOS-runtime-owned ephemeral files. Never shipped, never user
 |------|--------|------------|
 | `~/.claude/sessions/`, `todos/`, `tasks/`, `teams/` | RUNTIME (Claude Code harness) | yes |
 | `~/.claude/history.jsonl` | RUNTIME (Claude Code) | yes (under root anchors) |
-| `~/.claude/cache/`, `shell-snapshots/`, `session-env/`, `paste-cache/`, `file-history/` | RUNTIME (harness/PAI) | yes |
+| `~/.claude/cache/`, `shell-snapshots/`, `session-env/`, `paste-cache/`, `file-history/` | RUNTIME (harness/LifeOS) | yes |
 | `~/.claude/.next/`, `.wrangler/`, `.venv/`, `coverage/`, `test-results/`, `telemetry/` | RUNTIME (build/test) | partial — telemetry/ is NOT gitignored and contains identity-bearing data; add to .gitignore in Phase A |
 | `~/.claude/plugins/`, `Plugins/` | RUNTIME (Claude Code plugin install state) | partial |
 | `~/.claude/ide/` | RUNTIME (Claude Code IDE state) | implied |
@@ -94,8 +94,8 @@ Harness-owned or LifeOS-runtime-owned ephemeral files. Never shipped, never user
 
 System code reaches user data via exactly four mechanisms. Any fifth pattern is a boundary violation.
 
-1. **`PaiConfig.load()` typed loader.** The primary access channel for identity, voice, integrations, paths. Returns a typed object; the schema is the contract.
-2. **Path computed from PaiConfig values.** When system code reads a USER file at a path, that path must be built from `PaiConfig.paths.userDir + relative` — never from a literal `LIFEOS/USER/` string.
+1. **`LifeosConfig.load()` typed loader.** The primary access channel for identity, voice, integrations, paths. Returns a typed object; the schema is the contract.
+2. **Path computed from LifeosConfig values.** When system code reads a USER file at a path, that path must be built from `LifeosConfig.paths.userDir + relative` — never from a literal `LIFEOS/USER/` string.
 3. **At-startup @-imports declared in CLAUDE.md (system half).** The harness's @-import mechanism loads user identity files at session start. Declared once in the system half of CLAUDE.md, referencing `${LIFEOS_USER_DIR}/PRINCIPAL/PRINCIPAL_IDENTITY.md` etc.
 4. **HTTP/IPC via the Pulse server.** When a hook or tool needs runtime state, it queries `http://localhost:31337` — Pulse is the only legal aggregator of cross-zone data.
 
@@ -124,7 +124,7 @@ This document is the Phase A deliverable. Phases B–H land progressively. Each 
 | C | `CLAUDE.md` + `LIFEOS_SYSTEM_PROMPT.md` split | Constitutional files move to SYSTEM, leaks → user/OPERATIONAL_RULES.md |
 | D | Sanitize the 9 leak-source files | DOCUMENTATION + skills become SYSTEM-clean |
 | E | `SystemFileGuard.hook.ts` | Runtime enforcement begins |
-| F | `PaiConfig.ts` + migrate Pulse/hooks/skills | One-way dependency direction established |
+| F | `LifeosConfig.ts` + migrate Pulse/hooks/skills | One-way dependency direction established |
 | G | User-dir extracted to private repo, mounted via symlink | Live tree == public release modulo symlink |
 | H | `CONTRIBUTING.md` + CI + PR workflow | The principal and community use same flow |
 

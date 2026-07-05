@@ -6,4 +6,4 @@
 
 **How it gets populated:** By the user explicitly. You build actions when you need a piece of logic that two or more flows or pipelines will reuse, or when you want one well-tested unit instead of inline code repeated across skills.
 
-**Sample state for fresh installs:** Empty / Just this README. Real content appears as you use PAI.
+**Sample state for fresh installs:** Empty / Just this README. Real content appears as you use LifeOS.

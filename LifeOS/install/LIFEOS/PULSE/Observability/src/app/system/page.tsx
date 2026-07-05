@@ -298,7 +298,7 @@ function BookmarkViewer({ detail }: { detail: BookmarkDetail }) {
   );
 }
 
-function PaiPageInner() {
+function LifeosPageInner() {
   const searchParams = useSearchParams();
   const docSlug = searchParams.get("doc");
   const knowledgeCategory = searchParams.get("knowledge");
@@ -413,7 +413,7 @@ function PaiPageInner() {
   );
 }
 
-export default function PaiPage() {
+export default function LifeosPage() {
   return (
     <Suspense
       fallback={
@@ -424,7 +424,7 @@ export default function PaiPage() {
         </div>
       }
     >
-      <PaiPageInner />
+      <LifeosPageInner />
     </Suspense>
   );
 }

@@ -12,7 +12,7 @@ The single authoritative document for Arbol --- LifeOS's cloud execution layer. 
 
 ## Overview
 
-Arbol is the cloud execution layer for PAI. It runs on Cloudflare Workers and provides the infrastructure for deploying AI-powered automation as serverless functions at the edge.
+Arbol is the cloud execution layer for LifeOS. It runs on Cloudflare Workers and provides the infrastructure for deploying AI-powered automation as serverless functions at the edge.
 
 Where LifeOS's local system (the Algorithm, Skills, Memory) operates on the developer's machine, Arbol extends LifeOS into the cloud. It handles scheduled jobs, API integrations, LLM-powered transformations, and multi-step data pipelines --- all deployed as Cloudflare Workers with global distribution and near-zero cold starts.
 
@@ -707,7 +707,7 @@ Check `flow-state.json` for errors. Common: malformed pipeline output, AUTH_TOKE
 |----------|------|-------------|
 | Source Code | `~/.claude/LIFEOS/USER/CUSTOMIZATIONS/ARBOL/` | Cloudflare Workers source repository |
 | Cloudflare Skill | `Cloudflare` skill (LifeOS Skill registry) | MCP + wrangler dual-mode operations |
-| Architecture | `PAISYSTEMARCHITECTURE.md` | LifeOS system architecture |
+| Architecture | `LifeosSystemArchitecture.md` | LifeOS system architecture |
 | System Actions | `~/.claude/LIFEOS/ARBOL/Actions/` | Framework actions (examples) |
 | System Pipelines | `~/.claude/LIFEOS/ARBOL/Pipelines/` | Framework pipelines (examples) |
 | System Flows | `~/.claude/LIFEOS/ARBOL/Flows/` | Framework flows (examples) |
@@ -729,4 +729,4 @@ Check `flow-state.json` for errors. Common: malformed pipeline output, AUTH_TOKE
 | 2026-04-01 | Consolidated ACTIONS.md, PIPELINES.md, FLOWS.md, DEPLOYMENT.md into this single authoritative doc | {{DA_NAME}} | Architecture reorg |
 | 2026-02-25 | Added Queue Composition pattern | {{DA_NAME}} | Feed system |
 | 2026-02-22 | Added Loop Gate, aligned with actual Arbol codebase | {{DA_NAME}} | FLOWS.md |
-| 2026-02-03 | Initial document creation | {{DA_NAME}} | PAISYSTEMARCHITECTURE.md |
+| 2026-02-03 | Initial document creation | {{DA_NAME}} | LifeosSystemArchitecture.md |

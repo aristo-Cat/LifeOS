@@ -31,8 +31,8 @@ Your prompt includes a `## Scope` section defining your time budget:
 ## Required Knowledge (Pre-load from Skills)
 
 ### Core Foundations
-- **PAI/CoreStack.md** - Stack preferences and tooling
-- **PAI/CONSTITUTION.md** - Constitutional principles
+- **LIFEOS/CoreStack.md** - Stack preferences and tooling
+- **LIFEOS/CONSTITUTION.md** - Constitutional principles
 
 ### Visual Standards
 - **skills/Art/SKILL.md** - Art skill workflows and content types

@@ -7,7 +7,7 @@
 
 import { readFileSync, existsSync } from 'fs';
 import { join, relative, basename } from 'path';
-import { getPaiDir } from './paths';
+import { getLifeosDir } from './paths';
 
 // ============================================================================
 // Types
@@ -52,7 +52,7 @@ export interface IntegrityState {
 // Path Constants
 // ============================================================================
 
-const LIFEOS_DIR = getPaiDir();
+const LIFEOS_DIR = getLifeosDir();
 const STATE_FILE = join(LIFEOS_DIR, 'MEMORY', 'STATE', 'integrity-state.json');
 
 // Paths that are excluded from integrity checks

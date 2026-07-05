@@ -6,4 +6,4 @@
 
 **How it gets populated:** By the user explicitly. You only create a subdir here when you actively want to override a skill's default behavior; otherwise leave this dir empty and skills will run with their shipped defaults.
 
-**Sample state for fresh installs:** Empty / Just this README. Real content appears as you use PAI.
+**Sample state for fresh installs:** Empty / Just this README. Real content appears as you use LifeOS.

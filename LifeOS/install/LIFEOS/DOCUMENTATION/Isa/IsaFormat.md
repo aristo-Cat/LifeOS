@@ -151,7 +151,7 @@ frame_drift_summary: ""                # NEW v2.11 / Algorithm v6.8.0+ — ≤14
 Optional fields (NEW v2.10 / 2026-05-13 — Response Mode + Journey Surface):
 
 ```yaml
-response_mode: algorithm        # minimal | native | algorithm — Layer 1 set by EffortRouter.hook.ts
+response_mode: algorithm        # minimal | native | algorithm — Layer 1 set by TheRouter.hook.ts
 algorithm_mode: iterate         # iterate | optimize | ideate | loop — Layer 2 (alias of `mode:` for clarity)
 
 current_state: "Code has 47 type errors blocking deploy"   # The "before" — one-line summary of reality now
@@ -172,7 +172,7 @@ capabilities_invoked:           # Array of capabilities actually invoked via too
 - `capabilities_invoked`: populated incrementally as the Algorithm fires each capability via tool call. Appended-only — no removal on revert. Mirrors the `🏹 CAPABILITIES SELECTED` block in Algorithm phase output, but records actual invocations not intended ones.
 
 **Lifecycle:**
-- `response_mode`: immutable once set at session start. Set by EffortRouter.hook.ts via additionalContext propagation.
+- `response_mode`: immutable once set at session start. Set by TheRouter.hook.ts via additionalContext propagation.
 - `algorithm_mode`: changes only when the Algorithm explicitly switches mode (rare; e.g., user mid-task says "actually let's ideate this").
 - `current_state`: immutable once written. The "before" snapshot doesn't change as work progresses.
 - `ideal_state`: should align with `principal_stated_goal:` when set; can be refined as the ISA tightens (matches the "living explanation" pattern).

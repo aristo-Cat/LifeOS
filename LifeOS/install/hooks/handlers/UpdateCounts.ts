@@ -21,7 +21,7 @@
 import { readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { execSync } from 'child_process';
-import { getPaiDir } from '../lib/paths';
+import { getLifeosDir } from '../lib/paths';
 
 /**
  * Refresh usage cache from Anthropic OAuth API.
@@ -111,7 +111,7 @@ async function refreshUsageCache(paiDir: string): Promise<void> {
  * Now does ONLY the OAuth usage cache refresh.
  */
 export async function handleUpdateCounts(): Promise<void> {
-  const paiDir = getPaiDir();
+  const paiDir = getLifeosDir();
   await refreshUsageCache(paiDir);
 }
 

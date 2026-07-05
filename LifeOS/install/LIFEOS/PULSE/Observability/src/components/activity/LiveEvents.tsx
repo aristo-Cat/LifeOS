@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useMemo } from "react";
-import { usePAIEvents, type PAIEvent } from "@/hooks/useLifeosEvents";
+import { useLifeosEvents, type LifeosEvent } from "@/hooks/useLifeosEvents";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Radio,
@@ -114,7 +114,7 @@ const FILTER_PRESETS = [
 
 // ─── Event Row ───
 
-function PAIEventRow({ event }: { event: PAIEvent }) {
+function LifeosEventRow({ event }: { event: LifeosEvent }) {
   const [expanded, setExpanded] = useState(false);
   const style = getTypeStyle(event.type);
   const Icon = getTypeIcon(event.type);
@@ -210,7 +210,7 @@ function PAIEventRow({ event }: { event: PAIEvent }) {
 // ─── Main Component ───
 
 export default function LiveEvents() {
-  const { events, filteredEvents, clearEvents } = usePAIEvents();
+  const { events, filteredEvents, clearEvents } = useLifeosEvents();
   const [filter, setFilter] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -325,7 +325,7 @@ export default function LiveEvents() {
         ) : (
           <div className="divide-y divide-white/[0.03]">
             {displayEvents.map((event, i) => (
-              <PAIEventRow key={`${event.timestamp}-${event.type}-${i}`} event={event} />
+              <LifeosEventRow key={`${event.timestamp}-${event.type}-${i}`} event={event} />
             ))}
           </div>
         )}

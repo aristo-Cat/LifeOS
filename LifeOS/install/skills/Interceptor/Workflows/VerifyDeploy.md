@@ -101,6 +101,8 @@ bash ~/.claude/skills/Interceptor/Tools/Capture.sh "<DEPLOY_URL>" --full
 
 `Capture.sh` re-runs the isolation gate, routes to the pinned context, prefers the DOM-render path (no foreground needed), and prints the absolute saved-image path on its only stdout line. Read that image to visually confirm rendering. Never call raw `interceptor screenshot` here — it loses the deny-Default guard and CWD-destination handling.
 
+**Flow-gallery (optional, for multi-step flows).** One end-state screenshot proves the last page rendered, not the three screens before it — a broken state mid-flow (a failed validation, an empty intermediate step, a wrong redirect) never gets seen. For a multi-step flow (signup, checkout, vote, onboarding), capture an ORDERED gallery instead: `Capture.sh` at each step, keeping the shots in order with a step label (`01-landing`, `02-form-filled`, `03-confirm`, …). Read them in sequence and confirm every state, not just the end. This extends Probe D; it does not replace probes A–C. For bugs that only exist in *motion* (animation, transition, flicker), use `ScrubFlow` instead — a gallery of stills still can't see a stutter.
+
 ### 6. Report — the evidence bundle
 
 Full verification = ALL FOUR probes captured and clean (with the noise rules above). Mark the ISC `[x]` citing the bundle: DOM content confirmed + console clean (or noise-only) + network clean (or noise-only) + screenshot path.

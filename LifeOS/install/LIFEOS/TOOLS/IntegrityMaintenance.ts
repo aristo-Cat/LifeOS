@@ -235,8 +235,8 @@ function generateDescriptiveTitle(changes: FileChange[]): string {
   const hasTools = paths.some(p => p.includes('/Tools/') && p.endsWith('.ts'));
   const hasHooks = paths.some(p => p.includes('hooks/'));
   const hasConfig = paths.some(p => p.endsWith('settings.json'));
-  const hasPAISystem = paths.some(p => p.includes('/PAI/'));
-  const hasPAIUser = paths.some(p => p.includes('LIFEOS/USER/'));
+  const hasLifeosSystem = paths.some(p => p.includes('/PAI/'));
+  const hasLifeosUser = paths.some(p => p.includes('LIFEOS/USER/'));
 
   // Extract common patterns from filenames
   const fileNames = paths.map(p => basename(p, '.md').replace(/\.ts$/, ''));
@@ -295,7 +295,7 @@ function generateDescriptiveTitle(changes: FileChange[]): string {
     title = 'System Configuration Updated';
   }
   // LifeOS system changes
-  else if (hasPAISystem) {
+  else if (hasLifeosSystem) {
     const docNames = paths
       .filter(p => p.includes('/PAI/'))
       .map(p => basename(p, '.md'));
@@ -306,7 +306,7 @@ function generateDescriptiveTitle(changes: FileChange[]): string {
     }
   }
   // LifeOS user changes
-  else if (hasPAIUser) {
+  else if (hasLifeosUser) {
     const docNames = paths
       .filter(p => p.includes('LIFEOS/USER/'))
       .map(p => basename(p, '.md'));

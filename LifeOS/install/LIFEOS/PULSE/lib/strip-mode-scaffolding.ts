@@ -9,7 +9,7 @@
  *
  * Two layers defend the chat surface:
  *
- *   Layer 1 (prevention) — hooks/EffortRouter.hook.ts emits a channel-specific
+ *   Layer 1 (prevention) — hooks/TheRouter.hook.ts emits a channel-specific
  *   directive (TELEGRAM_DIRECTIVE / IMESSAGE_DIRECTIVE) instead of the MODE
  *   banner when LIFEOS_NOTIFICATION_CHANNEL identifies a remote channel. The
  *   model never sees "MODE: ALGORITHM" so doesn't reach for the template.

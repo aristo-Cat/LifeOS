@@ -43,7 +43,7 @@ export const PATH_CLASS_RULES: ReadonlyArray<{ re: RegExp; cls: DataClass }> = [
   { re: /(?:^|[\s'"`\/=])\.env\b/, cls: "RESTRICTED" },
   { re: /PAI\/USER\/CONFIG\/CREDENTIALS\//, cls: "RESTRICTED" },
   { re: /PAI\/USER\/WORK\/CUSTOMERS\//, cls: "RESTRICTED" },
-  { re: /skills\/_RL_/, cls: "RESTRICTED" },
+  { re: /skills\/_[A-Z]/, cls: "CONFIDENTIAL" }, // any private (underscore-prefixed) skill dir — generalized off a hardcoded customer prefix. Customer-RESTRICTED data is caught by USER/WORK/CUSTOMERS above + the release deny-list; on the capped GLM route (PUBLIC ceiling) CONFIDENTIAL blocks identically to RESTRICTED.
   { re: /PAI\/USER\/TELOS\/FINANCES\//, cls: "RESTRICTED" },
   { re: /PAI\/USER\/CONTACTS\.md/, cls: "RESTRICTED" },
   { re: /PAI\/MEMORY\/KNOWLEDGE\/(?:People|Companies)\//, cls: "CONFIDENTIAL" },

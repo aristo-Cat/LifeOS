@@ -140,7 +140,7 @@ This addresses the known bias where LLMs favor the first option presented.
 ### Step 6: Collect Results
 
 Results stored in:
-- `PAI/MEMORY/STATE/Evals-Results/<use-case>/comparisons/<comparison-name>/<run-id>.json`
+- `LIFEOS/MEMORY/STATE/Evals-Results/<use-case>/comparisons/<comparison-name>/<run-id>.json`
 
 Results structure:
 ```json

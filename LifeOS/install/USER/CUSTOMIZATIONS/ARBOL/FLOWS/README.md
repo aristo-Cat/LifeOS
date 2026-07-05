@@ -6,4 +6,4 @@
 
 **How it gets populated:** By the user explicitly, or by skills that ship their own flow definitions. New flows are added by dropping a yaml file in this dir and registering it in `flow-index.json`.
 
-**Sample state for fresh installs:** Empty / Just this README. Real content appears as you use PAI.
+**Sample state for fresh installs:** Empty / Just this README. Real content appears as you use LifeOS.

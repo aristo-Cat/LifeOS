@@ -17,7 +17,7 @@
 
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { join } from 'path';
-import { paiUserDir } from './PaiConfig';
+import { paiUserDir } from './LifeosConfig';
 
 const TELOS_DIR = join(paiUserDir(), 'TELOS');
 const OUTPUT_PATH = join(TELOS_DIR, 'PRINCIPAL_TELOS.md');

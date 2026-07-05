@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 /**
- * EffortRouter — UserPromptSubmit hook that owns mode/tier classification.
+ * TheRouter — UserPromptSubmit hook that owns mode/tier classification.
  *
  * Three-stage cascade:
  *   A. Deterministic fast-paths (0ms): /eN, ratings, praise, system-text, short, hard triggers.
@@ -67,7 +67,7 @@ interface ClassifierJSON {
 // ── Constants ──
 
 const MIN_PROMPT_LENGTH = 3;
-const CLASSIFIER_TIMEOUT_MS = 30000; // classifier runs at level 'high' (Opus, re-pinned 2026-07-01 — max is now Fable, and firing Fable on every prompt is a needless 2× cost + latency hit). Single ≤30s Opus attempt under the EffortRouter hook ceiling (settings.json timeout: 50s); on timeout/parse-fail it degrades via failsafeDecision(). The classifier's model is UNCHANGED by the re-pin (was Opus via max=opus; is Opus via high now).
+const CLASSIFIER_TIMEOUT_MS = 30000; // classifier runs at level 'high' (Opus, re-pinned 2026-07-01 — max is now Fable, and firing Fable on every prompt is a needless 2× cost + latency hit). Single ≤30s Opus attempt under the TheRouter hook ceiling (settings.json timeout: 50s); on timeout/parse-fail it degrades via failsafeDecision(). The classifier's model is UNCHANGED by the re-pin (was Opus via max=opus; is Opus via high now).
 const STDIN_TIMEOUT_MS = 5000;
 const CACHE_TTL_MS = 60_000;
 const CACHE_MAX_ENTRIES = 50;
@@ -289,7 +289,7 @@ function storeCache(prompt: string, decision: Decision): void {
 // ── Smart classifier prompt ──
 
 function buildClassifierSystemPrompt(): string {
-  return `You are the EffortRouter for LifeOS, the LifeOS (Life Operating System) running on Claude Code. Every prompt is classified into one of three response modes — MINIMAL, NATIVE, or ALGORITHM — plus an effort tier when ALGORITHM is selected.
+  return `You are the TheRouter for LifeOS, the LifeOS (Life Operating System) running on Claude Code. Every prompt is classified into one of three response modes — MINIMAL, NATIVE, or ALGORITHM — plus an effort tier when ALGORITHM is selected.
 
 LifeOS is the Life Operating System — scaffolding that makes AI dependable. Every task is current state → ideal state, articulated as ISC (hard-to-vary criteria), pursued through verifiable iteration. The router preserves dynamic range: fast on simple work, deep on hard work, sharp variation between them.
 
@@ -528,7 +528,7 @@ async function main(): Promise<void> {
   });
 
   // 2026-05-24 (realtime-phase-tracking) + 2026-07-01 (single-authority tab/state):
-  // EffortRouter owns the authoritative {mode,tier} decision, so it drives BOTH
+  // TheRouter owns the authoritative {mode,tier} decision, so it drives BOTH
   // surfaces the instant it classifies — work.json (the Pulse Agents/Lattice page)
   // AND the kitty tab mode token. This kills the divergence where PromptProcessing's
   // shadow 8-verb classifier stamped "N" on an ALGORITHM turn, and clears a prior
@@ -622,7 +622,7 @@ async function main(): Promise<void> {
     { const d = decorate(cached); preEmit(d); emit(d); log(d); process.exit(0); }
   }
 
-  // ── Stage C: EffortRouter classifier (level 'high' = Opus; re-pinned off max 2026-07-01) ──
+  // ── Stage C: TheRouter classifier (level 'high' = Opus; re-pinned off max 2026-07-01) ──
 
   try {
     const contextStr = getRecentContext(transcriptPath);
@@ -636,6 +636,6 @@ async function main(): Promise<void> {
 }
 
 main().catch((err) => {
-  console.error(`[EffortRouter] Fatal: ${err}`);
+  console.error(`[TheRouter] Fatal: ${err}`);
   process.exit(0);
 });

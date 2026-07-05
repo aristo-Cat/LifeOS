@@ -241,7 +241,7 @@ Pulse remains the canonical reader for the dashboard; the cache file is the cano
 
 ## Adjacent freshness system: memory hot-layer mtime cache
 
-The autonomic memory loop (2026-05-22, see `LIFEOS/DOCUMENTATION/Memory/MemorySystem.md`) uses a parallel but separate freshness mechanism for the per-turn context block. `LIFEOS/PULSE/modules/telegram.ts` `buildPaiContextBlock()` mtime-caches the four constitutional files (DA_IDENTITY, PRINCIPAL_IDENTITY, PRINCIPAL_TELOS, PROJECTS) plus the two hot-layer memory files (`PRINCIPAL_MEMORY.md`, `DA_MEMORY.md`) for 60 seconds, re-reading whenever any per-file mtime changes. The 60s window is short enough to pick up an autonomic memory reviewer write within the same conversational burst, long enough to avoid re-reading on every prompt.
+The autonomic memory loop (2026-05-22, see `LIFEOS/DOCUMENTATION/Memory/MemorySystem.md`) uses a parallel but separate freshness mechanism for the per-turn context block. `LIFEOS/PULSE/modules/telegram.ts` `buildLifeosContextBlock()` mtime-caches the four constitutional files (DA_IDENTITY, PRINCIPAL_IDENTITY, PRINCIPAL_TELOS, PROJECTS) plus the two hot-layer memory files (`PRINCIPAL_MEMORY.md`, `DA_MEMORY.md`) for 60 seconds, re-reading whenever any per-file mtime changes. The 60s window is short enough to pick up an autonomic memory reviewer write within the same conversational burst, long enough to avoid re-reading on every prompt.
 
 This is structurally distinct from the freshness cache documented above:
 - **This file's cache** (`LIFEOS/USER/CACHE/freshness.json`) backs the statusline FRESH line and `/api/freshness/summary`. Driven by `bump*` events + Pulse `invalidate()` + SessionStart hook. Schema = full A-F grade output.

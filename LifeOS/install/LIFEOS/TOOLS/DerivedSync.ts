@@ -237,7 +237,7 @@ function plannedActions(changed: string[]): PlannedAction[] {
   if (stateSources.length > 0) {
     actions.push({
       kind: "pai-state",
-      cmd: ["bun", join(TOOLS_DIR, "UpdatePaiState.ts")],
+      cmd: ["bun", join(TOOLS_DIR, "UpdateLifeosState.ts")],
       timeoutMs: DEFAULT_TIMEOUT_MS,
       triggeredBy: stateSources,
     });

@@ -1,3 +1,10 @@
+<!--
+  GENERATED FILE — do not hand-edit the release list below.
+  Source of truth: Releases/releases.json
+  Regenerate:      bun Tools/GenerateReleasesPage.ts
+  A release dir with no manifest entry FAILS the build, so this text always
+  matches the version directories GitHub shows above it.
+-->
 <div align="center">
 
 <img src="releases-icon.png" alt="LifeOS Releases" width="220">
@@ -18,7 +25,44 @@ LifeOS ships as a **single self-contained skill** — your AI installs it for yo
 
 ## Available Releases
 
-### v6.0.0 — The Life Operating System (Current)
+### v6.0.5 — Rename in the Code, New Harvest Skill (Current)
+
+Carries the PAI→LifeOS rename the rest of the way through the codebase, adds the Harvest skill, and sharpens the Algorithm's verification doctrine. Same system as 6.0.0, cleaner throughout.
+
+- PAI→LifeOS rename reaches the code — identifiers and prose read LifeOS throughout; runtime-critical paths left byte-identical on purpose
+- New Harvest skill — mine any URL, video, or article for what's useful to your LifeOS; report-only
+- Algorithm v6.24.0 — motion verification: animation, transition, and multi-step-flow ISCs close on a frame-scrub gallery, not a single screenshot
+- Installer fix — bootstrap install.sh now fetches the version it advertises
+
+**[Get v6.0.5 →](v6.0.5/)**
+
+---
+
+### v6.0.3 — Comprehensive AI-native install
+
+Makes the install doc comprehensive and gets the constitutional layer loading on its own.
+
+- Comprehensive component menu — INSTALL.md lays out the full two-tier model: Core plus à-la-carte enhancements (hooks, statusline, tooltips, spinner verbs, agents, Pulse, background jobs)
+- The `lifeos` launch alias wires `--append-system-prompt-file` so the constitutional layer actually loads
+- One canonical INSTALL.md rendered at ourlifeos.ai/install for humans and AIs
+
+**[Get v6.0.3 →](v6.0.3/)**
+
+---
+
+### v6.0.2 — .md-first AI-native install
+
+Skill-only distribution with an AI-native, `.md`-first install.
+
+- The whole system ships as one self-contained LifeOS/ skill
+- The shipped install.sh pins v6.0.2 and points at danielmiessler/LifeOS
+- Security-clean: 15/15 release gates plus emit-time contract, staleness, and payload gates
+
+**[Get v6.0.2 →](v6.0.2/)**
+
+---
+
+### v6.0.0 — The Life Operating System
 
 LifeOS ships as a single self-contained skill, not a `.claude/` copy — the full framework installs through your AI.
 
@@ -115,7 +159,7 @@ The Algorithm reaches v1.4.0 with constraint extraction, build drift prevention,
 
 ### v2.5.0 — Think Deeper, Execute Faster
 
-The Algorithm learns metacognition—thinking about how it thinks—and parallel execution.
+The Algorithm learns metacognition — thinking about how it thinks — and parallel execution.
 
 - 28 Skills, 17 Hooks, 356 Workflows
 - Two-pass capability selection with ISC validation

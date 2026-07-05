@@ -1,6 +1,6 @@
 ---
 name: Art
-description: "Static visual content across 20+ formats via Flux, Nano Banana Pro (Gemini 3 Pro), and GPT-Image-2. Workflows: Essay, D3Dashboards, Visualize, Mermaid, TechnicalDiagrams, Taxonomies, Timelines, Frameworks, Comparisons, AnnotatedScreenshots, RecipeCards, Aphorisms, Maps, Stats, Comics, StyleMatchedThumbnail, YouTubeThumbnailChecklist, AdHocYouTubeThumbnail, CreatePAIPackIcon, LogoWallpaper, EmbossedLogoWallpaper, RemoveBackground. Output staged to ~/Downloads/ before project copy; --remove-bg returns transparent PNG; user customization dir overrides defaults (model/size flag details in body). USE WHEN art, illustration, diagram, flowchart, infographic, header image, blog social thumbnail, visualize, generate image, mermaid, architecture diagram, comic, icon, blog art, framework diagram, D3 chart, remove background, wallpaper. NOT FOR locked house-style YouTube/channel/video thumbnails (use _THUMBNAIL — it orchestrates Art's Generate/PickExpression/ThumbnailText tools), video or animation (use Remotion), or web UI design and integrated frontend layout (use Webdesign)."
+description: "Static visual content across 20+ formats via Flux, Nano Banana Pro (Gemini 3 Pro), and GPT-Image-2. Workflows: Essay, D3Dashboards, Visualize, Mermaid, TechnicalDiagrams, Taxonomies, Timelines, Frameworks, Comparisons, AnnotatedScreenshots, RecipeCards, Aphorisms, Maps, Stats, Comics, StyleMatchedThumbnail, YouTubeThumbnailChecklist, AdHocYouTubeThumbnail, CreateLifeosPackIcon, LogoWallpaper, EmbossedLogoWallpaper, RemoveBackground. Output staged to ~/Downloads/ before project copy; --remove-bg returns transparent PNG; user customization dir overrides defaults (model/size flag details in body). USE WHEN art, illustration, diagram, flowchart, infographic, header image, blog social thumbnail, visualize, generate image, mermaid, architecture diagram, comic, icon, blog art, framework diagram, D3 chart, remove background, wallpaper. NOT FOR locked house-style YouTube/channel/video thumbnails (use _THUMBNAIL — it orchestrates Art's Generate/PickExpression/ThumbnailText tools), video or animation (use Remotion), or web UI design and integrated frontend layout (use Webdesign)."
 effort: medium
 ---
 
@@ -183,7 +183,7 @@ Route to the appropriate workflow based on the request.
 | Comics | Comic or sequential panels | `Workflows/Comics.md` |
 | YouTubeThumbnailChecklist | YouTube thumbnail checklist; YouTube thumbnail (with existing assets) | `Workflows/YouTubeThumbnailChecklist.md` |
 | AdHocYouTubeThumbnail | Ad-hoc YouTube thumbnail (generate from content) | `Workflows/AdHocYouTubeThumbnail.md` |
-| CreatePAIPackIcon | LifeOS pack icon | `Workflows/CreateLifeosPackIcon.md` |
+| CreateLifeosPackIcon | LifeOS pack icon | `Workflows/CreateLifeosPackIcon.md` |
 
 ---
 
@@ -335,7 +335,7 @@ User: "create icon for the skill system pack"
 → Generates 1K image with --remove-bg for transparency
 → Resizes to 256x256 RGBA PNG
 → Outputs to ~/Downloads/ for preview
-→ After approval, copies to ${PROJECTS_DIR}/PAI/Packs/icons/
+→ After approval, copies to ${PROJECTS_DIR}/LIFEOS/Packs/icons/
 ```
 
 ## Gotchas

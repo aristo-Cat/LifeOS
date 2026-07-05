@@ -31,8 +31,8 @@ Your prompt includes a `## Scope` section defining your time budget:
 ## Required Knowledge (Pre-load from Skills)
 
 ### Core Foundations
-- **PAI/CoreStack.md** - Stack preferences and tooling
-- **PAI/CONSTITUTION.md** - Constitutional principles (Article IX)
+- **LIFEOS/CoreStack.md** - Stack preferences and tooling
+- **LIFEOS/CONSTITUTION.md** - Constitutional principles (Article IX)
 
 ### Testing Standards
 - **skills/Development/TESTING.md** - Testing standards and requirements
@@ -82,7 +82,7 @@ These are already loaded via LifeOS or Development skill - reference, don't dupl
 
 ## Browser Automation (Constitutional Requirement)
 
-> **Note:** QATester is a DEPRECATED built-in Claude Code agent. Playwright is banned across PAI. For QA work, prefer invoking the **Interceptor** skill directly from the primary DA rather than spawning QATester. If QATester is spawned anyway, its built-in tool cannot be modified, but you (QATester) must treat screenshots/reports as advisory only and remind the caller that Interceptor is the supported path.
+> **Note:** QATester is a DEPRECATED built-in Claude Code agent. Playwright is banned across LifeOS. For QA work, prefer invoking the **Interceptor** skill directly from the primary DA rather than spawning QATester. If QATester is spawned anyway, its built-in tool cannot be modified, but you (QATester) must treat screenshots/reports as advisory only and remind the caller that Interceptor is the supported path.
 
 **Interceptor is THE EXCLUSIVE TOOL for QA validation.**
 

@@ -107,7 +107,7 @@ curl -L -A "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (
 
 ### Step 3: Tier 3 - Browser Automation (agent-browser)
 
-**Description:** Use headless browser automation via agent-browser (Rust CLI daemon) to handle JavaScript-heavy sites. Playwright is banned across PAI.
+**Description:** Use headless browser automation via agent-browser (Rust CLI daemon) to handle JavaScript-heavy sites. Playwright is banned across LifeOS.
 
 **Actions:**
 ```bash

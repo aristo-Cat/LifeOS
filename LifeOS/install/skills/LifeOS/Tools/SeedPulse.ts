@@ -16,7 +16,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { detectDevTree } from "./InstallEngine";
 
-const GENERATORS = ["GenerateTelosSummary.ts", "UpdatePaiState.ts"];
+const GENERATORS = ["GenerateTelosSummary.ts", "UpdateLifeosState.ts"];
 
 function main(): void {
   const a = process.argv.slice(2);
@@ -59,8 +59,8 @@ function main(): void {
           ...process.env,
           LIFEOS_CONFIG_DIR: configDir,
           LIFEOS_DIR: join(configRoot, "LIFEOS"),
-          // GenerateTelosSummary resolves its TELOS dir via PaiConfig.paiUserDir(),
-          // which reads LIFEOS_CONFIG_PATH (NOT LIFEOS_DIR). UpdatePaiState resolves via
+          // GenerateTelosSummary resolves its TELOS dir via LifeosConfig.paiUserDir(),
+          // which reads LIFEOS_CONFIG_PATH (NOT LIFEOS_DIR). UpdateLifeosState resolves via
           // LIFEOS_DIR. Pass BOTH so both generators target the same install root —
           // otherwise a non-default config root mis-targets ~/.claude.
           LIFEOS_CONFIG_PATH: join(configRoot, "LIFEOS", "USER", "CONFIG", "LIFEOS_CONFIG.toml"),

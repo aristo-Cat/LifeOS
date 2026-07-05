@@ -13,7 +13,7 @@
 import { readdirSync, existsSync, readFileSync } from "fs";
 import { join } from "path";
 import { spawnSync } from "child_process";
-import { paiUserDir } from "./PaiConfig";
+import { paiUserDir } from "./LifeosConfig";
 
 const HOME = process.env.HOME!;
 const CLAUDE_DIR = join(HOME, ".claude");
@@ -409,7 +409,7 @@ function colorLogo(lines: string[]): string[] {
 }
 
 // Color LifeOS block art with gradient (P=blue, A=purple, I=cyan)
-function colorPaiArt(): string[] {
+function colorLifeosArt(): string[] {
   return LIFEOS_BLOCK_ART.map(line => {
     // P section: chars 0-8, A section: chars 9-17, I section: chars 18+
     const p = `${BOLD}${GRADIENT.blue1}${line.substring(0, 9)}${RESET}`;
@@ -518,7 +518,7 @@ function createNeofetchBanner(): string {
   lines.push(`  ${UI.dim}│${RESET}${" ".repeat(bottomWidth - 2)}${UI.dim}│${RESET}`);
 
   // LifeOS block art (centered)
-  const paiArt = colorPaiArt();
+  const paiArt = colorLifeosArt();
   for (const paiLine of paiArt) {
     lines.push(`  ${UI.dim}│${RESET}${center(paiLine, bottomWidth - 2)}${UI.dim}│${RESET}`);
   }

@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 /**
- * PAIAgentAdapter — wraps LifeOS's Inference.ts as a scenario AgentAdapter.
+ * LifeosAgentAdapter — wraps LifeOS's Inference.ts as a scenario AgentAdapter.
  *
  * Lets scenario.run() drive a LifeOS agent in multi-turn simulations without
  * pulling in the ai-sdk Anthropic provider for the agent-under-test path
@@ -10,19 +10,19 @@
 import { inference, type InferenceLevel } from '../../../LIFEOS/TOOLS/Inference.ts';
 import { AgentAdapter, AgentRole, type AgentInput, type AgentReturnTypes } from '@langwatch/scenario';
 
-export interface PAIAgentAdapterOptions {
+export interface LifeosAgentAdapterOptions {
   systemPrompt?: string;
   level?: InferenceLevel;
   timeout?: number;
   name?: string;
 }
 
-export class PAIAgentAdapter extends AgentAdapter {
+export class LifeosAgentAdapter extends AgentAdapter {
   override role = AgentRole.AGENT;
   override name: string;
-  private opts: Required<Omit<PAIAgentAdapterOptions, 'name'>>;
+  private opts: Required<Omit<LifeosAgentAdapterOptions, 'name'>>;
 
-  constructor(options: PAIAgentAdapterOptions = {}) {
+  constructor(options: LifeosAgentAdapterOptions = {}) {
     super();
     this.name = options.name ?? 'pai-agent';
     this.opts = {
@@ -43,7 +43,7 @@ export class PAIAgentAdapter extends AgentAdapter {
     });
 
     if (!result.success) {
-      throw new Error(`PAIAgentAdapter inference failed: ${result.error ?? 'unknown error'}`);
+      throw new Error(`LifeosAgentAdapter inference failed: ${result.error ?? 'unknown error'}`);
     }
 
     return result.output.trim();

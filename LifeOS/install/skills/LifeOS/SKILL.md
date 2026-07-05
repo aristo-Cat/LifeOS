@@ -53,7 +53,7 @@ Default flow (`/lifeos-setup`): **Setup phase** (system integration) → transit
 - **No `version:` in SKILL.md.** Claude Code ignores it. Version lives in the release (tag + `LIFEOS_RELEASES/<version>/` + the `install.sh` fetch), not in the skill.
 - **`install.sh` is non-destructive by design.** It installs only the LifeOS skill and backs up only a prior LifeOS skill — never the user's other skills, hooks, or config. The whole point is "bolt on, don't take over."
 - **Hooks are installed imperatively, with permission.** A bare skill cannot auto-wire hooks; the setup workflow writes them into the user's harness explicitly, after showing what changes.
-- **Config is `.toml`, never `.yaml`.** `PaiConfig.ts` reads TOML; the legacy `.yaml` template was retired 2026-06-19.
+- **Config is `.toml`, never `.yaml`.** `LifeosConfig.ts` reads TOML; the legacy `.yaml` template was retired 2026-06-19.
 - **Cross-platform is solved at setup time, not statically.** The setup conversation detects the OS + harness and tailors hook commands and paths — don't assume macOS.
 
 ## Examples

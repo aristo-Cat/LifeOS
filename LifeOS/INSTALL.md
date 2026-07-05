@@ -51,7 +51,7 @@ Do not begin a partial install you can't finish.
 
 ### 2. Get the release and detect the environment
 
-Fetch the pinned LifeOS release for the repo and version on the install page (the tag tarball over HTTPS, no auth), or use a local release directory if given one. Then, from the LifeOS skill directory, run:
+Fetch the **latest** LifeOS release from `danielmiessler/LifeOS`. Resolve the newest published release with `curl -fsSL https://api.github.com/repos/danielmiessler/LifeOS/releases/latest` and read its `tag_name`, then download that tag's source tarball (`https://github.com/danielmiessler/LifeOS/archive/refs/tags/<tag>.tar.gz`, HTTPS, no auth) and extract the `LifeOS/` skill directory. (Or use a local release directory if your human already has one.) Then, from the LifeOS skill directory, run:
 
 ```
 bun Tools/DetectEnv.ts

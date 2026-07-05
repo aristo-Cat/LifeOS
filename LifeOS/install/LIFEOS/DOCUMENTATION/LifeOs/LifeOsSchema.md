@@ -1,6 +1,6 @@
 # Life OS Schema
 
-> **The canonical shape of the USER directory in PAI.**
+> **The canonical shape of the USER directory in LifeOS.**
 >
 > Everything your DA knows about you lives in one flat, biography-style tree. This spec defines the rules every LifeOS user follows — so the same Pulse dashboard, the same Interview skill, the same Daemon aggregator, and the same skills work for everyone out of the box.
 

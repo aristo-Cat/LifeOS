@@ -4,7 +4,7 @@
  *
  * Single entry point dispatching by event:
  *
- *   PermissionRequest (Bash | Write | Edit | MultiEdit | mcp__reversinglabs__*)
+ *   PermissionRequest (Bash | Write | Edit | MultiEdit | mcp__*)
  *     → permissionRequest()  — classify outgoing tool call via lib/safety-classifier
  *     → emit `decision: allow` JSON when safe; emit nothing (neutral) otherwise
  *     → cache by sha; observability JSONL append

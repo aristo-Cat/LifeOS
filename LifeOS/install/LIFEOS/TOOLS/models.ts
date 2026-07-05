@@ -42,7 +42,7 @@ export type ClaudeTier = "opus" | "sonnet" | "haiku" | "fable";
  * Algorithm E1–E3 dispatch at `high`; E4/E5 dispatch at `max`. `medium` and
  * `low` exist for utility inference (classification, summarization, vision
  * triage) so cheap calls never silently ride an expensive model. The
- * Advisor is pinned `max` (keystone commitment call); the EffortRouter
+ * Advisor is pinned `max` (keystone commitment call); the TheRouter
  * classifier is pinned `high` (Opus, re-pinned off `max` 2026-07-01) — it
  * fires on every prompt, so the per-prompt keystone stays off the top rung.
  */
@@ -60,7 +60,7 @@ export type EffortLevel = "max" | "high" | "medium" | "low";
  * Haiku — reachable with NO new agent (the dispatch-time `model` param carries
  * the rung; agents are personas, model is orthogonal). Fable is ~2× Opus, so
  * the cost lands only on genuinely hard runs. Two guardrails ship with the flip:
- *   (a) the EffortRouter classifier is re-pinned to `high` (Opus), NOT `max`,
+ *   (a) the TheRouter classifier is re-pinned to `high` (Opus), NOT `max`,
  *       so the per-prompt keystone stays fast + cheap — "keystone" never meant
  *       "most-expensive rung"; the classifier's model is UNCHANGED from before
  *       the flip (it was Opus via max=opus; it's Opus via high now).
@@ -77,7 +77,7 @@ export type EffortLevel = "max" | "high" | "medium" | "low";
  */
 export const EFFORT_MODEL: Record<EffortLevel, ClaudeTier> = {
   max: "fable",   // top rung — E4/E5 + Core-System Override dispatch here (~2× Opus, hard work only)
-  high: "opus",   // E1–E3 + NATIVE + the re-pinned EffortRouter classifier
+  high: "opus",   // E1–E3 + NATIVE + the re-pinned TheRouter classifier
   medium: "sonnet",
   low: "haiku",
 };

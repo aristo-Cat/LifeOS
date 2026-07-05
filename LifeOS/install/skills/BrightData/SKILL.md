@@ -1,6 +1,6 @@
 ---
 name: BrightData
-description: "4-tier progressive scraping with automatic escalation: Tier 1 WebFetch, Tier 2 curl with Chrome headers, Tier 3 agent-browser (headless JS rendering), Tier 4 Bright Data MCP proxy (CAPTCHA, advanced bot detection, residential proxies). Two workflows: FourTierScrape for single URLs, Crawl for multi-page site mapping (light crawl up to 50 pages, Crawl API for full sites). Starts at Tier 1, escalates only when blocked — Tier 4 has usage costs. Output is markdown. Playwright is banned across PAI. USE WHEN Bright Data, scrape URL, web scraping, bot detection, crawl site, CAPTCHA, can't access, site blocking, extract page content, scrape whole site, spider domain, convert URL to markdown, getting blocked. NOT FOR simple public content (use WebFetch directly), social platform scraping with named actors (use Apify), parallel headless automation with persistent auth profiles (use Browser), or real-Chrome bot bypass with logged-in sessions and zero CDP fingerprint (use Interceptor)."
+description: "4-tier progressive scraping with automatic escalation: Tier 1 WebFetch, Tier 2 curl with Chrome headers, Tier 3 agent-browser (headless JS rendering), Tier 4 Bright Data MCP proxy (CAPTCHA, advanced bot detection, residential proxies). Two workflows: FourTierScrape for single URLs, Crawl for multi-page site mapping (light crawl up to 50 pages, Crawl API for full sites). Starts at Tier 1, escalates only when blocked — Tier 4 has usage costs. Output is markdown. Playwright is banned across LifeOS. USE WHEN Bright Data, scrape URL, web scraping, bot detection, crawl site, CAPTCHA, can't access, site blocking, extract page content, scrape whole site, spider domain, convert URL to markdown, getting blocked. NOT FOR simple public content (use WebFetch directly), social platform scraping with named actors (use Apify), parallel headless automation with persistent auth profiles (use Browser), or real-Chrome bot bypass with logged-in sessions and zero CDP fingerprint (use Interceptor)."
 effort: medium
 ---
 
@@ -47,7 +47,7 @@ Progressive escalation, always starting at Tier 1 and stepping up only on failur
 
 1. **Tier 1: WebFetch** — fast, built-in.
 2. **Tier 2: curl with Chrome headers** — bypasses basic user-agent bot detection.
-3. **Tier 3: agent-browser** — headless browser via the agent-browser Rust CLI daemon for JavaScript rendering. Playwright is banned across PAI.
+3. **Tier 3: agent-browser** — headless browser via the agent-browser Rust CLI daemon for JavaScript rendering. Playwright is banned across LifeOS.
 4. **Tier 4: Bright Data MCP** — proxy service that handles CAPTCHA and advanced bot detection.
 
 Content is preserved in markdown at every tier. The Crawl workflow extends this to multiple pages — a light crawl loops the MCP batch scraper plus link extraction up to 50 pages, a full crawl uses the Bright Data Crawl API for entire sites.
@@ -117,7 +117,7 @@ FourTierScrape executes the progressive escalation (WebFetch → Curl → agent-
 **Progressive Escalation Strategy:**
 1. **Tier 1: WebFetch** - Fast, simple, built-in Claude Code tool
 2. **Tier 2: Customized Curl** - Chrome-like browser headers to bypass basic bot detection
-3. **Tier 3: agent-browser** - Headless browser automation via agent-browser Rust CLI daemon for JavaScript-heavy sites. Playwright is banned across PAI.
+3. **Tier 3: agent-browser** - Headless browser automation via agent-browser Rust CLI daemon for JavaScript-heavy sites. Playwright is banned across LifeOS.
 4. **Tier 4: Bright Data MCP** - Professional scraping service that handles CAPTCHA and advanced bot detection
 
 **Key Features:**
@@ -221,7 +221,7 @@ Skill Response:
 
 ## Gotchas
 
-- **4-tier escalation: WebFetch → curl → agent-browser → Bright Data proxy.** Always start at Tier 1 and escalate only when blocked. Playwright is banned across PAI.
+- **4-tier escalation: WebFetch → curl → agent-browser → Bright Data proxy.** Always start at Tier 1 and escalate only when blocked. Playwright is banned across LifeOS.
 - **Bright Data proxy has usage costs.** Don't use Tier 4 for sites accessible via Tier 1-3.
 - **CAPTCHA-solving introduces latency.** Allow extra time for Tier 4 responses.
 - **Credentials in `~/.claude/.env`** — BRIGHTDATA_API_KEY.

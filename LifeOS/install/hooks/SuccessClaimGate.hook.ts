@@ -157,8 +157,11 @@ const LIVE_UI_CLAIM =
   /\b((is|it'?s|site'?s|page'?s|now)\s+live|went\s+live|locked\s+down|fail[\s-]?closed\s+verif\w*|verified\s+(live|in\s+the\s+browser|fail[\s-]?closed)|works\s+(now|in\s+the\s+browser|end[\s-]?to[\s-]?end))\b/i;
 
 // Interceptor-class evidence — the only thing that verifies rendered web output.
+// Includes the ScrubFlow frame-scrub manifest (the frames the model actually
+// viewed + their SSIM scores) — motion/flow evidence, keyed on the manifest,
+// NOT a bare video path ("video.mp4 exists" is not proof it rendered right).
 const INTERCEPTOR_EVIDENCE =
-  /\binterceptor\b|\/Downloads\/[A-Za-z0-9_\-]+\.(png|webp|jpe?g)\b|\bpai[\s-]?screenshots?\b|\bscreenshots?\/[A-Za-z0-9_\-./]+\.(png|jpe?g|webp)\b|\bDOM\s+read\b|\bComputer\s+Use\b/i;
+  /\binterceptor\b|\/Downloads\/[A-Za-z0-9_\-]+\.(png|webp|jpe?g)\b|\bpai[\s-]?screenshots?\b|\bscreenshots?\/[A-Za-z0-9_\-./]+\.(png|jpe?g|webp)\b|\bDOM\s+read\b|\bComputer\s+Use\b|\bframe[\s-]?scrub\b|\bscrub(?:bed|flow)\b|\bframes?\/[A-Za-z0-9_\-./]+manifest\.json\b/i;
 
 // Honest downgrade / deferral — an explicit "not browser-verified" is allowed;
 // it is not a false done-claim. This is the sanctioned escape when Interceptor
@@ -168,11 +171,37 @@ const HONEST_DOWNGRADE =
 
 // Returns true when the message asserts a browser-facing thing is live/works,
 // with NO Interceptor evidence and NO honest downgrade — the catastrophic class.
+//
+// TASK-AWARE SCOPING (2026-07-04): the live-claim and the web-UI context must
+// co-occur in the SAME sentence/line. The prior version OR'd LIVE_UI_CLAIM into
+// BOTH halves of the test, so any "…is now live" collapsed the conjunction and
+// fired even with zero web nouns present — a git-push "the rename is now live"
+// got blocked as a web claim (false positive {{PRINCIPAL_NAME}} hit repeatedly). Requiring
+// same-unit co-occurrence means "live" only trips the browser teeth when it's
+// live ABOUT a page/site/admin/dashboard/form/login (or a render verb), never
+// about a hook, tag, repo, worker, or CLI. The real 2026-06-27 case ("Admin's
+// live and locked down", curl-only) still blocks — "admin" is in the same unit.
+// Escapes (Interceptor evidence / honest downgrade) still scan the whole message.
+function splitIntoUnits(text: string): string[] {
+  // Sentence terminators + line breaks — each clause/bullet is its own unit, so a
+  // web noun in one section can't satisfy a non-web "live" claim in another.
+  return text.split(/[.!?\n]+/).map((u) => u.trim()).filter(Boolean);
+}
+
+function unitAssertsLive(u: string): boolean {
+  return LIVE_UI_CLAIM.test(u) || DEPLOY_CLAIM.test(u) || /\b(it\s+works|works\s+now)\b/i.test(u);
+}
+
+function unitIsWebUi(u: string): boolean {
+  return WEB_UI_NOUN.test(u) || RENDER_VERB.test(u);
+}
+
 function isUnverifiedWebUiClaim(message: string): boolean {
   const s = stripNarration(message);
-  const assertsLive = LIVE_UI_CLAIM.test(s) || DEPLOY_CLAIM.test(s) || /\b(it\s+works|works\s+now)\b/i.test(s);
-  const isUi = WEB_UI_NOUN.test(s) || RENDER_VERB.test(s) || LIVE_UI_CLAIM.test(s);
-  if (!(assertsLive && isUi)) return false;
+  // A web-UI claim requires a live/deploy/works assertion AND a web-UI noun or
+  // render verb IN THE SAME unit — the claim must be about the web thing.
+  const hasWebUiClaim = splitIntoUnits(s).some((u) => unitAssertsLive(u) && unitIsWebUi(u));
+  if (!hasWebUiClaim) return false;
   if (INTERCEPTOR_EVIDENCE.test(message)) return false; // verified the right way
   if (HONEST_DOWNGRADE.test(message)) return false; // honestly deferred
   return true;

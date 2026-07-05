@@ -5,13 +5,13 @@
 ```bash
 curl -s -X POST http://localhost:31337/notify \
   -H "Content-Type: application/json" \
-  -d '{"message": "Running the Algorithm Upgrade workflow to analyze and propose improvements to the PAI Algorithm"}' \
+  -d '{"message": "Running the Algorithm Upgrade workflow to analyze and propose improvements to the LifeOS Algorithm"}' \
   > /dev/null 2>&1 &
 ```
 
 Running the **AlgorithmUpgrade** workflow in the **Upgrade** skill to propose Algorithm improvements...
 
-**Dedicated self-improvement workflow for the PAI Algorithm.** Combines internal reflection mining with Algorithm spec analysis to produce concrete, section-targeted upgrade proposals.
+**Dedicated self-improvement workflow for the LifeOS Algorithm.** Combines internal reflection mining with Algorithm spec analysis to produce concrete, section-targeted upgrade proposals.
 
 **Trigger:** "algorithm upgrade", "upgrade algorithm", "improve the algorithm", "algorithm improvements", "what should we fix in the algorithm"
 
@@ -68,8 +68,8 @@ Reflections map to Algorithm sections. This is the routing table for where fixes
 The algorithm changes frequently. Every upgrade analysis MUST start by reading and internalizing the current version — not from memory, not from assumptions.
 
 ```
-1. Read PAI/ALGORITHM/LATEST to get current version string (e.g., "v3.7.0")
-2. Read PAI/ALGORITHM/v{VERSION}.md — the FULL spec, every line
+1. Read LIFEOS/ALGORITHM/LATEST to get current version string (e.g., "v3.7.0")
+2. Read LIFEOS/ALGORITHM/v{VERSION}.md — the FULL spec, every line
 3. Produce a structured digest:
 
    ALGORITHM DIGEST: v{VERSION}
@@ -211,7 +211,7 @@ Before proposing Algorithm changes, verify that the Algorithm's Claude Code refe
 ```
 Use Agent tool with subagent_type=claude-code-guide:
 
-"The PAI Algorithm has a Platform Capabilities table referencing Claude Code features.
+"The LifeOS Algorithm has a Platform Capabilities table referencing Claude Code features.
 Read the current Algorithm spec at ~/.claude/LIFEOS/ALGORITHM/v{VERSION}.md (get version from ~/.claude/LIFEOS/ALGORITHM/LATEST).
 
 Verify that:

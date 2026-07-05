@@ -385,7 +385,7 @@ function formatResults(
 //
 // Extends the existing BM25 search to (a) cover the two _MEMORY.md hot-layer
 // files as virtual notes alongside the KNOWLEDGE corpus, (b) return a
-// markdown block ready for injection into buildPaiContextBlock, (c) cache by
+// markdown block ready for injection into buildLifeosContextBlock, (c) cache by
 // query hash for 60s so repeated calls within a turn cluster are cheap.
 //
 // ISA F6 (revision 2). ISC-69..81 + 142..144 (simplified — pure BM25, no
@@ -480,7 +480,7 @@ function discoverAllItems(): KnowledgeNote[] {
 /**
  * Synchronous, in-process BM25 retrieval over the typed-item corpus. Returns
  * top-K results above the score threshold, plus a markdown block ready for
- * injection into buildPaiContextBlock.
+ * injection into buildLifeosContextBlock.
  *
  * Behavior contract:
  *   - Empty / below-threshold results return empty markdown string (no noise)

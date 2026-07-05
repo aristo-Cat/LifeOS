@@ -2,7 +2,7 @@
 
 // App shell — 11 TELOS primitives, bidirectional trace, view toggle.
 // Ported from v7 app.jsx. Topbar dropped (Pulse AppHeader owns nav).
-// PaiLogo retained and exported for reuse. ReactDOM.createRoot removed (Next.js renders).
+// LifeosLogo retained and exported for reuse. ReactDOM.createRoot removed (Next.js renders).
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -32,11 +32,11 @@ import { useTelosData } from "./use-telos-data";
 // View kind — persisted to localStorage.
 type ViewKind = "columns" | "tree" | "graph";
 
-interface PaiLogoProps {
+interface LifeosLogoProps {
   size?: number;
 }
 
-export function PaiLogo({ size = 22 }: PaiLogoProps) {
+export function LifeosLogo({ size = 22 }: LifeosLogoProps) {
   const NAVY = "#002B9D";
   const AZ = "#3B82F6";
   const SKY = "#9ACBFF";

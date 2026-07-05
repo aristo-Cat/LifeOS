@@ -18,7 +18,7 @@
 import { readdirSync, existsSync, readFileSync } from "fs";
 import { join } from "path";
 import { spawnSync } from "child_process";
-import { paiUserDir } from "./PaiConfig";
+import { paiUserDir } from "./LifeosConfig";
 
 const HOME = process.env.HOME!;
 const CLAUDE_DIR = join(HOME, ".claude");

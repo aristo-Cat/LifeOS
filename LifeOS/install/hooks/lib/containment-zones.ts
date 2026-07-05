@@ -135,9 +135,9 @@ export const PATTERN_ALLOWLIST_FILES: readonly string[] = [
   //   - CLAUDE.md (live) gets overlaid by RELEASE_TEMPLATES/CLAUDE.public.md
   //     at build time — the live form ships only to the principal; the public
   //     ship is the template overlay. Verified: staged CLAUDE.md is clean.
-  // NOTE (Phase G.6, 2026-05-25 after Forge iter-5): `LIFEOS/TOOLS/PaiUpgrade.ts`
+  // NOTE (Phase G.6, 2026-05-25 after Forge iter-5): `LIFEOS/TOOLS/LifeosUpgrade.ts`
   // and `LIFEOS/PULSE/Tools/ReleaseAudit.ts` were REMOVED from this allowlist.
-  // PaiUpgrade.ts now uses a generic marker comment instead of the previous
+  // LifeosUpgrade.ts now uses a generic marker comment instead of the previous
   // principal-bound repo-name literal; ReleaseAudit.ts now loads its prohibited
   // strings from a USER-zone config file at runtime (never ships publicly).
   // Allowlist became an escape hatch hiding real bare-token leaks — fixed at

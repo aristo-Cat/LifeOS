@@ -23,7 +23,7 @@ Per-run output (source of truth):
 ~/.claude/LIFEOS/MEMORY/STATE/Evals-Results/<use-case>/<run-id>/results.json
 ```
 
-Each `results.json` contains the run summary, per-trial scores, grader outputs, and failure details. The `PAI/MEMORY/STATE/Evals-Results/` directory is the canonical store — query it with standard tools (`jq`, `rg`, `cat`).
+Each `results.json` contains the run summary, per-trial scores, grader outputs, and failure details. The `LIFEOS/MEMORY/STATE/Evals-Results/` directory is the canonical store — query it with standard tools (`jq`, `rg`, `cat`).
 
 ---
 
@@ -102,4 +102,4 @@ There is no built-in CLI for trend analysis, regression detection, or cross-run 
 
 ## Done
 
-Results inspected from `PAI/MEMORY/STATE/Evals-Results/<use-case>/<run-id>/results.json` and (optionally) suite saturation surfaced via `SuiteManager.ts`.
+Results inspected from `LIFEOS/MEMORY/STATE/Evals-Results/<use-case>/<run-id>/results.json` and (optionally) suite saturation surfaced via `SuiteManager.ts`.

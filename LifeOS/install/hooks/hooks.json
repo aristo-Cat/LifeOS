@@ -229,7 +229,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$HOME/.claude/hooks/EffortRouter.hook.ts",
+            "command": "$HOME/.claude/hooks/TheRouter.hook.ts",
             "timeout": 35
           }
         ]
@@ -428,7 +428,7 @@
         ]
       },
       {
-        "matcher": "mcp__reversinglabs__.*",
+        "matcher": "mcp__.*",
         "hooks": [
           {
             "type": "command",

@@ -5,7 +5,7 @@ import { localOnlyApiCall } from "@/lib/local-api";
 
 // ─── Types ───
 
-export interface PAIEvent {
+export interface LifeosEvent {
   timestamp: string;
   session_id: string;
   source: string;
@@ -20,18 +20,18 @@ const POLL_INTERVAL = 3_000;
 
 // ─── Hook ───
 
-export function usePAIEvents() {
-  const [events, setEvents] = useState<PAIEvent[]>([]);
+export function useLifeosEvents() {
+  const [events, setEvents] = useState<LifeosEvent[]>([]);
   const pollTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const lastHashRef = useRef("");
 
   useEffect(() => {
     let active = true;
-    const makeKey = (e: PAIEvent) => `${e.timestamp}|${e.session_id}|${e.type}|${e.source}`;
+    const makeKey = (e: LifeosEvent) => `${e.timestamp}|${e.session_id}|${e.type}|${e.source}`;
 
     const poll = async () => {
       try {
-        const data = await localOnlyApiCall<PAIEvent[] | { events: PAIEvent[] }>("/api/events/recent");
+        const data = await localOnlyApiCall<LifeosEvent[] | { events: LifeosEvent[] }>("/api/events/recent");
         // Handle both {events: [...]} and flat [...] response formats
         const eventList = Array.isArray(data) ? data : data.events;
         if (active && eventList?.length) {
@@ -55,7 +55,7 @@ export function usePAIEvents() {
   // ─── Filtering ───
 
   const filteredEvents = useCallback(
-    (prefix: string): PAIEvent[] => {
+    (prefix: string): LifeosEvent[] => {
       if (!prefix) return events;
       const cleanPrefix = prefix.endsWith(".*")
         ? prefix.slice(0, -2)

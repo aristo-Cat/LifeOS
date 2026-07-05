@@ -12,11 +12,11 @@
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'fs';
 import { join } from 'path';
-import { getPaiDir } from './lib/paths';
+import { getLifeosDir } from './lib/paths';
 import { setTabState, readTabState, persistKittySession } from './lib/tab-setter';
 import { getDAName } from './lib/identity';
 
-const paiDir = getPaiDir();
+const paiDir = getLifeosDir();
 
 // Skip for subagents
 const claudeProjectDir = process.env.CLAUDE_PROJECT_DIR || '';

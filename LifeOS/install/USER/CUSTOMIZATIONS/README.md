@@ -7,7 +7,7 @@ User-specific extensions of LifeOS system components. The LifeOS framework ships
 Anything running a system component MUST look here for user content that applies to **this principal but not every LifeOS user.**
 
 - **Skills** read `CUSTOMIZATIONS/SKILLS/<SkillName>/` for per-user preferences, source lists, voice profiles, project names, and other context the public skill body cannot contain. The skill body stays generic; the user file overlays at runtime.
-- **Arbol** reads `CUSTOMIZATIONS/ARBOL/` for the user's actions, pipelines, flows, and worker code. Resolution order is always personal-first: `CUSTOMIZATIONS/ARBOL/ACTIONS/<name>` overrides `PAI/ARBOL/Actions/<name>`; same for `PIPELINES/` and `FLOWS/`. The user copy wins.
+- **Arbol** reads `CUSTOMIZATIONS/ARBOL/` for the user's actions, pipelines, flows, and worker code. Resolution order is always personal-first: `CUSTOMIZATIONS/ARBOL/ACTIONS/<name>` overrides `LIFEOS/ARBOL/Actions/<name>`; same for `PIPELINES/` and `FLOWS/`. The user copy wins.
 
 ## Structure
 

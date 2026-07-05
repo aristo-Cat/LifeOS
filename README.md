@@ -1,17 +1,41 @@
 <p align="center">
+  <br />
   <img src="./lifeos-logo-full.png" alt="LifeOS" width="460">
+  <br />
 </p>
 
 <div align="center">
 
-**The Life Operating System**
+**The AI-Powered Life Operating System**
 
-[![Release](https://img.shields.io/github/v/release/danielmiessler/LifeOS?style=flat&color=8B5CF6)](Releases/v6.0.0/)
-[![Algorithm](https://img.shields.io/badge/Algorithm-v6.23.0-D97706?style=flat)](Releases/v6.0.0/README.md)
-[![Stars](https://img.shields.io/github/stars/danielmiessler/LifeOS?style=flat&color=F59E0B)](https://github.com/danielmiessler/LifeOS/stargazers)
-[![License](https://img.shields.io/github/license/danielmiessler/LifeOS?style=flat&color=60A5FA)](./LICENSE)
+[![Typing SVG](https://readme-typing-svg.demolab.com?font=Fira+Code&weight=500&size=24&pause=1000&color=8B5CF6&center=true&vCenter=true&width=600&lines=Your+Life+Operating+System;Current+State+%E2%86%92+Ideal+State;Open+source.+Free.+Forever.)](https://github.com/danielmiessler/LifeOS)
 
-**[Watch the walkthrough](https://youtu.be/Le0DLrn7ta0)**  ·  **[Releases](Releases/)**  ·  **[Docs](https://docs.ourlifeos.ai)**
+<!-- Social -->
+![Stars](https://img.shields.io/github/stars/danielmiessler/LifeOS?style=social)
+![Forks](https://img.shields.io/github/forks/danielmiessler/LifeOS?style=social)
+![Watchers](https://img.shields.io/github/watchers/danielmiessler/LifeOS?style=social)
+
+<!-- Status -->
+![Release](https://img.shields.io/github/v/release/danielmiessler/LifeOS?style=flat&logo=github&color=8B5CF6)
+![Last Commit](https://img.shields.io/github/last-commit/danielmiessler/LifeOS?style=flat&logo=git&color=22C55E)
+![Open Issues](https://img.shields.io/github/issues/danielmiessler/LifeOS?style=flat&logo=github&color=F97316)
+![Open PRs](https://img.shields.io/github/issues-pr/danielmiessler/LifeOS?style=flat&logo=githubaccessories&color=EC4899)
+![License](https://img.shields.io/github/license/danielmiessler/LifeOS?style=flat&color=60A5FA)
+
+<!-- Content -->
+[![Get Started](https://img.shields.io/badge/🚀_Get_Started-Install-22C55E?style=flat)](#install)
+[![Release](https://img.shields.io/badge/Release-v6.0.5-8B5CF6?style=flat)](Releases/v6.0.5/)
+[![Algorithm](https://img.shields.io/badge/Algorithm-v6.24.0-D97706?style=flat)](Releases/v6.0.5/README.md)
+[![Pulse](https://img.shields.io/badge/Pulse-included-3B82F6?style=flat)](https://ourlifeos.ai)
+[![Contributors](https://img.shields.io/github/contributors/danielmiessler/LifeOS?style=flat&logo=githubsponsors&logoColor=white&label=Contributors&color=EC4899)](https://github.com/danielmiessler/LifeOS/graphs/contributors)
+
+<!-- Tech Stack -->
+[![Built with Claude](https://img.shields.io/badge/Built_with-Claude-D4A574?style=flat&logo=anthropic&logoColor=white)](https://claude.ai)
+[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Bun](https://img.shields.io/badge/Bun-000000?style=flat&logo=bun&logoColor=white)](https://bun.sh)
+[![Community](https://img.shields.io/badge/Community-5865F2?style=flat&logo=discord&logoColor=white)](https://discord.gg/danielmiessler)
+
+**[Visit the Website](https://ourlifeos.ai)** · **[Watch the walkthrough](https://youtu.be/Le0DLrn7ta0)**  ·  **[Releases](Releases/)**  ·  **[Docs](https://docs.ourlifeos.ai)**
 
 </div>
 
@@ -21,9 +45,11 @@ LifeOS is a Life Operating System. It captures who you are, what you care about,
 
 ## Install
 
-**Give it to your AI.** LifeOS is installed *by* an AI, so the install is just a prompt. Paste this into your AI coding harness — Claude Code, Cursor, Codex, or any capable agent — and it does the whole setup for you:
+**Give it to your AI.** LifeOS is installed *by* an AI, so the install is just a prompt. Paste this into your AI coding harness — Claude Code, Cursor, Codex, Hermes, or any capable agent — and it does the whole setup for you:
 
-> **Read https://ourlifeos.ai/install and install LifeOS for me.**
+```
+Read https://ourlifeos.ai/install and install LifeOS for me.
+```
 
 Your AI reads the install page and walks the setup, asking permission before it touches anything.
 
@@ -180,6 +206,24 @@ MIT License - see [LICENSE](LICENSE) for details.
 <summary><strong>📜 Update History</strong></summary>
 
 <br/>
+
+**v6.0.5 (2026-07-04) — Rename in the Code, New Harvest Skill**
+- **PAI→LifeOS rename reaches the code** — code identifiers and doc prose now read LifeOS throughout; runtime-critical paths and regexes were left byte-identical on purpose, so the prose is clean and nothing breaks.
+- **New Harvest skill** — mine any URL, video, or article for what's genuinely useful to your LifeOS, ranked and mapped against your whole system. Report-only; adoption is a separate step.
+- **Algorithm v6.24.0** — motion verification: an ISC about animation, transition, or a multi-step flow closes on a frame-scrub gallery, never a single screenshot.
+- **Installer fix** — the bootstrap `install.sh` now fetches the version it advertises.
+- [Full release notes](Releases/v6.0.5/README.md)
+
+**v6.0.3 (2026-07-04) — Comprehensive AI-native install**
+- Comprehensive component menu — INSTALL.md lays out the full two-tier model: Core plus à-la-carte enhancements (hooks, statusline, tooltips, spinner verbs, agents, Pulse, background jobs)
+- The `lifeos` launch alias wires `--append-system-prompt-file` so the constitutional layer actually loads
+- One canonical INSTALL.md rendered at ourlifeos.ai/install for humans and AIs
+- [Full release notes](Releases/v6.0.3/README.md)
+
+**v6.0.2 (2026-07-03) — .md-first AI-native install**
+- Skill-only distribution with an AI-native, `.md`-first install
+- The shipped install.sh pins v6.0.2 and points at danielmiessler/LifeOS
+- [Full release notes](Releases/v6.0.2/README.md)
 
 **v6.0.0 (2026-07-02) — One Skill, One Install**
 - **Skill-based distribution** — the whole system now ships as a single self-contained skill (`LifeOS/`): the orchestrator (SKILL.md + Workflows + Tools) plus a complete install payload (system prompt, Algorithm, 49 skills, hooks, agents, Pulse, statusline, USER + MEMORY scaffolds). One directory, one install.

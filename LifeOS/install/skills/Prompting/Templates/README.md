@@ -168,7 +168,7 @@ cd ~/.claude
 git checkout v2.5.0
 # Or to just undo templating:
 rm -rf Templates/
-git checkout v2.5.0 -- PAI/Prompting.md
+git checkout v2.5.0 -- LIFEOS/Prompting.md
 ```
 
 ## Token Savings

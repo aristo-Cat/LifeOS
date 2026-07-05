@@ -182,7 +182,7 @@ export interface StepError {
 
 // ─── Configuration ───────────────────────────────────────────────
 
-export interface PAIConfig {
+export interface LifeosConfig {
   principalName: string;
   timezone: string;
   aiName: string;

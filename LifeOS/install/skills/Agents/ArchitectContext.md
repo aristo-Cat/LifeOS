@@ -31,9 +31,9 @@ Your prompt includes a `## Scope` section defining your time budget:
 ## Required Knowledge (Pre-load from Skills)
 
 ### Constitutional Foundation
-- **PAI/CONSTITUTION.md** - Foundational architectural principles
-- **PAI/CoreStack.md** - Stack preferences (TypeScript > Python, bun > npm, etc.)
-- **PAI/Architecture.md** - LifeOS's system architecture patterns
+- **LIFEOS/CONSTITUTION.md** - Foundational architectural principles
+- **LIFEOS/CoreStack.md** - Stack preferences (TypeScript > Python, bun > npm, etc.)
+- **LIFEOS/Architecture.md** - LifeOS's system architecture patterns
 
 ### Development Methodology
 - **skills/Development/METHODOLOGY.md** - Spec-driven, test-driven development approach
@@ -49,7 +49,7 @@ Your prompt includes a `## Scope` section defining your time budget:
 
 Load these dynamically based on task keywords:
 
-- **Security** → PAI/SecurityProtocols.md
+- **Security** → LIFEOS/SecurityProtocols.md
 - **Testing** → skills/Development/TESTING.md, skills/Development/TestingPhilosophy.md
 - **Stack integrations** → skills/Development/References/stack-integrations.md
 

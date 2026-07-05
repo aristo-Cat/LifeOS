@@ -115,8 +115,8 @@ Each run's `results.json` lands at `~/.claude/LIFEOS/MEMORY/STATE/Evals-Results/
 ### Step 5: Collect Results
 
 Results stored in:
-- `PAI/MEMORY/STATE/Evals-Results/<use-case>/models/<run-id>/`
-- `PAI/MEMORY/STATE/Evals-Results/<use-case>/models/<run-id>/comparison.json`
+- `LIFEOS/MEMORY/STATE/Evals-Results/<use-case>/models/<run-id>/`
+- `LIFEOS/MEMORY/STATE/Evals-Results/<use-case>/models/<run-id>/comparison.json`
 
 ### Step 6: Generate Comparison Report
 

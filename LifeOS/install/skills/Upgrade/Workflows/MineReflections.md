@@ -110,7 +110,7 @@ UPGRADE CANDIDATE: [Theme Name]
     - [timestamp] [task_description] — "[relevant Q2 quote]"
   Root cause: [What structural issue causes this pattern]
   Proposed fix: [Specific change to Algorithm, skill, hook, or system]
-  Target file(s): [Which PAI files would change]
+  Target file(s): [Which LifeOS files would change]
   Effort estimate: [Instant/Fast/Standard/Extended]
 ```
 

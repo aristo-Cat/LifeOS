@@ -344,7 +344,7 @@ export function setTabState(opts: SetTabOptions): void {
  * Set ONLY the leading mode/tier token ("N" | "E1".."E5") on the current tab,
  * preserving the working description, and clearing any stale completion state.
  *
- * This is the authoritative mode-token writer, called by EffortRouter the moment
+ * This is the authoritative mode-token writer, called by TheRouter the moment
  * it classifies the turn — so the tab projects the real {mode,tier} decision
  * instead of PromptProcessing's shadow-classifier guess. It is deliberately a
  * distinct primitive from setTabState (which takes a full title) and setPhaseTab

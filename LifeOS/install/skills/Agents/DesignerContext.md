@@ -31,8 +31,8 @@ Your prompt includes a `## Scope` section defining your time budget:
 ## Required Knowledge (Pre-load from Skills)
 
 ### Core Foundations
-- **PAI/CoreStack.md** - Stack preferences and tooling
-- **PAI/CONSTITUTION.md** - Constitutional principles
+- **LIFEOS/CoreStack.md** - Stack preferences and tooling
+- **LIFEOS/CONSTITUTION.md** - Constitutional principles
 
 ### Design Standards
 - **skills/Webdesign/SKILL.md** - Webdesign workflows, Claude Design orchestration, integration-into-app patterns

@@ -13,7 +13,7 @@
 #   What this script does (the bootstrap only):
 #     1. Verifies prerequisites (curl, bash, tar; offers to install bun)
 #     2. Detects your harness + any existing LifeOS install (no clobber)
-#     3. Fetches the pinned LifeOS release (or uses $LIFEOS_SRC locally)
+#     3. Fetches the latest LifeOS release (or uses $LIFEOS_SRC locally)
 #     4. Places the LifeOS skill additively into your skills dir
 #     5. Hands off to `/lifeos-setup` (the agentic onboarding)
 #
@@ -22,11 +22,22 @@
 # ═══════════════════════════════════════════════════════════════════
 set -euo pipefail
 
-# ─── Pinned release ──────────────────────────────────────────────
-LIFEOS_VERSION="${LIFEOS_VERSION:-6.0.3}"
-LIFEOS_TAG="v${LIFEOS_VERSION}"
-# Repo owner/name are parameterized — set at publish time, never hard-coded here.
+# ─── Release resolution — always the latest published release ─────
+# No pin: this resolves the newest GitHub Release at run time, so every new
+# release reaches every installer with zero edits here. Override with
+# LIFEOS_VERSION=x.y.z (or LIFEOS_TAG=vx.y.z) to force a specific version.
+# Falls back to a known-good tag if the GitHub API is unreachable, so the
+# install never hard-fails on a network hiccup.
 LIFEOS_REPO="${LIFEOS_REPO:-danielmiessler/LifeOS}"
+LIFEOS_FALLBACK_TAG="v6.0.5"
+if [ -n "${LIFEOS_VERSION:-}" ]; then
+  LIFEOS_TAG="v${LIFEOS_VERSION}"
+elif [ -z "${LIFEOS_TAG:-}" ]; then
+  LIFEOS_TAG="$(curl -fsSL "https://api.github.com/repos/${LIFEOS_REPO}/releases/latest" 2>/dev/null \
+    | sed -n 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1 || true)"
+  LIFEOS_TAG="${LIFEOS_TAG:-$LIFEOS_FALLBACK_TAG}"
+fi
+LIFEOS_VERSION="${LIFEOS_TAG#v}"
 LIFEOS_TARBALL_URL="${LIFEOS_TARBALL_URL:-https://github.com/${LIFEOS_REPO}/archive/refs/tags/${LIFEOS_TAG}.tar.gz}"
 # Where the LifeOS skill dir lives inside the release tree:
 LIFEOS_RELEASE_SUBPATH="${LIFEOS_RELEASE_SUBPATH:-LifeOS}"

@@ -22,7 +22,7 @@ Running the **Upgrade** workflow in the **Upgrade** skill to check for upgrades.
 Four parallel threads, then synthesize:
 
 0. **Thread 0 (MANDATORY):** Prior-Work Audit — inventory current Algorithm, PATTERNS.yaml, hooks, skills, recent ISAs, KNOWLEDGE, feedback memory.
-1. **Thread 1:** User context (TELOS, projects, recent work, PAI state).
+1. **Thread 1:** User context (TELOS, projects, recent work, LifeOS state).
 2. **Thread 2:** External sources (Anthropic, YouTube, custom, GitHub trending).
 3. **Thread 3:** Internal reflections (algorithm-reflections.jsonl).
 4. **Synthesize:** filter discoveries against Thread 0 inventory; assign Prior Status; emit deltas only.
@@ -36,7 +36,7 @@ Thread 0 output gates synthesis. No recommendation may be emitted without a Prio
 
 ### Step 0: Launch Thread 0 — Prior-Work Audit (MANDATORY)
 
-Spawn 5 parallel agents (`subagent_type=Explore`) to inventory current PAI state. Each returns an inventory with file:line evidence.
+Spawn 5 parallel agents (`subagent_type=Explore`) to inventory current LifeOS state. Each returns an inventory with file:line evidence.
 
 **Agent 0a — Algorithm & Capabilities**
 Read: `~/.claude/LIFEOS/ALGORITHM/LATEST` + the file it points to, `~/.claude/LIFEOS/ALGORITHM/capabilities.md`, `mode-detection.md`, `~/.claude/LIFEOS/DOCUMENTATION/Algorithm/AlgorithmSystem.md`.
@@ -59,7 +59,7 @@ Extract: recent decisions affecting upgrades (rejected/deferred/completed), rele
 Return: inventory with paths; flag anything that would DENY a future recommendation.
 
 **Agent 0e — Skill Surface**
-Scan: `~/.claude/skills/*/SKILL.md` (description fields), `~/.claude/skills/_PAI/TOOLS/*.ts`, `~/.claude/skills/CreateSkill/Tools/*.ts` (validators).
+Scan: `~/.claude/skills/*/SKILL.md` (description fields), `~/.claude/skills/_LIFEOS/TOOLS/*.ts`, `~/.claude/skills/CreateSkill/Tools/*.ts` (validators).
 Extract: skill counts/categories, existence of Monitor/Advisor/PreCompact wrappers, CreateSkill description-length cap, ToolActivityTracker capture scope (diffs? stdout? git state?).
 Return: inventory with file:line evidence.
 
@@ -73,7 +73,7 @@ Spawn 4 parallel agents (`subagent_type=general-purpose`):
 
 **Agent 2 — Recent Work:** read `~/.claude/LIFEOS/MEMORY/STATE/work.json` and recent `MEMORY/WORK/` dirs (last 7 days). Extract active projects, recurring patterns, open tasks, recent accomplishments.
 
-**Agent 3 — PAI State:** list `~/.claude/skills/`, `~/.claude/hooks/`, read `~/.claude/settings.json`. Extract installed skills, active hooks, configuration highlights, obvious gaps or opportunities.
+**Agent 3 — LifeOS State:** list `~/.claude/skills/`, `~/.claude/hooks/`, read `~/.claude/settings.json`. Extract installed skills, active hooks, configuration highlights, obvious gaps or opportunities.
 
 **Agent 4 — Tech Stack:** from PROJECTS.md and recent work, identify primary languages, frameworks, deployment targets, key integrations.
 
@@ -83,7 +83,7 @@ Spawn 4 parallel agents (`subagent_type=general-purpose`):
 
 **Agent 1 — Anthropic Sources**
 Run: `bun ${LIFEOS_SKILL_DIR}/Tools/Anthropic.ts`.
-For each finding (release notes, GitHub commits, doc updates), extract specific techniques: exact syntax/API/configuration, quoted documentation showing usage, which PAI component this improves, before/after code where applicable. Skip findings with no concrete technique. Do NOT return vague "new release available" entries.
+For each finding (release notes, GitHub commits, doc updates), extract specific techniques: exact syntax/API/configuration, quoted documentation showing usage, which LifeOS component this improves, before/after code where applicable. Skip findings with no concrete technique. Do NOT return vague "new release available" entries.
 
 **Agent 2 — YouTube Channels**
 1. Load channel config: `bun ~/.claude/LIFEOS/TOOLS/LoadSkillConfig.ts ../youtube-channels.json`.
@@ -104,7 +104,7 @@ Check `~/.claude/LIFEOS/USER/CUSTOMIZATIONS/SKILLS/Upgrade/` for additional sour
      --jq '.items[] | {name, stars, description, url, topics, created, language}'
    ```
 4. Dedup against `../State/github-trending.json`.
-5. For each NEW repo, read README (`gh api 'repos/OWNER/REPO/readme' --jq '.content' | base64 -d | head -500`). Assess PAI relevance. Extract specific techniques/architectures/patterns. Skip forks, low-quality, irrelevant.
+5. For each NEW repo, read README (`gh api 'repos/OWNER/REPO/readme' --jq '.content' | base64 -d | head -500`). Assess LifeOS relevance. Extract specific techniques/architectures/patterns. Skip forks, low-quality, irrelevant.
 6. Save updated seen-list to `../State/github-trending.json`.
 7. Focus on INSPIRATION (architectural decisions, novel approaches), not just repo names.
 
@@ -114,9 +114,9 @@ Return within 90s; reduce per_page to 3 if slow.
 
 Spawn `Agent(subagent_type="claude-code-guide", run_in_background: true)`:
 
-Verify PAI's Claude Code references against the latest API surface. Check: hook event types, slash commands, agent/subagent types, settings.json fields, MCP integration, Agent SDK, Claude API. For each area, return current features, recent additions, deprecated items, and PAI staleness risk (LOW/MEDIUM/HIGH). Focus on changes affecting hooks, skills, or Algorithm. Return within 90s.
+Verify LifeOS's Claude Code references against the latest API surface. Check: hook event types, slash commands, agent/subagent types, settings.json fields, MCP integration, Agent SDK, Claude API. For each area, return current features, recent additions, deprecated items, and LifeOS staleness risk (LOW/MEDIUM/HIGH). Focus on changes affecting hooks, skills, or Algorithm. Return within 90s.
 
-Output feeds Step 5 (Filter and Score) as source type `Claude Code Guide` and is cross-referenced against current PAI files for staleness.
+Output feeds Step 5 (Filter and Score) as source type `Claude Code Guide` and is cross-referenced against current LifeOS files for staleness.
 
 ### Step 2b: Launch Thread 3 — Internal Reflection Mining
 
@@ -169,7 +169,7 @@ Sort by priority and tier:
 - **🟡 MEDIUM** — score 14-21, relevance > 4.
 - **🟢 LOW** — score < 14, or relevance 3-4.
 
-Each recommendation: short action name, PAI Relevance (primary framing — WHY it matters), effort (Low/Med/High), files affected.
+Each recommendation: short action name, LifeOS Relevance (primary framing — WHY it matters), effort (Low/Med/High), files affected.
 
 ### Step 7: Output Report
 
@@ -182,14 +182,14 @@ Section order: Discoveries → Recommendations → Technique Details → Interna
 **Critical output rules:**
 1. Discoveries first, recommendations second, details third.
 2. Discoveries ≠ Recommendations — different orderings (interestingness vs priority).
-3. PAI Relevance is primary in both tables.
+3. LifeOS Relevance is primary in both tables.
 4. Every Recommendation has a Prior Status tag with file:line evidence.
 5. Quote the source (actual content or code).
-6. Map every technique to a specific PAI file or component.
+6. Map every technique to a specific LifeOS file or component.
 7. Numbered cross-references consistent across Discoveries → Recommendations → Technique Details.
 8. No watch/read recommendations — extract, don't point.
 9. Skip boldly — content with no technique → Skipped.
-10. Two mandatory description fields, ≤2 sentences each: **What It Is** and **How It Helps PAI**.
+10. Two mandatory description fields, ≤2 sentences each: **What It Is** and **How It Helps LifeOS**.
 
 ### Step 8: Registry Update — Feed Discoveries into Algorithm
 
@@ -204,9 +204,9 @@ For each CRITICAL/HIGH recommendation, evaluate against the gate:
 | Discovery Type | Integration Target | Action |
 |----------------|--------------------|--------|
 | New Claude Code command/skill | Algorithm Platform Capabilities table | Propose new row |
-| Enhancement to existing PAI skill | Relevant SKILL.md description | Propose updated description with workflow guidance |
+| Enhancement to existing LifeOS skill | Relevant SKILL.md description | Propose updated description with workflow guidance |
 | Useful behavioral pattern | Algorithm Platform Capabilities (Techniques section) | Propose new technique row |
-| Major new capability | New PAI skill | Propose scaffold via CreateSkill |
+| Major new capability | New LifeOS skill | Propose scaffold via CreateSkill |
 
 Output:
 ```markdown

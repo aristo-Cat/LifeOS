@@ -22,7 +22,7 @@ const PUBLIC_DIR = join(import.meta.dir, "..", "public");
 // Read canonical LifeOS version on startup. The installer ships inside
 // ~/.claude/LIFEOS/LIFEOS_INSTALL/, so PAI/VERSION sits two levels up. The
 // {{LIFEOS_VERSION}} placeholder in HTML responses is substituted on serve
-// — change PAI/VERSION (or run UpdatePaiVersion) and the installer banner
+// — change PAI/VERSION (or run UpdateLifeosVersion) and the installer banner
 // reflects the new version on next launch with no source edit needed.
 const LIFEOS_VERSION_FILE = join(import.meta.dir, "..", "..", "VERSION");
 const LIFEOS_VERSION: string = (() => {

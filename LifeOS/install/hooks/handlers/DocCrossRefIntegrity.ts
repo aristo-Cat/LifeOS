@@ -32,7 +32,7 @@
 
 import { readFileSync, writeFileSync, existsSync, readdirSync } from 'fs';
 import { join, basename } from 'path';
-import { paiPath, getPaiDir, getClaudeDir } from '../lib/paths';
+import { paiPath, getLifeosDir, getClaudeDir } from '../lib/paths';
 import { getIdentity } from '../lib/identity';
 import { inference } from '../../LIFEOS/TOOLS/Inference';
 import type { ParsedTranscript } from '../../LIFEOS/TOOLS/TranscriptParser';
@@ -60,7 +60,7 @@ interface DriftItem {
 // Constants
 // ============================================================================
 
-const SYSTEM_DIR = getPaiDir();
+const SYSTEM_DIR = getLifeosDir();
 const DOCS_DIR = join(SYSTEM_DIR, 'DOCUMENTATION');
 const HOOKS_DIR = join(getClaudeDir(), 'hooks');
 const HANDLERS_DIR = join(HOOKS_DIR, 'handlers');
@@ -157,7 +157,7 @@ function isHookModified(modifiedFiles: Set<string>): boolean {
  * Excludes MEMORY/WORK, MEMORY/LEARNING, MEMORY/STATE, and other non-system paths.
  */
 function isSystemFileModified(modifiedFiles: Set<string>): boolean {
-  const LIFEOS_DIR = getPaiDir();
+  const LIFEOS_DIR = getLifeosDir();
   const CLAUDE_DIR = getClaudeDir();
   const LIFEOS_EXCLUDED = ['MEMORY/WORK/', 'MEMORY/LEARNING/', 'MEMORY/STATE/', 'Plans/', '.git/', 'node_modules/', 'ShellSnapshots/', 'MEMORY/VOICE/', 'MEMORY/RELATIONSHIP/', 'history.jsonl', '.quote-cache'];
   const CLAUDE_EXCLUDED = ['projects/', '.git/', 'node_modules/', 'history.jsonl'];

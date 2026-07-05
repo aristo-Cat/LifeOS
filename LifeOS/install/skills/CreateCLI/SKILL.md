@@ -175,7 +175,7 @@ Generated CLIs follow LifeOS standards:
 Generated CLIs go to:
 - `~/.claude/LIFEOS/TOOLS/[cli-name]/` - Personal CLIs (like llcli)
 - `~/Projects/[project-name]/` - Project-specific CLIs
-- `${PROJECTS_DIR}/PAI/Examples/clis/` - Example CLIs (PUBLIC repo)
+- `${PROJECTS_DIR}/LIFEOS/Examples/clis/` - Example CLIs (PUBLIC repo)
 
 **SAFETY:** Always verify repository location before git operations
 

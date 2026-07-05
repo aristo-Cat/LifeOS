@@ -14,24 +14,24 @@
 //
 // Credentials path is resolved in order:
 //   1. $GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE (settings.json env)
-//   2. PaiConfig integrations.google.credentialsFile (LIFEOS_CONFIG.toml)
+//   2. LifeosConfig integrations.google.credentialsFile (LIFEOS_CONFIG.toml)
 //   3. {paiUserDir}/CONFIG/CREDENTIALS/google/credentials.json (conventional fallback)
 
 import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { loadPaiConfig, paiUserDir } from "./PaiConfig";
+import { loadLifeosConfig, paiUserDir } from "./LifeosConfig";
 
 function resolveCredsPath(): string {
   const envOverride = process.env.GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE?.replace(/^\$HOME/, homedir());
   if (envOverride) return envOverride;
   try {
-    const cfg = loadPaiConfig();
+    const cfg = loadLifeosConfig();
     const fromConfig = cfg.integrations?.google?.credentialsFile;
     if (typeof fromConfig === "string" && fromConfig.length > 0) {
       return fromConfig.replace(/^\$HOME/, homedir()).replace(/^~/, homedir());
     }
-  } catch { /* PaiConfig unavailable on fresh install — fall through */ }
+  } catch { /* LifeosConfig unavailable on fresh install — fall through */ }
   return join(paiUserDir(), "CONFIG/CREDENTIALS/google/credentials.json");
 }
 const CREDS_PATH = resolveCredsPath();

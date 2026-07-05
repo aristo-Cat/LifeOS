@@ -14,7 +14,7 @@ Every Pulse module is a sub-surface of the Dashboard: real-time observability, v
 
 **Canonical thesis:** `LIFEOS/DOCUMENTATION/LifeOs/LifeOsThesis.md` — the source of truth for what LifeOS is, what the DA is, and why Pulse exists.
 
-**Implementation:** The unified daemon of PAI — a single always-on process that handles cron jobs, voice notifications, hook validation, observability APIs + dashboard, Telegram chat, iMessage chat, and GitHub work polling. Pulse is THE local runtime for all PAI services. It absorbed VoiceServer, TelegramBot, the iMessage bot, and the Observability server into crash-isolated modules running under one process, one port (31337), and one launchd plist (`com.lifeos.pulse`).
+**Implementation:** The unified daemon of LifeOS — a single always-on process that handles cron jobs, voice notifications, hook validation, observability APIs + dashboard, Telegram chat, iMessage chat, and GitHub work polling. Pulse is THE local runtime for all LifeOS services. It absorbed VoiceServer, TelegramBot, the iMessage bot, and the Observability server into crash-isolated modules running under one process, one port (31337), and one launchd plist (`com.lifeos.pulse`).
 
 **Version:** 2.0 (2026-04-01)
 **Location:** `~/.claude/LIFEOS/PULSE/`
@@ -62,7 +62,7 @@ idle-session-boundary check:
   ↓
 sendChatAction(chatId, "typing")
   ↓
-buildPaiContextBlock() — cached 60s w/ mtime invalidation, reads:
+buildLifeosContextBlock() — cached 60s w/ mtime invalidation, reads:
     USER/DIGITAL_ASSISTANT/DA_IDENTITY.md
     USER/PRINCIPAL/PRINCIPAL_IDENTITY.md
     USER/TELOS/PRINCIPAL_TELOS.md
@@ -100,8 +100,8 @@ sendVoiceSummary(ctx, fullText) — fire-and-forget IIFE
 |---------|-----------|-------|
 | Voice identity | `KAI_VOICE_ID` resolved at module import from `settings.json` `daidentity.voices.main.voiceId` (same source `VoiceServer` reads) | Public Rachel voice (`21m00Tcm4TlvDq8ikWAM`) is the fallback for fresh installs that haven't populated settings.json. No hardcoded principal-specific literal; release portability without install-time placeholder resolution. |
 | Channel separation | Telegram never calls `/notify`; CLI `/notify` never calls `bot.api.sendVoice`; VoiceServer unmodified by this pipeline | Three layers of defense, in order of failure mode they catch: (1) `env: { LIFEOS_NOTIFICATION_CHANNEL: "telegram" }` on `sdkOptions` propagates to every hook in the subprocess tree — `hooks/VoiceCompletion.hook.ts`, `hooks/StopFailureHandler.hook.ts`, `hooks/PromptProcessing.hook.ts` voice-announcement block, and `hooks/handlers/DocCrossRefIntegrity.ts` all check `isDesktopChannel()` and skip the `/notify` fetch (writing `event_type: 'skipped'` to `voice-events.jsonl` with `reason: 'remote_channel:telegram'`). This is the *hard* barrier — it stops desktop voice at the call site, regardless of what the model is doing. (2) `canUseTool` callback denies any Bash command containing `31337` or `/notify` from the model itself. (3) The Telegram-mode system-prompt rule forbidding `/notify` curls. Layers 2 and 3 are belt-and-suspenders; layer 1 is the load-bearing fix (added 2026-05-24, ISA `MEMORY/WORK/20260524-telegram-voice-channel-isolation-vs-hermes/ISA.md`). Source of truth: `hooks/lib/notification-channel.ts`. |
-| Minimalist remote-channel output | Telegram + iMessage receive plain conversational prose — no CLAUDE.md mode banners (`MINIMAL`/`NATIVE`/`ALGORITHM`), no template fields (`📃 CONTENT:`, `🗣️ {{DA_NAME}}:`), no Algorithm phase headers (`═══`, `━━━`). | Two layers: (1) **Prevention** — `hooks/EffortRouter.hook.ts` short-circuits when `LIFEOS_NOTIFICATION_CHANNEL` is set to a remote channel and emits `TELEGRAM_DIRECTIVE` / `IMESSAGE_DIRECTIVE` into `additionalContext` instead of the `MODE:` banner. The model never sees `MODE: ALGORITHM` so doesn't reach for the template. Per-channel ephemeral system prompts get injected at runtime. (2) **Egress sanitizer** — `LIFEOS/PULSE/lib/strip-mode-scaffolding.ts` `stripModeScaffolding()` regex-strips known LifeOS scaffolding markers from `fullText` before `editMessageText` / `reply` / `sendMessage` / `summarizeForVoice`. Telegram + iMessage both apply at the end of their respective SDK loops. On a sanitizer hit, `log("warn", "egress sanitizer stripped mode scaffolding", ...)` records the leak for tuning the Layer 1 directive. (Added 2026-05-24 iteration 2.) |
-| Memory context | Per-turn `buildPaiContextBlock()`, module-level cache `cachedContext: { text, builtAt, mtimes }`, 60s TTL, per-source-file mtime invalidation | Stale only across a Pulse restart or genuine source-file change. PROJECTS.md is sliced to "Open Sessions to Resume" only; the rest is reachable on-demand via SDK Read. |
+| Minimalist remote-channel output | Telegram + iMessage receive plain conversational prose — no CLAUDE.md mode banners (`MINIMAL`/`NATIVE`/`ALGORITHM`), no template fields (`📃 CONTENT:`, `🗣️ {{DA_NAME}}:`), no Algorithm phase headers (`═══`, `━━━`). | Two layers: (1) **Prevention** — `hooks/TheRouter.hook.ts` short-circuits when `LIFEOS_NOTIFICATION_CHANNEL` is set to a remote channel and emits `TELEGRAM_DIRECTIVE` / `IMESSAGE_DIRECTIVE` into `additionalContext` instead of the `MODE:` banner. The model never sees `MODE: ALGORITHM` so doesn't reach for the template. Per-channel ephemeral system prompts get injected at runtime. (2) **Egress sanitizer** — `LIFEOS/PULSE/lib/strip-mode-scaffolding.ts` `stripModeScaffolding()` regex-strips known LifeOS scaffolding markers from `fullText` before `editMessageText` / `reply` / `sendMessage` / `summarizeForVoice`. Telegram + iMessage both apply at the end of their respective SDK loops. On a sanitizer hit, `log("warn", "egress sanitizer stripped mode scaffolding", ...)` records the leak for tuning the Layer 1 directive. (Added 2026-05-24 iteration 2.) |
+| Memory context | Per-turn `buildLifeosContextBlock()`, module-level cache `cachedContext: { text, builtAt, mtimes }`, 60s TTL, per-source-file mtime invalidation | Stale only across a Pulse restart or genuine source-file change. PROJECTS.md is sliced to "Open Sessions to Resume" only; the rest is reachable on-demand via SDK Read. |
 | Idle-session boundary | `IDLE_TIMEOUT_MS = 60 * 60 * 1000` (1 hour). `lastMessageAt` updated ONLY after fully-successful exchange (not at handler entry — a slow SDK reply during which the next message arrives shouldn't pre-update the clock) | Restart-equivalent: `startTelegram()` initializes `lastMessageAt = null` and `threadStartedAt = Date.now()`, treating fresh boot as fresh thread. Persisted `conversations.json` is untouched — only the per-turn slice is filtered. |
 | Useless-fallback guard | `MIN_FALLBACK_WORDS = 6`, `MEANINGFUL_REPLY_WORDS = 25` — when Sonnet times out and the fallback is a stylistic short intro (e.g., "Busy day.") on a substantive reply, skip ElevenLabs entirely. No voice beats a 0:00 voice stub. | Logged at `info` level with `{ msg: "voice summary skipped — useless fallback against long reply", fallbackSummary, fallbackWords, replyWords, chatId }`. |
 | Single-user assumption | `lastSessionId` / `lastMessageAt` / `threadStartedAt` are module-global. Matches existing `lastSessionId` shape. | Allowlist > 1 chat → state must move to `Map<chatId, …>` keyed per chat. Comment in source. |
@@ -681,7 +681,7 @@ bun run checks/github.ts
 LifeOS Pulse includes a native macOS menu bar app that shows daemon status at a glance. The menu bar app is launched automatically by Pulse on startup -- no separate launchd plist needed.
 
 **Location:** `~/.claude/LIFEOS/PULSE/MenuBar/`
-**Installed to:** `~/Applications/PAI Pulse.app`
+**Installed to:** `~/Applications/LifeOS Pulse.app`
 **Launched by:** Pulse process on startup (no separate launchd plist)
 
 ### What It Shows
@@ -833,7 +833,7 @@ The observability module serves all dashboard data. Full API reference with all 
 - **Keepalive:** `: keepalive\n\n` comment every 25s per subscriber so corporate proxies / macOS loopback don't drop idle connections.
 - **Disable:** `LIFEOS_NO_SSE=1` env var → 503 on the endpoint, dashboard falls back to legacy 2s polling identically to pre-change behavior.
 - **Dashboard contract:** `useAlgorithmState` hook tries SSE on mount; on three consecutive `onerror` events drops the EventSource and reverts polling to 2s. While SSE is connected, polling drops to 30s (safety net).
-- **Atomic emitter:** `bun ~/.claude/LIFEOS/TOOLS/AlgoPhase.ts <phase>` writes the current session's phase into `work.json` in ~22ms (p95 27ms). The Algorithm doctrine prescribes invocation at every phase transition. EffortRouter pre-emit (`markAlgorithmStarting`) eliminates the wrong-phase window at session start.
+- **Atomic emitter:** `bun ~/.claude/LIFEOS/TOOLS/AlgoPhase.ts <phase>` writes the current session's phase into `work.json` in ~22ms (p95 27ms). The Algorithm doctrine prescribes invocation at every phase transition. TheRouter pre-emit (`markAlgorithmStarting`) eliminates the wrong-phase window at session start.
 
 Full architectural reasoning in `MEMORY/WORK/20260524-072107_pulse-agents-realtime-phase-tracking/ISA.md`.
 

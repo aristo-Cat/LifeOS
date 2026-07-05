@@ -122,7 +122,7 @@ Multi-line expandable detail views shown on session click.
 | **ISA frontmatter** | `MEMORY/WORK/{slug}/ISA.md` or `<project>/ISA.md` | core fields (task, effort, phase, mode, progress, started, updated) + v6.4.0 goal fields + v6.5.0 density fields + v2.10 response/journey fields |
 | **session metadata** | `MEMORY/STATE/work.json` | session registry, used for NATIVE sessions without ISAs |
 | **ISA body sections** | same ISA file, body | `## Decisions`, `## Changelog`, `## Verification`, `## Iteration History` (Loop only) |
-| **EffortRouter additionalContext** | `EffortRouter.hook.ts` output | response mode, tier, goal signal, density gate eligibility — set per-prompt |
+| **TheRouter additionalContext** | `TheRouter.hook.ts` output | response mode, tier, goal signal, density gate eligibility — set per-prompt |
 | **work.json phase history** | `hooks/lib/isa-utils.ts::appendPhase()` | phase transitions with timing — drives PhaseProgressStrip |
 
 ---

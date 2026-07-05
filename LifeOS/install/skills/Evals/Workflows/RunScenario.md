@@ -26,7 +26,7 @@ Run a multi-turn agent scenario — simulated user drives N-turn conversation ag
    bun run Tools/ScenarioRunner.ts --scenario Scenarios/<name>.scenario.ts
    ```
 
-3. **Inspect the output** in `PAI/MEMORY/STATE/Evals-Results/<scenario-id>/<run-id>/`:
+3. **Inspect the output** in `LIFEOS/MEMORY/STATE/Evals-Results/<scenario-id>/<run-id>/`:
    - `run.json` — the full `EvalRun` with pass rates, pass@k, pass^k
    - `transcripts/trial_N.json` — per-trial `Trial` with `Transcript` + judge `GraderResult`
 

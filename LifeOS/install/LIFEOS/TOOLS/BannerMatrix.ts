@@ -20,7 +20,7 @@
 import { readdirSync, existsSync, readFileSync } from "fs";
 import { join } from "path";
 import { spawnSync } from "child_process";
-import { paiUserDir } from "./PaiConfig";
+import { paiUserDir } from "./LifeosConfig";
 
 const HOME = process.env.HOME!;
 const CLAUDE_DIR = join(HOME, ".claude");
@@ -623,9 +623,9 @@ function createNormalBanner(stats: SystemStats): string {
   const paiDripLines = LIFEOS_DRIP.slice(0, 4);  // Just first 4 lines for compactness
   for (const paiLine of paiDripLines) {
     // Color gradient: bright to dim going down
-    const coloredPai = `${g}${BOLD}${paiLine}${RESET}`;
+    const coloredLifeos = `${g}${BOLD}${paiLine}${RESET}`;
     const centered = " ".repeat(Math.floor((width - paiLine.length) / 2));
-    lines.push(`${centered}${coloredPai}`);
+    lines.push(`${centered}${coloredLifeos}`);
   }
 
   // Drip trail

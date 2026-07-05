@@ -95,7 +95,7 @@ Proposals carry a `target_kind` discriminator that tells the reviewer which cura
 | `definition` | `USER/DEFINITIONS.md` | {{PRINCIPAL_NAME}} defines a term (coined concept, principle's exact meaning, acronym) future {{DA_NAME}} must interpret correctly |
 | `canonical-content` | `USER/CANONICAL_CONTENT.md` | {{PRINCIPAL_NAME}} names a piece of content (post, talk, framework) as canonical to his body of work |
 | `resume` | `USER/PRINCIPAL/RESUME.md` | {{PRINCIPAL_NAME}} mentions a career fact (new role, certification, achievement) that should land in the resume |
-| `operational-rule` | `USER/CONFIG/OPERATIONAL_RULES.md` | {{PRINCIPAL_NAME}} states an operating directive about HOW {{DA_NAME}}/PAI should handle a class of work |
+| `operational-rule` | `USER/CONFIG/OPERATIONAL_RULES.md` | {{PRINCIPAL_NAME}} states an operating directive about HOW {{DA_NAME}}/LifeOS should handle a class of work |
 | `projects` | `USER/PROJECTS.md` | {{PRINCIPAL_NAME}} names a new project that should be in the project routing table |
 | `contacts` | `USER/CONTACTS.md` | {{PRINCIPAL_NAME}} mentions a person 3+ times with role, relationship, and why they matter |
 
@@ -144,7 +144,7 @@ When all three hold, the next Stop hook spawns the reviewer subprocess. New User
 
 ### Per-turn retrieval
 
-`buildPaiContextBlock(query)` in `LIFEOS/PULSE/modules/telegram.ts` calls `getRelevantContext(query)` (in `MemoryRetriever.ts`); the BM25 top-K (default 5, score threshold 0.20) renders as a `## RELEVANT MEMORY` block injected after the hot-layer memory files and before `PRINCIPAL_TELOS`. Below-threshold returns empty (no header noise). Cache TTL 60s by query-hash. Graph traversal (`KnowledgeGraph.ts`) stays available as a separate explicit call — not on the hot path.
+`buildLifeosContextBlock(query)` in `LIFEOS/PULSE/modules/telegram.ts` calls `getRelevantContext(query)` (in `MemoryRetriever.ts`); the BM25 top-K (default 5, score threshold 0.20) renders as a `## RELEVANT MEMORY` block injected after the hot-layer memory files and before `PRINCIPAL_TELOS`. Below-threshold returns empty (no header noise). Cache TTL 60s by query-hash. Graph traversal (`KnowledgeGraph.ts`) stays available as a separate explicit call — not on the hot path.
 
 ### Observability
 

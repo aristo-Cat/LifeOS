@@ -13,7 +13,7 @@ interface TreeNode {
   count?: number;
 }
 
-export default function PaiLayout({ children }: { children: React.ReactNode }) {
+export default function LifeosLayout({ children }: { children: React.ReactNode }) {
   const [searchOpen, setSearchOpen] = useState(false);
 
   // Fetch wiki tree

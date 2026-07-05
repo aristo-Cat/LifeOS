@@ -3,7 +3,7 @@
  * CommitmentLog.ts — Manual capture CLI. Creates a GitHub Issue tagged Type:commitment.
  *
  *   bun ~/.claude/LIFEOS/TOOLS/CommitmentLog.ts \
- *     --beneficiary "Bryan" \
+ *     --beneficiary "Alex" \
  *     --subject "send Surface threat-model brief" \
  *     --due 2026-05-30 \
  *     [--channel imessage|telegram|email|inperson|other] \

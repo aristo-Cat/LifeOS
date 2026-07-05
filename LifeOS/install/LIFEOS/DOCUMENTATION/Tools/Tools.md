@@ -45,7 +45,7 @@ bun ~/.claude/LIFEOS/TOOLS/Inference.ts --level medium --timeout 60000 "Prompt" 
 | **low** | Haiku | 15s | Quick tasks, simple generation, basic classification |
 | **medium** | Sonnet | 30s | Balanced reasoning, typical analysis, decisions |
 | **high** | Opus | 90s | Deep reasoning, strategic decisions, complex analysis |
-| **max** | Fable | 120s | Keystone decisions — EffortRouter classifier, Advisor, hardest reasoning |
+| **max** | Fable | 120s | Keystone decisions — TheRouter classifier, Advisor, hardest reasoning |
 
 **Programmatic Usage:**
 ```typescript
@@ -777,7 +777,7 @@ Historical Algorithm doctrine snapshots (`LIFEOS/ALGORITHM/v*.md`) keep their pe
 
 **Location:** `~/.claude/LIFEOS/TOOLS/ArchitectureSummaryGenerator.ts`
 
-Generate `LIFEOS_ARCHITECTURE_SUMMARY.md` from PAISYSTEMARCHITECTURE.md and subsystem docs. Provides a compact architecture overview derived from the master architecture document.
+Generate `LIFEOS_ARCHITECTURE_SUMMARY.md` from LifeosSystemArchitecture.md and subsystem docs. Provides a compact architecture overview derived from the master architecture document.
 
 **Usage:**
 ```bash
@@ -791,7 +791,7 @@ bun ~/.claude/LIFEOS/TOOLS/ArchitectureSummaryGenerator.ts check
 **When to Use:**
 - "regenerate architecture summary"
 - "check if architecture summary is stale"
-- After modifying PAISYSTEMARCHITECTURE.md
+- After modifying LifeosSystemArchitecture.md
 
 ---
 

@@ -46,7 +46,7 @@ LifeOS has two distinct "mode" concepts. They overlap at the Native tab.
 
 | Layer | Concept | Where set | Values |
 |-------|---------|-----------|--------|
-| **Layer 1 — Response Mode** | Shape of the output template | `hooks/EffortRouter.hook.ts` at UserPromptSubmit | MINIMAL / NATIVE / ALGORITHM |
+| **Layer 1 — Response Mode** | Shape of the output template | `hooks/TheRouter.hook.ts` at UserPromptSubmit | MINIMAL / NATIVE / ALGORITHM |
 | **Layer 2 — Algorithm Mode** | Cognitive pattern the Algorithm runs | Algorithm at OBSERVE (writes ISA frontmatter `mode:`) | iterate / optimize / ideate / loop |
 
 **Native is the only tab that crosses both layers** — it surfaces sessions classified as Layer 1 NATIVE for Pulse display, even though no Layer 2 mode (and no ISA) was created.
@@ -68,7 +68,7 @@ Set at the **OBSERVE phase** of the Algorithm via deterministic trigger detectio
 
 ### Response-mode crossover (Native)
 
-Set by `hooks/EffortRouter.hook.ts` at UserPromptSubmit. When the EffortRouter classifier emits `MODE: NATIVE`, session metadata captures `mode: native` for Pulse display. No full ISA created.
+Set by `hooks/TheRouter.hook.ts` at UserPromptSubmit. When the TheRouter classifier emits `MODE: NATIVE`, session metadata captures `mode: native` for Pulse display. No full ISA created.
 
 ### External pipeline (Ladder)
 

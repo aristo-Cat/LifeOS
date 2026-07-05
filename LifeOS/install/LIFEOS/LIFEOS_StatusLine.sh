@@ -49,7 +49,7 @@ fi
 USER_TZ="${USER_TZ:-UTC}"
 
 # LIFEOS_VERSION: read from PAI/VERSION (canonical, also read by install.sh,
-# Banner.ts, _LIFEOS/Tools/UpdatePaiVersion.ts, ShadowRelease.ts, install web
+# Banner.ts, _LIFEOS/Tools/UpdateLifeosVersion.ts, ShadowRelease.ts, install web
 # server). Same multi-path pattern as ALGO_VERSION below to survive
 # hook-spawn contexts where HOME/LIFEOS_DIR may not resolve.
 LIFEOS_VERSION=""
@@ -1213,7 +1213,7 @@ _tier_color() {
     fi
 }
 
-_PAI_STATE_JSON="$LIFEOS_DIR/USER/TELOS/LIFEOS_STATE.json"
+_LIFEOS_STATE_JSON="$LIFEOS_DIR/USER/TELOS/LIFEOS_STATE.json"
 # Five Human-3.0 surface dimensions. creative + freedom render as separate
 # columns (CREATIVITY, FREEDOM) — unabridged words. finances reads from
 # .dimensions.finances first, falling back to .dimensions.money for back-compat
@@ -1225,9 +1225,9 @@ _labels=(HEALTH CREATIVITY FREEDOM RELS FIN)
 # LIFEOS_STATE.json once the user runs /interview and rates dimensions.
 declare -a _pcts=(N/A N/A N/A N/A N/A)
 
-if [ -f "$_PAI_STATE_JSON" ]; then
+if [ -f "$_LIFEOS_STATE_JSON" ]; then
     IFS=$'\t' read -r _state_health _state_creative _state_freedom _state_relationships _state_finances _state_money <<< "$(
-        jq -r '[.dimensions.health.pct // "", .dimensions.creative.pct // "", .dimensions.freedom.pct // "", .dimensions.relationships.pct // "", .dimensions.finances.pct // "", .dimensions.money.pct // ""] | @tsv' "$_PAI_STATE_JSON" 2>/dev/null
+        jq -r '[.dimensions.health.pct // "", .dimensions.creative.pct // "", .dimensions.freedom.pct // "", .dimensions.relationships.pct // "", .dimensions.finances.pct // "", .dimensions.money.pct // ""] | @tsv' "$_LIFEOS_STATE_JSON" 2>/dev/null
     )"
     # Health
     [ -n "$_state_health" ] && [ "$_state_health" != "null" ] && _pcts[0]="${_state_health%%.*}"

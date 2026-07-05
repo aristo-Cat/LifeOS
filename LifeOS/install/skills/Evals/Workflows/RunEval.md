@@ -48,7 +48,7 @@ bun run ~/.claude/skills/Evals/Tools/AlgorithmBridge.ts -s <use-case> --show-sat
 ### Step 3: Collect Results
 
 Results are stored in:
-- `PAI/MEMORY/STATE/Evals-Results/<use-case>/<run-id>/results.json` (per-run output)
+- `LIFEOS/MEMORY/STATE/Evals-Results/<use-case>/<run-id>/results.json` (per-run output)
 - Use case directory: `UseCases/<use-case>/` (source of truth)
 
 ### Step 5: Report Summary

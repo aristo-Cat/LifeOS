@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 /**
- * UpdatePaiState — Writes LIFEOS_STATE.json with per-dimension pct scores read by
+ * UpdateLifeosState — Writes LIFEOS_STATE.json with per-dimension pct scores read by
  * the statusline (PAI/LIFEOS_StatusLine.sh) STATE strip and the Pulse TELOS
  * dashboard rings.
  *
@@ -22,8 +22,8 @@
  * principal runs the IDEAL_STATE interview.
  *
  * Usage:
- *   bun ~/.claude/LIFEOS/TOOLS/UpdatePaiState.ts
- *   bun ~/.claude/LIFEOS/TOOLS/UpdatePaiState.ts --json
+ *   bun ~/.claude/LIFEOS/TOOLS/UpdateLifeosState.ts
+ *   bun ~/.claude/LIFEOS/TOOLS/UpdateLifeosState.ts --json
  */
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
@@ -54,7 +54,7 @@ interface DimensionState {
   source_file: string;
 }
 
-interface PaiState {
+interface LifeosState {
   generated_at: string;
   dimensions: Record<DimensionId, DimensionState>;
 }
@@ -106,7 +106,7 @@ function computeState(file: string): DimensionState {
   return computeFromCurrent(file) ?? computeFromIdeal(file);
 }
 
-function build(): PaiState {
+function build(): LifeosState {
   const dimensions = {} as Record<DimensionId, DimensionState>;
   for (const d of DIMENSIONS) {
     dimensions[d.id] = computeState(d.file);

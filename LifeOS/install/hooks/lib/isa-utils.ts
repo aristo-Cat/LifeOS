@@ -1174,12 +1174,12 @@ export function upsertSession(sessionUUID: string, sessionName: string, task: st
 
       // Track mode transition if mode changed.
       // 2026-05-24 (realtime-phase-tracking): one-way upgrade for `algorithm`.
-      // When EffortRouter's classifier already declared this session as
+      // When TheRouter's classifier already declared this session as
       // currentMode='algorithm', PromptProcessing's local `isNativeMode` regex
       // must NOT silently downgrade it back to 'native' a tick later. The
       // classifier is authoritative; this guard preserves its decision.
       // 2026-07-01: the LEGITIMATE algorithm→native downgrade is recorded by
-      // EffortRouter (the authoritative classifier) via markSessionNative() —
+      // TheRouter (the authoritative classifier) via markSessionNative() —
       // this guard only blocks PromptProcessing's WEAK regex, never the classifier.
       const prevMode = session.currentMode || (session.mode === 'starting' ? 'algorithm' : 'native');
       const isDowngradeFromAlgorithm = prevMode === 'algorithm' && resolvedMode === 'native';
@@ -1251,7 +1251,7 @@ export const upsertNativeSession = upsertSession;
 
 /**
  * Mark a session as algorithm-starting in work.json. Called by
- * EffortRouter.hook.ts the instant the classifier emits MODE=ALGORITHM, so
+ * TheRouter.hook.ts the instant the classifier emits MODE=ALGORITHM, so
  * the Pulse dashboard shows the session as an algorithm session BEFORE the
  * model receives the prompt — no "phase: native" wrong-display window.
  *
@@ -1265,18 +1265,18 @@ export const upsertNativeSession = upsertSession;
  *     with currentMode='algorithm', mode='starting', phase='starting'
  *
  * Side-effect: writes work.json atomically via writeRegistry.
- * Best-effort: failures must not break the EffortRouter classification path.
+ * Best-effort: failures must not break the TheRouter classification path.
  */
 /**
  * Authoritatively record a session switching BACK to native (algorithm→native),
  * updating `currentMode` + pushing a `modeHistory` transition so the Pulse
  * Agents/Lattice dashboard re-lanes the session to the native view and the
- * ModeTimeline shows the switch. Called by EffortRouter (the authoritative
+ * ModeTimeline shows the switch. Called by TheRouter (the authoritative
  * classifier) on NATIVE turns.
  *
  * This is the DOWNGRADE path that `upsertSession` deliberately refuses: that
  * guard exists to stop PromptProcessing's WEAK 8-verb regex from clobbering the
- * classifier's decision a tick later. EffortRouter's classifier is authoritative,
+ * classifier's decision a tick later. TheRouter's classifier is authoritative,
  * so it IS allowed to record the return to native. `currentMode` is what every
  * dashboard `inferMode`/`resolveMode` reads FIRST, so this alone re-categorizes
  * the session without touching `phase`/`mode` — safe to resume the algorithm later
@@ -1317,7 +1317,7 @@ export function markSessionNative(sessionUUID: string): void {
 export function markAlgorithmStarting(sessionUUID: string, taskHint: string, tier?: number): void {
   if (!sessionUUID) return;
   // Resolved tier ("E1".."E5") persisted onto the row so the Pulse Agents/Lattice
-  // page shows the correct tier the instant EffortRouter classifies — before any
+  // page shows the correct tier the instant TheRouter classifies — before any
   // ISA exists. Undefined tier leaves the existing effort untouched.
   const effortStr = (typeof tier === 'number' && tier >= 1 && tier <= 5) ? `E${tier}` : undefined;
   try {

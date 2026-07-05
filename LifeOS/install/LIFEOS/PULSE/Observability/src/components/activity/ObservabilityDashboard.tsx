@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useMemo, useRef } from "react";
-import { usePAIEvents, type PAIEvent } from "@/hooks/useLifeosEvents";
+import { useLifeosEvents, type LifeosEvent } from "@/hooks/useLifeosEvents";
 import type { HookEvent } from "@/hooks/useAgentEvents";
 import type { TimeRange } from "@/hooks/useChartData";
 import LivePulseChart from "./LivePulseChart";
@@ -12,7 +12,7 @@ import EventTimeline from "./EventTimeline";
 
 const TIME_RANGES: TimeRange[] = ["1M", "2M", "4M", "8M", "16M"];
 
-// ─── Transform PAIEvent → HookEvent ───
+// ─── Transform LifeosEvent → HookEvent ───
 // Remap historical timestamps into the current time window so the chart renders bars.
 // The EventTimeline shows relative time ("2m ago") so remapped times still make sense.
 
@@ -25,7 +25,7 @@ function hashString(s: string): number {
   return Math.abs(hash);
 }
 
-function toHookEvents(paiEvents: PAIEvent[]): HookEvent[] {
+function toHookEvents(paiEvents: LifeosEvent[]): HookEvent[] {
   if (paiEvents.length === 0) return [];
 
   return paiEvents.map((e) => {
@@ -63,7 +63,7 @@ function mapEventType(type: string, source: string): string {
   return "Notification";
 }
 
-function extractPayload(e: PAIEvent): Record<string, any> {
+function extractPayload(e: LifeosEvent): Record<string, any> {
   const payload: Record<string, any> = {};
   for (const [k, v] of Object.entries(e)) {
     if (!["timestamp", "session_id", "source", "type"].includes(k)) {
@@ -77,7 +77,7 @@ function extractPayload(e: PAIEvent): Record<string, any> {
 // ─── Main Component ───
 
 export default function ObservabilityDashboard() {
-  const { events: paiEvents } = usePAIEvents();
+  const { events: paiEvents } = useLifeosEvents();
 
   const [timeRange, setTimeRange] = useState<TimeRange>("1M");
   const [selectedAgents, setSelectedAgents] = useState<string[]>([]);
@@ -95,7 +95,7 @@ export default function ObservabilityDashboard() {
     eventsPerMinuteRef.current = epm;
   }, []);
 
-  // Transform PAIEvents → HookEvents (original timestamps for stable React keys)
+  // Transform LifeosEvents → HookEvents (original timestamps for stable React keys)
   const events: HookEvent[] = useMemo(
     () => toHookEvents(paiEvents),
     [paiEvents]

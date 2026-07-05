@@ -1,12 +1,12 @@
 #!/usr/bin/env bun
 /**
- * PaiConfig.ts — typed user-config loader.
+ * LifeosConfig.ts — typed user-config loader.
  *
  * The INTERFACE between SYSTEM code (this file ships in every LifeOS release) and
  * USER data (the actual values, sourced from LIFEOS/USER/CONFIG/LIFEOS_CONFIG.toml).
  *
  * Doctrine: system code reads identity, voice IDs, integration credentials,
- * and path roots through `loadPaiConfig()`. No system file directly opens
+ * and path roots through `loadLifeosConfig()`. No system file directly opens
  * any file under LIFEOS/USER/ for these values — the path-rooting happens here.
  *
  * Format decision (ISC-56.1): TOML.
@@ -32,7 +32,7 @@ function expandHome(p: string): string {
 
 // ─────────── Types ───────────
 
-export interface PaiPrincipal {
+export interface LifeosPrincipal {
   name: string;
   pronunciation?: string;
   timezone: string;
@@ -40,7 +40,7 @@ export interface PaiPrincipal {
   voiceCloneId?: string;
 }
 
-export interface PaiVoiceSettings {
+export interface LifeosVoiceSettings {
   voiceId: string;
   voiceName?: string;
   stability?: number;
@@ -51,35 +51,35 @@ export interface PaiVoiceSettings {
   volume?: number;
 }
 
-export interface PaiDa {
+export interface LifeosDa {
   name: string;
   fullName?: string;
   displayName?: string;
   color?: string;
   voices: {
-    main: PaiVoiceSettings;
-    algorithm?: PaiVoiceSettings;
+    main: LifeosVoiceSettings;
+    algorithm?: LifeosVoiceSettings;
   };
 }
 
-export interface PaiIntegrations {
+export interface LifeosIntegrations {
   google?: { credentialsFile?: string };
   cloudflare?: { accountId?: string; tokenEnvVar?: string };
   telegram?: { allowlist?: number[] };
   [key: string]: unknown;
 }
 
-export interface PaiPaths {
+export interface LifeosPaths {
   userDir: string;
   memoryDir: string;
   projectsDir: string;
 }
 
-export interface PaiConfig {
-  principal: PaiPrincipal;
-  da: PaiDa;
-  integrations: PaiIntegrations;
-  paths: PaiPaths;
+export interface LifeosConfig {
+  principal: LifeosPrincipal;
+  da: LifeosDa;
+  integrations: LifeosIntegrations;
+  paths: LifeosPaths;
 }
 
 // ─────────── Resolution ───────────
@@ -87,14 +87,14 @@ export interface PaiConfig {
 const DEFAULT_HOME = process.env.HOME || homedir();
 const DEFAULT_CONFIG_PATH = resolve(DEFAULT_HOME, ".claude/LIFEOS/USER/CONFIG/LIFEOS_CONFIG.toml");
 
-let cache: { config: PaiConfig; mtime: number; path: string } | null = null;
+let cache: { config: LifeosConfig; mtime: number; path: string } | null = null;
 
-export function loadPaiConfig(opts: { path?: string; force?: boolean } = {}): PaiConfig {
+export function loadLifeosConfig(opts: { path?: string; force?: boolean } = {}): LifeosConfig {
   const path = opts.path ?? process.env.LIFEOS_CONFIG_PATH ?? DEFAULT_CONFIG_PATH;
 
   if (!existsSync(path)) {
     throw new Error(
-      `PaiConfig: config file not found at ${path}. ` +
+      `LifeosConfig: config file not found at ${path}. ` +
         `Create it (see LIFEOS/USER/CONFIG/README.md) or set LIFEOS_CONFIG_PATH.`,
     );
   }
@@ -119,7 +119,7 @@ export function loadPaiConfig(opts: { path?: string; force?: boolean } = {}): Pa
   return validated;
 }
 
-export function clearPaiConfigCache(): void {
+export function clearLifeosConfigCache(): void {
   cache = null;
 }
 
@@ -131,7 +131,7 @@ export function clearPaiConfigCache(): void {
  */
 export function paiUserDir(): string {
   try {
-    return loadPaiConfig().paths.userDir;
+    return loadLifeosConfig().paths.userDir;
   } catch {
     return resolve(DEFAULT_HOME, ".claude/LIFEOS/USER");
   }
@@ -139,27 +139,27 @@ export function paiUserDir(): string {
 
 // ─────────── Validation ───────────
 
-function validateAndNormalize(raw: unknown, path: string): PaiConfig {
+function validateAndNormalize(raw: unknown, path: string): LifeosConfig {
   if (!raw || typeof raw !== "object") {
-    throw new Error(`PaiConfig: ${path} did not parse to an object`);
+    throw new Error(`LifeosConfig: ${path} did not parse to an object`);
   }
   const root = raw as Record<string, any>;
 
   const principal = root.principal ?? {};
   if (typeof principal.name !== "string" || !principal.name) {
-    throw new Error(`PaiConfig: [principal] requires a non-empty name — see ${path}`);
+    throw new Error(`LifeosConfig: [principal] requires a non-empty name — see ${path}`);
   }
   if (typeof principal.timezone !== "string" || !principal.timezone) {
-    throw new Error(`PaiConfig: [principal] requires a non-empty timezone — see ${path}`);
+    throw new Error(`LifeosConfig: [principal] requires a non-empty timezone — see ${path}`);
   }
 
   const da = root.da ?? {};
   if (typeof da.name !== "string" || !da.name) {
-    throw new Error(`PaiConfig: [da] requires a non-empty name — see ${path}`);
+    throw new Error(`LifeosConfig: [da] requires a non-empty name — see ${path}`);
   }
   const daVoices = da.voices ?? {};
   if (!daVoices.main || typeof (daVoices.main.voice_id ?? daVoices.main.voiceId) !== "string") {
-    throw new Error(`PaiConfig: [da.voices.main] requires a voice_id — see ${path}`);
+    throw new Error(`LifeosConfig: [da.voices.main] requires a voice_id — see ${path}`);
   }
 
   return {
@@ -200,7 +200,7 @@ function validateAndNormalize(raw: unknown, path: string): PaiConfig {
   };
 }
 
-function normalizeVoice(v: any): PaiVoiceSettings {
+function normalizeVoice(v: any): LifeosVoiceSettings {
   return {
     voiceId: v.voice_id ?? v.voiceId,
     voiceName: v.voice_name ?? v.voiceName,
@@ -217,7 +217,7 @@ function normalizeVoice(v: any): PaiVoiceSettings {
 
 if (import.meta.main) {
   try {
-    const cfg = loadPaiConfig();
+    const cfg = loadLifeosConfig();
     console.log(JSON.stringify(cfg, null, 2));
   } catch (e) {
     console.error((e as Error).message);

@@ -19,7 +19,7 @@
 ## Header
 
 ```markdown
-# PAI Upgrade Report
+# LifeOS Upgrade Report
 **Generated:** [timestamp]
 **Sources Processed:** [N] release notes | [N] videos | [N] docs | [N] GitHub queries
 **Findings:** [N] techniques extracted | [N] skipped
@@ -31,7 +31,7 @@
 
 Ranked by interestingness, NOT implementation priority. A LOW-priority item can be Discovery #1 if it's the most "whoa" finding.
 
-| # | Discovery | Source | Why It's Interesting | PAI Relevance |
+| # | Discovery | Source | Why It's Interesting | LifeOS Relevance |
 |---|-----------|--------|----------------------|---------------|
 | 1 | [name] | [source] | [≤2 sentences] | [≤1 sentence] |
 
@@ -49,13 +49,13 @@ Every row MUST carry a Prior Status tag with file:line evidence from Thread 0.
 - ✅ **DONE** — already implemented; goes to Skipped Content with evidence, NOT here
 
 ### 🔴 CRITICAL — Integrate immediately
-Fixes gaps, security issues, or unlocks capabilities PAI should already have.
+Fixes gaps, security issues, or unlocks capabilities LifeOS should already have.
 
-| # | Recommendation | Prior Status | Evidence | PAI Relevance | Effort | Files Affected |
+| # | Recommendation | Prior Status | Evidence | LifeOS Relevance | Effort | Files Affected |
 |---|---------------|-------------|----------|---------------|--------|----------------|
 
 ### 🟠 HIGH — Integrate this week
-Significantly improves PAI capabilities or efficiency.
+Significantly improves LifeOS capabilities or efficiency.
 
 ### 🟡 MEDIUM — Integrate when convenient
 Useful capabilities or ecosystem alignment.
@@ -80,7 +80,7 @@ Numbered to match Recommendations. One block per technique.
 
 **What It Is:** [≤2 sentences, concrete and specific — what the technique does, how it works, what capability it provides]
 
-**How It Helps PAI:** [≤2 sentences, concrete and specific — which component improves, what gap it fills]
+**How It Helps LifeOS:** [≤2 sentences, concrete and specific — which component improves, what gap it fills]
 
 **The Technique:**
 > [QUOTE or CODE BLOCK — actual content, not a summary]
@@ -100,12 +100,12 @@ Numbered to match Recommendations. One block per technique.
 **Priority:** 🔴 | 🟠 | 🟡 | 🟢
 
 **What It Is:** [≤2 sentences]
-**How It Helps PAI:** [≤2 sentences]
+**How It Helps LifeOS:** [≤2 sentences]
 
 **Inspiration Techniques:**
 > [Specific architectural pattern from README or code]
 
-**Applies To:** `[PAI file path]`, [component]
+**Applies To:** `[LifeOS file path]`, [component]
 **Potential Integration:** [key insight to borrow — not a full implementation]
 ```
 
@@ -120,7 +120,7 @@ Numbered to match Recommendations. One block per technique.
 ### [Theme Name] ([N] occurrences, [HIGH/MEDIUM/LOW] signal)
 **Root cause:** [structural issue]
 **Proposed fix:** [concrete change]
-**Target:** [PAI files affected]
+**Target:** [LifeOS files affected]
 **Evidence:**
 - [timestamp] [task] — "[Q2 quote]"
 ```
@@ -132,7 +132,7 @@ If no reflections yet:
 
 ## 📊 Summary
 
-| # | Technique | Source | Priority | PAI Component | Effort |
+| # | Technique | Source | Priority | LifeOS Component | Effort |
 |---|-----------|--------|----------|---------------|--------|
 
 **Totals:** [N] Critical | [N] High | [N] Medium | [N] Low | [N] Skipped | [N] Internal
@@ -158,10 +158,10 @@ One-line digest of source counts and routing.
 
 1. **Discoveries first, recommendations second, details third** — never reorder.
 2. **Discoveries ≠ Recommendations** — different orderings (interestingness vs priority).
-3. **PAI Relevance is primary** in both Discoveries and Recommendations — explain WHY this matters for PAI.
+3. **LifeOS Relevance is primary** in both Discoveries and Recommendations — explain WHY this matters for LifeOS.
 4. **Every Recommendation has a Prior Status tag with file:line evidence.** No exceptions.
 5. **Quote the source.** Every technique includes actual quoted content or code.
-6. **Map to PAI.** Every technique names a specific PAI file or component.
+6. **Map to LifeOS.** Every technique names a specific LifeOS file or component.
 7. **No watch/read recommendations.** Extract the technique; don't point to content.
 8. **Skip boldly.** Content with no extractable technique → Skipped, not diluted.
 9. **Numbered cross-references** are consistent across Discoveries, Recommendations, and Technique Details.

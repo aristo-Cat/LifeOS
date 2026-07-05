@@ -36,7 +36,7 @@ A Loop run:
 
 ## When Loop engages
 
-Auto-detection by `hooks/EffortRouter.hook.ts` (extended classifier):
+Auto-detection by `hooks/TheRouter.hook.ts` (extended classifier):
 
 ```
 LOOP_HINT: yes | no

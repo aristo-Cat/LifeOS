@@ -73,9 +73,9 @@ function detectMemoryVersion(): string {
  * single source of truth (chain A). Falls back to the `# LifeOS X.Y.Z` heading
  * in CLAUDE.md only if VERSION is missing/malformed, so a fresh tree still
  * renders. This collapses the former two-chain drift (2026-07-04): previously
- * this read the hand-typed CLAUDE.md header, which UpdatePaiVersion never wrote.
+ * this read the hand-typed CLAUDE.md header, which UpdateLifeosVersion never wrote.
  */
-function detectPaiVersion(): string {
+function detectLifeosVersion(): string {
   const VERSION_FILE = path.join(LIFEOS_DIR, "VERSION");
   if (fs.existsSync(VERSION_FILE)) {
     const v = fs.readFileSync(VERSION_FILE, "utf-8").trim();
@@ -244,7 +244,7 @@ function generate(): string {
   const subsystems = extractSubsystems();
   const principles = extractPrinciples(archContent);
   const topology = extractTopology(archContent);
-  const paiVersion = detectPaiVersion();
+  const paiVersion = detectLifeosVersion();
   const algorithmVersion = detectAlgorithmVersion();
   const memoryVersion = detectMemoryVersion();
 

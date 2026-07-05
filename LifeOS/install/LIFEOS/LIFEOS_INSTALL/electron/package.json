@@ -1,6 +1,6 @@
 {
   "name": "pai-installer",
-  "version": "6.0.2",
+  "version": "6.0.5",
   "description": "LifeOS Installer — Electron wrapper",
   "main": "main.js",
   "scripts": {

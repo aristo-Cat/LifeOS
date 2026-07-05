@@ -1,7 +1,7 @@
 # DA — Digital Assistant Identity
 
 This directory holds the identity, voice, and personality of every Digital
-Assistant (DA) in your PAI. Most users have one DA; advanced users can run
+Assistant (DA) in your LifeOS. Most users have one DA; advanced users can run
 multiple (e.g., a primary DA plus a specialist).
 
 ## Files

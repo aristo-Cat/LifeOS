@@ -27,10 +27,10 @@
 
 import { readFileSync, readdirSync, existsSync, statSync, appendFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
-import { paiPath, getPaiDir } from '../lib/paths';
+import { paiPath, getLifeosDir } from '../lib/paths';
 
 const TAG = '[MemoryDirIntegrity]';
-const LIFEOS_DIR = getPaiDir();
+const LIFEOS_DIR = getLifeosDir();
 const MEMORY_DIR = join(LIFEOS_DIR, 'MEMORY');
 const INVENTORY_DOC = paiPath('DOCUMENTATION/Memory/MemorySystem.md');
 const EVENTS_FILE = join(MEMORY_DIR, 'STATE', 'events.jsonl');

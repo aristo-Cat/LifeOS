@@ -66,7 +66,7 @@ export type MemoryTypeName = "memory" | "idea" | "knowledge" | "proposal";
 export type Tier = "A" | "B" | "C";
 export type LoadTiming = "always" | "on-relevance" | "surface-only";
 export type WriteMode = "set-overwrite" | "append" | "queue";
-export type Actor = "daniel" | "kai";
+export type Actor = "principal" | "assistant";
 export type EntityType = "person" | "company" | "research";
 
 /**
@@ -264,14 +264,14 @@ const _REGISTRY: Record<MemoryTypeName, TypeRegistryEntry> = {
   memory: {
     storage_path_resolver: (item) => {
       if (item.type !== "memory") throw new Error(`Type mismatch: expected 'memory', got '${(item as any).type}'`);
-      if (item.actor === "daniel") return PRINCIPAL_MEMORY_PATH;
-      if (item.actor === "kai")    return DA_MEMORY_PATH;
-      throw new Error(`Unknown actor for memory item: ${String((item as any).actor)} (must be 'daniel' or 'kai')`);
+      if (item.actor === "principal") return PRINCIPAL_MEMORY_PATH;
+      if (item.actor === "assistant") return DA_MEMORY_PATH;
+      throw new Error(`Unknown actor for memory item: ${String((item as any).actor)} (must be 'principal' or 'assistant')`);
     },
     load_timing: "always",
     tier: "A",
     write_mode: "set-overwrite",
-    description: "Durable fact about {{PRINCIPAL_NAME}} or {{DA_NAME}}. Loaded into every prompt.",
+    description: "Durable fact about the principal or the assistant. Loaded into every prompt.",
   },
   idea: {
     storage_path_resolver: (item) => {
@@ -370,10 +370,10 @@ function smokeTest(): number {
   check("proposal → surface-only",  TYPE_REGISTRY.proposal.load_timing === "surface-only");
 
   // 5. Path resolution — memory routes by actor
-  const memDaniel = resolveStoragePath({ type: "memory", actor: "daniel", content: "RULE: x" });
-  check("memory(daniel) → PRINCIPAL_MEMORY.md", memDaniel === PRINCIPAL_MEMORY_PATH, memDaniel);
-  const memKai = resolveStoragePath({ type: "memory", actor: "kai", content: "ROLE: y" });
-  check("memory(kai) → DA_MEMORY.md", memKai === DA_MEMORY_PATH, memKai);
+  const memPrincipal = resolveStoragePath({ type: "memory", actor: "principal", content: "RULE: x" });
+  check("memory(principal) → PRINCIPAL_MEMORY.md", memPrincipal === PRINCIPAL_MEMORY_PATH, memPrincipal);
+  const memAssistant = resolveStoragePath({ type: "memory", actor: "assistant", content: "ROLE: y" });
+  check("memory(assistant) → DA_MEMORY.md", memAssistant === DA_MEMORY_PATH, memAssistant);
 
   // 6. Path resolution — knowledge routes by entity_type subdir
   const kPerson = resolveStoragePath({ type: "knowledge", entity_type: "person", name: "Some Person", content: "..." });

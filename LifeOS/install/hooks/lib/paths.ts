@@ -6,7 +6,7 @@
  * - Claude home (~/.claude) — Claude Code: settings, skills, hooks, commands, agents
  *
  * Usage:
- *   import { getPaiDir, getClaudeDir, paiPath } from '';
+ *   import { getLifeosDir, getClaudeDir, paiPath } from '';
  */
 
 import { homedir } from 'os';
@@ -40,15 +40,15 @@ export function expandPath(path: string): string {
  * Resolving via getClaudeDir() + 'LifeOS' keeps the live ~/.claude/LIFEOS →
  * plugin ${ROOT}/PAI mapping that the packer's ~/.claude/ → ${LIFEOS_DIR} rewrite assumes.
  */
-export function getPaiDir(): string {
+export function getLifeosDir(): string {
   if (process.env.CLAUDE_PLUGIN_ROOT) {
     return join(getClaudeDir(), 'LIFEOS');
   }
 
-  const envPaiDir = process.env.LIFEOS_DIR;
+  const envLifeosDir = process.env.LIFEOS_DIR;
 
-  if (envPaiDir) {
-    return expandPath(envPaiDir);
+  if (envLifeosDir) {
+    return expandPath(envLifeosDir);
   }
 
   return join(homedir(), '.claude', 'LIFEOS');
@@ -91,7 +91,7 @@ export function getEnvPath(): string {
  * Get a path relative to LIFEOS_DIR
  */
 export function paiPath(...segments: string[]): string {
-  return join(getPaiDir(), ...segments);
+  return join(getLifeosDir(), ...segments);
 }
 
 /**

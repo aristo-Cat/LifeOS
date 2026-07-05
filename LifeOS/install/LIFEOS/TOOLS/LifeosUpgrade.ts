@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 /**
- * PaiUpgrade.ts — idempotent migration runner + diagnostic harness for LifeOS rebuild.
+ * LifeosUpgrade.ts — idempotent migration runner + diagnostic harness for LifeOS rebuild.
  *
  * Each migration knows how to detect its own applied state and is safe to re-run.
  * `--diagnose` audits without changes. `--dry-run` prints the apply plan.
@@ -9,7 +9,7 @@
  * Designed by: LIFEOS/MEMORY/WORK/20260520-pai-system-user-separation-rebuild/PhaseG-design.md
  *
  * Usage:
- *   bun ~/.claude/LIFEOS/TOOLS/PaiUpgrade.ts [--diagnose | --dry-run | --from-fresh-install] [--target=<version>]
+ *   bun ~/.claude/LIFEOS/TOOLS/LifeosUpgrade.ts [--diagnose | --dry-run | --from-fresh-install] [--target=<version>]
  *
  * Exit codes:
  *   0  all migrations applied or already-applied (no-op)
@@ -79,12 +79,12 @@ const MIGRATIONS: Migration[] = [
   },
   {
     id: "m-003",
-    name: "Phase F — PaiConfig.ts present + LIFEOS_CONFIG.toml populated",
+    name: "Phase F — LifeosConfig.ts present + LIFEOS_CONFIG.toml populated",
     isApplied: ({ claudeRoot }) =>
-      existsSync(join(claudeRoot, "LIFEOS/TOOLS/PaiConfig.ts")) &&
+      existsSync(join(claudeRoot, "LIFEOS/TOOLS/LifeosConfig.ts")) &&
       existsSync(join(claudeRoot, "LIFEOS/USER/CONFIG/LIFEOS_CONFIG.toml")),
     apply: () => {
-      throw new Error("m-003 apply not implemented — PaiConfig.ts ships with public LifeOS; LIFEOS_CONFIG.toml comes from `pai setup`. Missing artifact requires manual remediation.");
+      throw new Error("m-003 apply not implemented — LifeosConfig.ts ships with public LifeOS; LIFEOS_CONFIG.toml comes from `pai setup`. Missing artifact requires manual remediation.");
     },
   },
   {
@@ -103,7 +103,7 @@ const MIGRATIONS: Migration[] = [
       }
     },
     apply: () => {
-      throw new Error("m-004 apply requires principal authorization for `gh repo create` + live tree move. Run the Phase G migration session interactively per PhaseG-design.md, NOT via PaiUpgrade.ts. This migration is detect-only.");
+      throw new Error("m-004 apply requires principal authorization for `gh repo create` + live tree move. Run the Phase G migration session interactively per PhaseG-design.md, NOT via LifeosUpgrade.ts. This migration is detect-only.");
     },
   },
   {
@@ -171,7 +171,7 @@ const MIGRATIONS: Migration[] = [
 
 function usage(code = 2): never {
   console.log(
-    `PaiUpgrade — idempotent migration runner for LifeOS rebuild\n\n` +
+    `LifeosUpgrade — idempotent migration runner for LifeOS rebuild\n\n` +
       `Usage:\n` +
       `  bun ${process.argv[1]} --diagnose\n` +
       `  bun ${process.argv[1]} --dry-run\n` +
@@ -283,7 +283,7 @@ function main(): never {
 
   // Sanity: must be running against a recognizable LifeOS tree.
   if (!existsSync(join(CLAUDE_ROOT, "LIFEOS"))) {
-    console.error(`PaiUpgrade: ${CLAUDE_ROOT}/PAI not found — is this a LifeOS install?`);
+    console.error(`LifeosUpgrade: ${CLAUDE_ROOT}/PAI not found — is this a LifeOS install?`);
     process.exit(2);
   }
 

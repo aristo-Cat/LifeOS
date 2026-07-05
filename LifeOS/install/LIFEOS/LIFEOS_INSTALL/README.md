@@ -1,6 +1,6 @@
 # LifeOS Installer v6.0
 
-> Install [PAI (Personal AI Infrastructure)](https://github.com/danielmiessler/PAI) with a single command.
+> Install [LifeOS (Personal AI Infrastructure)](https://github.com/danielmiessler/PAI) with a single command.
 
 ## Quick Start
 
@@ -229,7 +229,7 @@ LifeOS 6.0 separates system code from user data across two directories. Code liv
 ├── settings.json
 ├── hooks/
 ├── skills/
-├── PAI/
+├── LIFEOS/
 │   ├── ALGORITHM/
 │   │   └── LATEST             # Algorithm doctrine version
 │   ├── DOCUMENTATION/
@@ -374,4 +374,4 @@ bun run LIFEOS_INSTALL/main.ts --mode gui
 
 ## License
 
-Part of [PAI — Personal AI Infrastructure](https://github.com/danielmiessler/PAI).
+Part of [LifeOS — Personal AI Infrastructure](https://github.com/danielmiessler/PAI).

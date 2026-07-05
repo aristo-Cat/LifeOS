@@ -27,7 +27,7 @@ This document is the authoritative reference for LifeOS's hook system. When modi
 
 Hooks are TypeScript scripts that execute at specific lifecycle events in Claude Code. They enable:
 
-- **Mode/tier routing**: classifier (`EffortRouter`) decides MINIMAL/NATIVE/ALGORITHM + tier on every prompt
+- **Mode/tier routing**: classifier (`TheRouter`) decides MINIMAL/NATIVE/ALGORITHM + tier on every prompt
 - **Voice feedback**: spoken phase announcements and completion lines
 - **Memory capture**: session summaries, work tracking, learnings, relationship notes
 - **Security**: native `permissions.deny` + a single `Safety.hook.ts` that dispatches by event — gates outgoing tool calls (PermissionRequest) and tags external content (PostToolUse)
@@ -52,7 +52,7 @@ Hooks are TypeScript scripts that execute at specific lifecycle events in Claude
 │                 ├──► LoadContext (dynamic context injection)        │
 │                 └──► FreshnessCache (statusline jq cache)           │
 │                                                                     │
-│  UserPromptSubmit ──┬──► EffortRouter   (MODE+TIER classifier)      │
+│  UserPromptSubmit ──┬──► TheRouter   (MODE+TIER classifier)      │
 │                     ├──► PromptProcessing (tab title + naming)      │
 │                     ├──► SatisfactionCapture (rating + signals)     │
 │                     └──► ReminderRouter (/remind → labeled issue)   │
@@ -156,7 +156,7 @@ interface StopPayload extends BasePayload {
 
 | Hook | Purpose | Blocking | Dependencies |
 |------|---------|----------|--------------|
-| `EffortRouter.hook.ts` | Mode + Tier classification → additionalContext | No | Inference (Sonnet via `claude` subprocess) |
+| `TheRouter.hook.ts` | Mode + Tier classification → additionalContext | No | Inference (Sonnet via `claude` subprocess) |
 | `PromptProcessing.hook.ts` | Tab title + session naming via Haiku | No | Inference (Haiku), Voice Server, `session-names.json` |
 | `SatisfactionCapture.hook.ts` | Rating capture + low-rating learning signals | No | `last-response.txt` (from LastResponseCache), `ratings.jsonl` |
 | `ReminderRouter.hook.ts` | "remind me to X" → labeled GitHub issue | No | `WORK.REPO` config, `gh` CLI |
@@ -190,7 +190,7 @@ interface StopPayload extends BasePayload {
 
 | Hook | Matcher | Purpose | Blocking | Dependencies |
 |------|---------|---------|----------|--------------|
-| `Safety.hook.ts` | Write / Edit / MultiEdit / Bash, mcp__reversinglabs__.* | Shape-classifier gate on outgoing tool calls. Auto-allows safe shapes (read-only commands, dev binaries, trusted-workspace paths, shell-control-flow over data, mcp pre-vetted). Falls through to native engine prompt on dangerous/credential/injection shapes or unknown commands. Cache + observability. Same file as the PostToolUse hook above; dispatches by event. | Yes (allow JSON when safe) | `lib/safety-classifier.ts`, `MEMORY/STATE/permission-cache.json`, `MEMORY/OBSERVABILITY/permission-decisions.jsonl` |
+| `Safety.hook.ts` | Write / Edit / MultiEdit / Bash, mcp__.* | Shape-classifier gate on outgoing tool calls. Auto-allows safe shapes (read-only commands, dev binaries, trusted-workspace paths, shell-control-flow over data, mcp pre-vetted). Falls through to native engine prompt on dangerous/credential/injection shapes or unknown commands. Cache + observability. Same file as the PostToolUse hook above; dispatches by event. | Yes (allow JSON when safe) | `lib/safety-classifier.ts`, `MEMORY/STATE/permission-cache.json`, `MEMORY/OBSERVABILITY/permission-decisions.jsonl` |
 
 ### PostToolUseFailure Hooks
 
@@ -265,12 +265,12 @@ Outputs: `subagent-events.jsonl` (start + stop events), correlated by `session_i
 User Message
     │
     ▼
-EffortRouter ─── Stage A: deterministic fast-paths (/eN, ratings, praise) ──► emit + exit
+TheRouter ─── Stage A: deterministic fast-paths (/eN, ratings, praise) ──► emit + exit
     │ (no fast match)
     ├── Stage B: 60s decision cache (SHA-256 normalized prompt) ──► emit cached + exit
     │ (no cache hit)
     ▼
-    Stage C: EffortRouter classifier (Inference.ts --level high — Opus; re-pinned off max 2026-07-01 so max=Fable stays off the per-prompt path)
+    Stage C: TheRouter classifier (Inference.ts --level high — Opus; re-pinned off max 2026-07-01 so max=Fable stays off the per-prompt path)
     │
     └── Emit: MODE: <…> | TIER: <…> | REASON: <…> | SOURCE: classifier|fail-safe|fast-path|cache|explicit
         Written to additionalContext via hookSpecificOutput.
@@ -280,7 +280,7 @@ SatisfactionCapture ── Rating + signals (reads last-response.txt) ──► 
 ReminderRouter ── /remind parser ──► gh issue create with reminder labels
 ```
 
-**Order matters.** EffortRouter fires first so PromptProcessing and downstream hooks can read the classification line if needed. SatisfactionCapture reads `last-response.txt` written by `LastResponseCache.hook.ts` at the previous Stop.
+**Order matters.** TheRouter fires first so PromptProcessing and downstream hooks can read the classification line if needed. SatisfactionCapture reads `last-response.txt` written by `LastResponseCache.hook.ts` at the previous Stop.
 
 ### Stop → UserPromptSubmit Bridge
 
@@ -294,7 +294,7 @@ Stop:
 [Next user prompt arrives]
 
 UserPromptSubmit:
-  EffortRouter            (independent of last-response)
+  TheRouter            (independent of last-response)
   PromptProcessing        (independent of last-response)
   SatisfactionCapture  ◄─ reads last-response.txt for sentiment scoring
   ReminderRouter          (independent of last-response)
@@ -324,7 +324,7 @@ SessionEnd ─┬─► WorkCompletionLearning ─► reads work.json by session
 
 ```
 UserPromptSubmit
-    ├─► EffortRouter        (no tab interaction)
+    ├─► TheRouter        (no tab interaction)
     ├─► PromptProcessing
     │       ├─► Sets tab to PURPLE (#5B21B6) ─► "🧠 Processing..."
     │       ├─► Single Haiku inference (title + name)
@@ -560,15 +560,15 @@ When modifying ANY hook:
 
 ### Hook Blocking Session
 
-1. Check if hook writes to stdout (only LoadContext / RestoreContext / PreCompact / EffortRouter should)
+1. Check if hook writes to stdout (only LoadContext / RestoreContext / PreCompact / TheRouter should)
 2. Verify timeouts are set for external calls
 3. Check for infinite loops or blocking I/O
 
 ### Mode Classifier Drift
 
-1. Confirm `EffortRouter.hook.ts` is registered first in `UserPromptSubmit` block of `settings.json`
+1. Confirm `TheRouter.hook.ts` is registered first in `UserPromptSubmit` block of `settings.json`
 2. Tail `MEMORY/OBSERVABILITY/effort-router.jsonl` to see classifier outputs
-3. Test with synthetic prompt: `echo '{"session_id":"t","prompt":"test"}' | bun hooks/EffortRouter.hook.ts`
+3. Test with synthetic prompt: `echo '{"session_id":"t","prompt":"test"}' | bun hooks/TheRouter.hook.ts`
 
 ### External Content Tagging
 
@@ -588,7 +588,7 @@ When modifying ANY hook:
 ### 2026-05-06 — bpe-cuts (this commit)
 
 Removed:
-- `RepeatDetection.hook.ts` (UserPromptSubmit) — pre-classifier-era safety net, redundant with EffortRouter + Opus reading conversation context.
+- `RepeatDetection.hook.ts` (UserPromptSubmit) — pre-classifier-era safety net, redundant with TheRouter + Opus reading conversation context.
 - `TeammateIdle.hook.ts` (TeammateIdle) — pure logging hook with zero readers.
 - `ElicitationHandler.hook.ts` (Elicitation) — pure logging hook with zero readers.
 - `FileChanged.hook.ts` (FileChanged) — duplicate of `ToolActivityTracker` capture.
@@ -614,4 +614,4 @@ Replacement: native `permissions.deny` in `settings.json` (42 entries) + a singl
 
 ### Earlier — classifier split
 
-`PromptProcessing.hook.ts` (formerly `SessionAnalysis.hook.ts`) once briefly held the `Mode + Tier` classifier role. That responsibility was extracted to `EffortRouter.hook.ts` to give the classifier its own three-stage cascade (fast-paths → 60s cache → Sonnet) with dedicated telemetry. PromptProcessing now does only tab + naming via Haiku.
+`PromptProcessing.hook.ts` (formerly `SessionAnalysis.hook.ts`) once briefly held the `Mode + Tier` classifier role. That responsibility was extracted to `TheRouter.hook.ts` to give the classifier its own three-stage cascade (fast-paths → 60s cache → Sonnet) with dedicated telemetry. PromptProcessing now does only tab + naming via Haiku.

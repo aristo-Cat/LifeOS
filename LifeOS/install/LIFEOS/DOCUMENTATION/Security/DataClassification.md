@@ -23,7 +23,7 @@ LifeOS draws inference from sources at different trust/egress tiers. Native (Ant
 | **INTERNAL** | 2 | "Would I shrug if a trusted peer saw this, but I haven't published it?" | Low — reveals how the system works, not who I am |
 | **PUBLIC** | 3 (lowest) | "Is this already on the internet, or built to go there?" | None — already public or publish-destined |
 
-**RESTRICTED** — auth material, third-party PII, customer-owned data. `.env` + anything quoting it; API keys/OAuth/Cloudflare/Google creds; ReversingLabs + customer data; contacts' PII; financial source docs. Paths: `**/.env`, `LIFEOS/USER/CONFIG/CREDENTIALS/**`, `LIFEOS/USER/WORK/CUSTOMERS/**`, `skills/_RL_*/**`, `LIFEOS/USER/TELOS/FINANCES/**`, `LIFEOS/USER/CONTACTS.md`. **Also the fail-closed default.**
+**RESTRICTED** — auth material, third-party PII, customer-owned data. `.env` + anything quoting it; API keys/OAuth/Cloudflare/Google creds; customer-owned engagement data; contacts' PII; financial source docs. Paths: `**/.env`, `LIFEOS/USER/CONFIG/CREDENTIALS/**`, `LIFEOS/USER/WORK/CUSTOMERS/**`, `LIFEOS/USER/TELOS/FINANCES/**`, `LIFEOS/USER/CONTACTS.md`. **Also the fail-closed default.**
 
 **CONFIDENTIAL** — {{PRINCIPAL_NAME}}'s own sensitive life/business data: health, financials, own-infra security findings, TELOS internals, hot-layer + relationship memory, People/Companies notes. **Default for all of `LIFEOS/USER/**`** except RESTRICTED sub-globs and named PUBLIC demotes.
 

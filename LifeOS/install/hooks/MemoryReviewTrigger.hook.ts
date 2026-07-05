@@ -44,7 +44,7 @@ const CLAUDE_ROOT = pathResolve(homedir(), ".claude");
 const STATE_PATH = pathResolve(CLAUDE_ROOT, "LIFEOS/MEMORY/OBSERVABILITY/review-state.json");
 const CONFIG_PATH = pathResolve(CLAUDE_ROOT, "LIFEOS/USER/CONFIG/memory-review.json");
 const EFFORT_ROUTER_LOG = pathResolve(CLAUDE_ROOT, "LIFEOS/MEMORY/OBSERVABILITY/effort-router.jsonl");
-const EFFORT_ROUTER_MAX_AGE_MS = 30_000; // tolerate ≤30s drift between EffortRouter write and Trigger read
+const EFFORT_ROUTER_MAX_AGE_MS = 30_000; // tolerate ≤30s drift between TheRouter write and Trigger read
 
 interface ReviewState {
   turn_count_since_last_review: number;
@@ -139,12 +139,12 @@ function isSubagentInvocation(): boolean {
 }
 
 /**
- * Read the trailing line of effort-router.jsonl (written by EffortRouter
+ * Read the trailing line of effort-router.jsonl (written by TheRouter
  * hook earlier in the same UserPromptSubmit chain). Return the parsed row
  * if it landed within the last EFFORT_ROUTER_MAX_AGE_MS window — otherwise
  * null (no recent classification → don't gate).
  */
-function readLatestEffortRouterRow(): { mode?: string; session_id?: string; timestamp?: string } | null {
+function readLatestTheRouterRow(): { mode?: string; session_id?: string; timestamp?: string } | null {
   try {
     if (!existsSync(EFFORT_ROUTER_LOG)) return null;
     const raw = readFileSync(EFFORT_ROUTER_LOG, "utf8");
@@ -163,10 +163,10 @@ function readLatestEffortRouterRow(): { mode?: string; session_id?: string; time
 
 function isMinimalMode(): boolean {
   // ISC-47: classifier-MINIMAL turns don't need a cadence reviewer hit.
-  // EffortRouter writes the classification to effort-router.jsonl BEFORE
-  // this hook fires (they share the UserPromptSubmit chain; EffortRouter
+  // TheRouter writes the classification to effort-router.jsonl BEFORE
+  // this hook fires (they share the UserPromptSubmit chain; TheRouter
   // is registered first). Read the trailing row and skip on MINIMAL.
-  const row = readLatestEffortRouterRow();
+  const row = readLatestTheRouterRow();
   return row?.mode === "MINIMAL";
 }
 

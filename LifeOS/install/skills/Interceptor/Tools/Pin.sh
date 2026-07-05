@@ -20,6 +20,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DEST="$(cd "$SCRIPT_DIR/.." && pwd)/Extension"
 SRC="${INTERCEPTOR_SRC:-$HOME/Projects/interceptor}/extension/dist"
 
+# Relativize a $HOME-rooted path to ~. Do NOT use ${x/#$HOME/~}: bash 5.2+
+# tilde-expands the replacement back to an absolute /Users path, which silently
+# defeats the leak scrub below and trips the FATAL guard (2026-07-04).
+rel_home() { case "$1" in "$HOME"/*) printf '~%s' "${1#"$HOME"}";; *) printf '%s' "$1";; esac; }
+
 if [ ! -d "$SRC" ]; then
   echo "FATAL: build dir not found: $SRC" >&2
   echo "  Build first (Update workflow step 3), or set INTERCEPTOR_SRC." >&2
@@ -27,8 +32,8 @@ if [ ! -d "$SRC" ]; then
 fi
 
 echo "Pinning extension"
-echo "  from: ${SRC/#$HOME/~}"
-echo "  to:   ${DEST/#$HOME/~}"
+echo "  from: $(rel_home "$SRC")"
+echo "  to:   $(rel_home "$DEST")"
 
 mkdir -p "$DEST"
 # Copy build → Extension. Keep profile-data/ (runtime, gitignored); leave
@@ -50,7 +55,7 @@ done
 VERSION="$(grep '"version"' "$DEST/manifest.json" | head -1 | sed -E 's/.*"version": *"([^"]+)".*/\1/')"
 SHA="$(find "$DEST" -type f -not -name 'PINNED_FROM.txt' | sort | xargs shasum -a 256 | shasum -a 256 | cut -d' ' -f1)"
 cat > "$DEST/PINNED_FROM.txt" <<EOF
-Pinned from: ${SRC/#$HOME/~}
+Pinned from: $(rel_home "$SRC")
 Manifest version: $VERSION
 Content SHA256: $SHA
 Pinned at: $(date -u +%Y-%m-%dT%H:%M:%SZ)
