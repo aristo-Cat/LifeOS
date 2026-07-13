@@ -21,6 +21,7 @@
  */
 
 import { copyFileSync, existsSync, readFileSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
 import { join } from "node:path";
 import { detectDevTree } from "./InstallEngine";
 
@@ -32,7 +33,7 @@ function parseArgs(): Args {
     const i = a.indexOf(flag);
     return i >= 0 && a[i + 1] && !a[i + 1].startsWith("--") ? a[i + 1] : undefined;
   };
-  const home = process.env.HOME || "";
+  const home = process.env.HOME || process.env.USERPROFILE || homedir();
   return {
     configRoot: get("--config-root") || process.env.CLAUDE_CONFIG_DIR || join(home, ".claude"),
     skillRoot: get("--skill-root") || join(import.meta.dir, ".."),
@@ -65,7 +66,7 @@ function expandEnvBlock(settings: Record<string, unknown>, home: string): number
 }
 
 const args = parseArgs();
-const home = process.env.HOME || "";
+const home = process.env.HOME || process.env.USERPROFILE || homedir();
 const templatePath = join(args.skillRoot, "install", "settings.system.json");
 const targetPath = join(args.configRoot, "settings.json");
 

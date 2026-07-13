@@ -22,10 +22,14 @@
  */
 
 import { existsSync, readFileSync, appendFileSync, mkdirSync, readdirSync, statSync } from "node:fs";
+import { homedir } from "node:os";
 import { join } from "node:path";
 
-const HOME = process.env.HOME || "";
-const CLAUDE = join(HOME, ".claude");
+// Runs every turn via MemoryHealthGate.hook.ts — an empty HOME would resolve every
+// path to a bogus root and fire a spurious CRITICAL each turn. Resolve robustly and
+// honor CLAUDE_CONFIG_DIR so a decoupled config root is checked, not a shadow ~/.claude.
+const HOME = process.env.HOME || process.env.USERPROFILE || homedir();
+const CLAUDE = process.env.CLAUDE_CONFIG_DIR || join(HOME, ".claude");
 const HOOKS_DIR = join(CLAUDE, "hooks");
 const TOOLS_DIR = join(CLAUDE, "LIFEOS/TOOLS");
 const OBS_DIR = join(CLAUDE, "LIFEOS/MEMORY/OBSERVABILITY");

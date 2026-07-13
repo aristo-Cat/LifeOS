@@ -37,9 +37,10 @@
 
 import { existsSync, readFileSync, writeFileSync, mkdirSync, chmodSync, readdirSync } from 'fs';
 import { join } from 'path';
+import { homedir } from 'os';
 import { createHash, randomBytes } from 'crypto';
 
-const HOME = process.env.HOME || '';
+const HOME = process.env.HOME || process.env.USERPROFILE || homedir();
 const CONFIG_ROOT = process.env.CLAUDE_CONFIG_DIR || join(HOME, '.claude');
 const LIFEOS_DIR = (process.env.LIFEOS_DIR || join(CONFIG_ROOT, 'LIFEOS'))
   .replace(/^\$HOME/, HOME).replace(/^~(?=\/)/, HOME);
@@ -104,8 +105,10 @@ async function run(cmd: string[], timeoutMs = PROBE_TIMEOUT_MS): Promise<{ code:
 }
 
 function which(bin: string): boolean {
-  const paths = (process.env.PATH || '').split(':');
-  return paths.some(p => p && existsSync(join(p, bin)));
+  // Bun.which is PATH-aware and cross-platform: on Windows it honors PATHEXT
+  // (.exe/.cmd/.bat) and the ';' delimiter, which a manual ':'-split + bare-name
+  // existsSync would miss (every tool would report "not on PATH").
+  return Bun.which(bin) !== null;
 }
 
 function envKey(name: string): string | null {
@@ -120,6 +123,21 @@ function envKey(name: string): string | null {
 }
 
 function chromeBinary(): string | null {
+  if (process.platform === 'win32') {
+    const pf = process.env['PROGRAMFILES'] || 'C:\\Program Files';
+    const pf86 = process.env['PROGRAMFILES(X86)'] || 'C:\\Program Files (x86)';
+    const lad = process.env['LOCALAPPDATA'] || join(HOME, 'AppData', 'Local');
+    const win = [
+      join(pf, 'Google', 'Chrome', 'Application', 'chrome.exe'),
+      join(pf86, 'Google', 'Chrome', 'Application', 'chrome.exe'),
+      join(lad, 'Google', 'Chrome', 'Application', 'chrome.exe'),
+      join(pf86, 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+      join(pf, 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+      join(pf, 'BraveSoftware', 'Brave-Browser', 'Application', 'brave.exe'),
+      join(lad, 'BraveSoftware', 'Brave-Browser', 'Application', 'brave.exe'),
+    ];
+    return win.find(existsSync) || null;
+  }
   const candidates = [
     '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
     '/Applications/Brave Browser.app/Contents/MacOS/Brave Browser',

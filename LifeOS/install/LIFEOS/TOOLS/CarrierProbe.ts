@@ -29,13 +29,13 @@
  *                                               # or never run — /ic calls this
  */
 
-import { spawn } from "child_process";
+import { spawn, execSync } from "child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync, appendFileSync, readdirSync } from "fs";
 import { join } from "path";
 import { homedir } from "os";
 import { DISPATCH_EXECUTES_FABLE } from "./models";
 
-const CLAUDE_DIR = join(homedir(), ".claude");
+const CLAUDE_DIR = process.env.CLAUDE_CONFIG_DIR || join(homedir(), ".claude");
 const STATE_FILE = join(CLAUDE_DIR, "LIFEOS", "MEMORY", "STATE", "carrier-probe.json");
 const OBS_FILE = join(CLAUDE_DIR, "LIFEOS", "MEMORY", "OBSERVABILITY", "model-verification.jsonl");
 const MAX_AGE_DAYS = 30;
@@ -85,6 +85,19 @@ function check(): number {
 }
 
 function resolveClaudeBin(): string {
+  if (process.platform === "win32") {
+    // spawn (shell:false) needs a real executable; the launcher is claude.exe, so
+    // existsSync must probe the .exe name. Fall back to `where claude` (PATHEXT-aware),
+    // then to a bare "claude.exe". Resolving a real .exe path keeps shell:false safe —
+    // avoids cmd.exe re-quoting the spaced --system-prompt arg.
+    const localExe = join(homedir(), ".local", "bin", "claude.exe");
+    if (existsSync(localExe)) return localExe;
+    try {
+      const found = execSync("where claude", { encoding: "utf8" }).split(/\r?\n/).map((l) => l.trim()).find(Boolean);
+      if (found) return found;
+    } catch { /* fall through to bare name */ }
+    return "claude.exe";
+  }
   const local = join(homedir(), ".local", "bin", "claude");
   return existsSync(local) ? local : "claude";
 }
@@ -142,7 +155,10 @@ function runChild(): Promise<{ envelope: Record<string, unknown> | null; raw: st
  * (projects/<slug>/<session>/subagents/agent-*.jsonl) — the evidence class the
  * manual probes established. Assistant-message `message.model` is what RAN. */
 function sidechainModels(sessionId: string): string[] {
-  const slug = CLAUDE_DIR.replace(/[/.]/g, "-");
+  // Slug must match the harness's project-dir naming. On Windows the path carries
+  // drive-colon and backslashes (C:\Users\juanc\.claude → C--Users-juanc--claude),
+  // so replace \ / : . — not just / and . (which would leave a broken slug → probe INCONCLUSIVE).
+  const slug = CLAUDE_DIR.replace(/[\\/:.]/g, "-");
   const dir = join(CLAUDE_DIR, "projects", slug, sessionId, "subagents");
   if (!existsSync(dir)) return [];
   const models = new Set<string>();

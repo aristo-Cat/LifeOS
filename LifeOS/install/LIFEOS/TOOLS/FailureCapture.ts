@@ -33,6 +33,7 @@ for (const __k of ["LIFEOS_DIR", "LIFEOS_CONFIG_DIR", "PROJECTS_DIR"]) {
  */
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
+import { homedir } from 'os';
 import { join, basename } from 'path';
 import { inference } from './Inference';
 
@@ -43,7 +44,7 @@ for (const k of ["LIFEOS_DIR", "LIFEOS_CONFIG_DIR", "PROJECTS_DIR"]) {
 }
 
 
-const LIFEOS_DIR = process.env.LIFEOS_DIR || join(process.env.HOME!, '.claude');
+const LIFEOS_DIR = process.env.LIFEOS_DIR || join(process.env.HOME || process.env.USERPROFILE || homedir(), '.claude');
 
 interface FailureCaptureInput {
   transcriptPath: string;
