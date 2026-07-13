@@ -58,7 +58,11 @@ describe("Windows compatibility guardrails", () => {
     expect(components).toContain("manage.ps1");
     expect(components).toContain("LIFEOS_StatusLine.ps1");
     expect(components).toContain("powershell.exe -NoProfile -ExecutionPolicy Bypass -File");
-    expect(components).toContain('ctx.platform !== "darwin"');
+    // v7.1.1 merge: launchd moved to Services.ts (macOS-only). Windows short-circuits
+    // deploy(): pulse -> deployPulseWindows, every other launchd service skipped.
+    expect(components).toContain('if (ctx.platform === "win32")');
+    expect(components).toContain('component === "pulse") return deployPulseWindows(ctx)');
+    expect(components).toContain("launchd unavailable on ${ctx.platform}");
 
     const pulseManager = readSkill("install/LIFEOS/PULSE/manage.ps1");
     expect(pulseManager).toContain("Register-ScheduledTask");
@@ -81,6 +85,7 @@ describe("Windows compatibility guardrails", () => {
     expect(readSkill("install/skills/LifeOS/Tools/InstallEngine.ts")).toBe(readSkill("Tools/InstallEngine.ts"));
     expect(readSkill("install/skills/LifeOS/Tools/DeployComponents.ts")).toBe(readSkill("Tools/DeployComponents.ts"));
     expect(readSkill("install/skills/LifeOS/Tools/InstallHooks.ts")).toBe(readSkill("Tools/InstallHooks.ts"));
+    expect(readSkill("install/skills/LifeOS/Tools/InstallSettings.ts")).toBe(readSkill("Tools/InstallSettings.ts"));
     expect(readSkill("install/skills/LifeOS/Tools/ActivateImports.ts")).toBe(readSkill("Tools/ActivateImports.ts"));
     expect(readSkill("install/skills/LifeOS/Tools/ScaffoldUser.ts")).toBe(readSkill("Tools/ScaffoldUser.ts"));
     expect(readSkill("install/skills/LifeOS/Tools/LinkUser.ts")).toBe(readSkill("Tools/LinkUser.ts"));
@@ -88,5 +93,39 @@ describe("Windows compatibility guardrails", () => {
     expect(readSkill("install/skills/LifeOS/INSTALL.md")).toBe(readSkill("INSTALL.md"));
     expect(readSkill("install/skills/LifeOS/Workflows/Setup.md")).toBe(readSkill("Workflows/Setup.md"));
     expect(readSkill("install/skills/LifeOS/install/install.ps1")).toBe(readSkill("install/install.ps1"));
+  });
+
+  test("v7.1.1 new files resolve HOME and PATH the Windows way", () => {
+    // BLOCKER #1: InstallSettings resolves a real home, never "" (an empty home
+    // shipped a literal $HOME/.claude into settings.json — the #1404/#1451 shadow dir).
+    const installSettings = readSkill("Tools/InstallSettings.ts");
+    expect(installSettings).toContain("process.env.HOME || process.env.USERPROFILE || homedir()");
+    expect(installSettings).not.toContain('process.env.HOME || ""');
+
+    // BLOCKER #2: the statusline .ps1 hands bash an MSYS path, or the fail-closed
+    // guard (#1463) collapses the line to bare "LifeOS".
+    const statusPs1 = readSkill("install/LIFEOS/LIFEOS_StatusLine.ps1");
+    expect(statusPs1).toContain("ConvertTo-MsysPath");
+    expect(statusPs1).toContain("$env:LIFEOS_DIR = ConvertTo-MsysPath");
+    expect(statusPs1).toContain("$env:HOME = ConvertTo-MsysPath");
+
+    // Doctor: PATH probe + Chrome discovery are Windows-aware.
+    const doctor = readSkill("install/LIFEOS/TOOLS/Doctor.ts");
+    expect(doctor).toContain("Bun.which(bin)");
+    expect(doctor).toContain("chrome.exe");
+    expect(doctor).toContain("process.env.HOME || process.env.USERPROFILE || homedir()");
+
+    // CarrierProbe: slug covers drive-colon + backslashes (verified vs the real
+    // ~/.claude/projects dir name), claude.exe resolves for shell-less spawn, and
+    // CLAUDE_CONFIG_DIR is honored — else the probe is always INCONCLUSIVE / ENOENT.
+    const carrier = readSkill("install/LIFEOS/TOOLS/CarrierProbe.ts");
+    expect(carrier).toContain("C--Users-juanc--claude");
+    expect(carrier).toContain("where claude");
+    expect(carrier).toContain("process.env.CLAUDE_CONFIG_DIR || join(homedir()");
+
+    // MemoryHealthCheck runs every turn — an empty HOME would nag CRITICAL.
+    const memHealth = readSkill("install/LIFEOS/TOOLS/MemoryHealthCheck.ts");
+    expect(memHealth).toContain("process.env.HOME || process.env.USERPROFILE || homedir()");
+    expect(memHealth).not.toContain('process.env.HOME || ""');
   });
 });
