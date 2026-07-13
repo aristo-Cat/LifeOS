@@ -10,16 +10,22 @@
  * counts) and gets explicit permission BEFORE calling this with --apply.
  *
  * Usage:
- *   bun InstallHooks.ts [--config-root <dir>] [--skill-root <dir>] [--apply] [--allow-dev]
+ *   bun InstallHooks.ts [--config-root <dir>] [--skill-root <dir>] [--apply] [--allow-dev] [--prune]
  *   (dry-run by default — reports added/skipped without writing)
+ *
+ * --prune (update path): after copying the current hook tree, delete LifeOS hook
+ *   artifacts left in <configRoot>/hooks/ that upstream retired, and strip their
+ *   now-dangling settings.json wiring. Dry-run reports orphans; --apply removes them.
+ *   Scoped to LifeOS-owned artifacts (*.hook.ts|sh, handlers/**, lib/**) — never a
+ *   user's own files.
  */
 
-import { copyFileSync, cpSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { copyFileSync, cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { join, relative } from "node:path";
 import { detectDevTree, mergeHooks } from "./InstallEngine";
 
-interface Args { configRoot: string; skillRoot: string; apply: boolean; allowDev: boolean; }
+interface Args { configRoot: string; skillRoot: string; apply: boolean; allowDev: boolean; prune: boolean; }
 type HookEntry = { type?: string; command?: string; url?: string; [k: string]: unknown };
 type MatcherGroup = { matcher?: string; hooks?: HookEntry[]; [k: string]: unknown };
 type HooksMap = Record<string, MatcherGroup[]>;
@@ -36,7 +42,61 @@ function parseArgs(): Args {
     skillRoot: get("--skill-root") || join(import.meta.dir, ".."),
     apply: a.includes("--apply"),
     allowDev: a.includes("--allow-dev"),
+    prune: a.includes("--prune"),
   };
+}
+
+// ── Update-path hygiene (--prune) ────────────────────────────────────────────
+// cpSync + mergeHooks are ADDITIVE: an in-place update copies the current hook
+// tree over the old one and merges hooks.json into settings.json, but never
+// removes hook artifacts retired upstream (v7 dropped ~20). --prune reconciles
+// <configRoot>/hooks/ and the settings.json wiring down to the current payload,
+// scoped to LifeOS-owned artifacts only (never a user's own files).
+
+function listFilesRec(dir: string, base = dir): string[] {
+  if (!existsSync(dir)) return [];
+  const out: string[] = [];
+  for (const entry of readdirSync(dir)) {
+    const p = join(dir, entry);
+    if (statSync(p).isDirectory()) out.push(...listFilesRec(p, base));
+    else out.push(relative(base, p).replace(/\\/g, "/"));
+  }
+  return out;
+}
+
+/** A file LifeOS ships under hooks/ — the only class --prune is allowed to delete. */
+function isLifeosHookArtifact(rel: string): boolean {
+  return /\.hook\.(ts|sh)$/.test(rel) || rel.startsWith("handlers/") || rel.startsWith("lib/");
+}
+
+/** Orphans = LifeOS hook artifacts present in the live tree but absent from the payload. */
+function pruneScan(payloadDir: string, destDir: string): { orphanFiles: string[]; orphanBasenames: string[] } {
+  const payloadRel = new Set(listFilesRec(payloadDir));
+  const orphanFiles = listFilesRec(destDir).filter((rel) => isLifeosHookArtifact(rel) && !payloadRel.has(rel));
+  const orphanBasenames = [...new Set(orphanFiles.map((rel) => rel.split("/").pop() as string))];
+  return { orphanFiles, orphanBasenames };
+}
+
+/** Drop settings.json hook entries whose command references an orphaned hook file;
+ * remove now-empty matcher groups. Mutates `hooks` in place; returns entries removed. */
+function stripStaleWiring(hooks: HooksMap, orphanBasenames: string[]): number {
+  if (orphanBasenames.length === 0) return 0;
+  let removed = 0;
+  for (const event of Object.keys(hooks)) {
+    const groups = hooks[event];
+    if (!Array.isArray(groups)) continue;
+    for (const group of groups) {
+      if (!Array.isArray(group.hooks)) continue;
+      const before = group.hooks.length;
+      group.hooks = group.hooks.filter((h) => {
+        const cmd = typeof h.command === "string" ? h.command : "";
+        return !orphanBasenames.some((b) => cmd.includes(b));
+      });
+      removed += before - group.hooks.length;
+    }
+    hooks[event] = groups.filter((g) => !Array.isArray(g.hooks) || g.hooks.length > 0);
+  }
+  return removed;
 }
 
 function psString(value: string): string {
@@ -111,7 +171,7 @@ function countFilesRec(dir: string): number {
 }
 
 function main(): void {
-  const { configRoot, skillRoot, apply, allowDev } = parseArgs();
+  const { configRoot, skillRoot, apply, allowDev, prune } = parseArgs();
 
   if (detectDevTree(configRoot) && !allowDev) {
     console.log(JSON.stringify({ ok: false, refused: "dev-tree", detail: `${configRoot} is a LifeOS source tree (skills/_LIFEOS present) — refusing to mutate. Use --allow-dev only in a sandbox.` }, null, 2));
@@ -144,7 +204,12 @@ function main(): void {
 
   const { merged, added, skipped } = mergeHooks(existingHooks as never, incoming);
 
-  const report = { ok: true, apply, settingsPath, added, skipped, events: Object.keys(merged).length, hooksDestDir, hookFiles };
+  // --prune (update-path hygiene): scan for orphaned hook artifacts and strip their
+  // stale settings.json wiring from `merged` (files are deleted after cpSync, below).
+  const orphans = prune ? pruneScan(hooksPayloadDir, hooksDestDir) : { orphanFiles: [] as string[], orphanBasenames: [] as string[] };
+  const staleWiring = prune ? stripStaleWiring(merged as HooksMap, orphans.orphanBasenames) : 0;
+
+  const report = { ok: true, apply, settingsPath, added, skipped, events: Object.keys(merged).length, hooksDestDir, hookFiles, ...(prune ? { prune: { orphanFiles: orphans.orphanFiles, staleWiring } } : {}) };
 
   if (!apply) {
     console.log(JSON.stringify({ ...report, dryRun: true, note: "no changes written; re-run with --apply after permission" }, null, 2));
@@ -164,9 +229,18 @@ function main(): void {
   // the whole payload hooks/ tree (*.hook.ts|sh + lib/**) into <configRoot>/hooks/.
   mkdirSync(hooksDestDir, { recursive: true });
   cpSync(hooksPayloadDir, hooksDestDir, { recursive: true });
+
+  // --prune: delete the orphaned hook files (their settings wiring is already gone
+  // from `merged`, written above). Scoped to LifeOS artifacts by pruneScan.
+  let prunedFiles = 0;
+  if (prune) {
+    for (const rel of orphans.orphanFiles) {
+      try { rmSync(join(hooksDestDir, rel), { force: true }); prunedFiles++; } catch { /* best effort */ }
+    }
+  }
   const hookFilesCopied = countFilesRec(hooksDestDir);
 
-  console.log(JSON.stringify({ ...report, written: true, backup, hookFilesCopied }, null, 2));
+  console.log(JSON.stringify({ ...report, written: true, backup, hookFilesCopied, ...(prune ? { prunedFiles } : {}) }, null, 2));
   process.exit(0);
 }
 

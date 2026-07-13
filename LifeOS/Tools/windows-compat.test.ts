@@ -79,6 +79,12 @@ describe("Windows compatibility guardrails", () => {
     expect(installHooks).toContain("$env:CLAUDE_CONFIG_DIR");
     expect(installHooks).toContain("bash.exe");
     expect(installHooks).toContain("bun ${psString(script)}");
+    // Update-path hygiene: --prune removes LifeOS hook artifacts upstream retired,
+    // scoped so it never deletes a user's own files.
+    expect(installHooks).toContain("--prune");
+    expect(installHooks).toContain("pruneScan");
+    expect(installHooks).toContain("stripStaleWiring");
+    expect(installHooks).toContain("isLifeosHookArtifact");
   });
 
   test("packaged LifeOS skill mirrors the updated installer tools and docs", () => {
