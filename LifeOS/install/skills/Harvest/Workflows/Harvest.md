@@ -1,6 +1,6 @@
 # Harvest Workflow
 
-**Goal:** Turn one piece of content into a ranked, honest list of what LifeOS should take from it. Report-only.
+**Goal:** Turn one piece of content into a ranked, honest list of what LifeOS should take from it, then preserve the source in the Knowledge Archive. System adoption is report-only; KB ingestion always happens.
 
 ## Step 1 — Detect input type
 
@@ -75,3 +75,16 @@ Rules for the report:
 - Every row names a real surface and a real action. No vague usefulness.
 - Recommend, don't do. Adoption of any item is a separate step that needs {{PRINCIPAL_NAME}}'s explicit go-ahead.
 - Keep it tight. A harvest is a filter, not an essay.
+
+## Step 7 — Ingest into the Knowledge Archive (ALWAYS the final step)
+
+Every harvest ends by preserving the source as a KNOWLEDGE note, regardless of how thin the mining verdict was:
+
+```bash
+bun ~/.claude/skills/_HARVEST/Tools/harvest.ts "<original input>"
+```
+
+- Runs the canonical Arbol pipeline (`_F_HARVEST` classify → `HarvestExecutor.ts` write). Never write to `MEMORY/KNOWLEDGE/` by hand.
+- A `duplicate` result is success — the note already exists; say so.
+- On failure (Arbol down, classifier error, dead API key), report the failure explicitly in the final response and name the blocked item id. A harvest is not complete until the note is written or the failure is surfaced.
+- Append the note path (or the failure) to the report under a final `**Knowledge Archive:**` line.

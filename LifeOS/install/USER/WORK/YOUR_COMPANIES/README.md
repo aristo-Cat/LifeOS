@@ -1,3 +1,7 @@
+---
+provenance: template
+---
+
 # BUSINESS/
 
 > 🏢 SAMPLE TEMPLATE — Replace with your own business data via /interview or by editing these files.

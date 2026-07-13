@@ -1,3 +1,7 @@
+---
+provenance: template
+---
+
 # SECURITY — Pattern Rules and Permission Cache
 
 This directory holds the rules that gate every Bash, Write, Edit, and Read

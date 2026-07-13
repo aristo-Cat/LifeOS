@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Wind, Thermometer, Droplets, Cloud, Sparkles, MapPin, Home, Trees } from "lucide-react";
 import EmptyStateGuide from "@/components/EmptyStateGuide";
+import { PageShell, PageHeader, Panel, PanelHeader, Pill } from "@/components/ui/chrome";
 
 interface AirMonitor {
   id: number;
@@ -29,13 +30,16 @@ interface AirData {
 }
 
 // AQI color scale — retained because this is the official US EPA semantic palette
-// for air quality. It is data, not decorative UI, so blue-only would mislead.
+// for air quality. It is data, not decorative UI, so blue-only would mislead. The
+// three bands that match design tokens use them; the mid/high EPA bands (USG orange,
+// Very-Unhealthy purple, Hazardous maroon) have no token equivalent and stay as the
+// EPA-canonical hexes.
 function aqiTextColor(aqi: number | null): string {
-  if (aqi === null) return "#6B80AB";
-  if (aqi <= 50) return "#4ADE80";
-  if (aqi <= 100) return "#FBBF24";
+  if (aqi === null) return "var(--ink-3)";
+  if (aqi <= 50) return "var(--ok)";
+  if (aqi <= 100) return "var(--warn)";
   if (aqi <= 150) return "#F59E0B";
-  if (aqi <= 200) return "#F87171";
+  if (aqi <= 200) return "var(--err)";
   if (aqi <= 300) return "#A855F7";
   return "#B91C1C";
 }
@@ -45,11 +49,11 @@ function aqiBorderColor(aqi: number | null): string {
 }
 
 function co2Color(co2: number | null): string {
-  if (co2 === null) return "#6B80AB";
-  if (co2 < 800) return "#4ADE80";
-  if (co2 < 1200) return "#FBBF24";
+  if (co2 === null) return "var(--ink-3)";
+  if (co2 < 800) return "var(--ok)";
+  if (co2 < 1200) return "var(--warn)";
   if (co2 < 2000) return "#F59E0B";
-  return "#F87171";
+  return "var(--err)";
 }
 
 function co2Label(co2: number | null): string {
@@ -83,25 +87,16 @@ function Banner({ air }: { air: AirData | null }) {
   const count = air?.count ?? 0;
   const fetched = freshness(air?.fetched_at ?? null);
   return (
-    <section
-      className="telos-card mission-card dim-health"
-      style={{
-        cursor: "default",
-        padding: 32,
-        background: "linear-gradient(90deg, rgba(52,211,153,0.08), #0F1A33)",
-      }}
+    <Panel
+      className="relative p-8"
+      style={{ background: "linear-gradient(90deg, rgba(52,211,153,0.08), var(--surface-1))" }}
     >
-      <div className="absolute top-5 right-5 green-up" style={{ fontSize: 12, position: "absolute" }}>
-        cached {fetched}
-      </div>
+      <div className="absolute top-5 right-5 text-[12px] text-ink-3 mono">cached {fetched}</div>
       <div className="flex items-start gap-6 flex-wrap">
         <Wind className="w-10 h-10 shrink-0" style={{ color: "var(--health)" }} />
         <div className="flex-1 min-w-0">
-          <div className="mission-eyebrow">Air Quality</div>
-          <p
-            className="leading-snug mission-title"
-            style={{ fontSize: "clamp(22px, 2.5vw, 30px)", fontWeight: 500, marginTop: 6 }}
-          >
+          <div className="text-[12px] font-semibold uppercase tracking-[0.12em] text-ink-3">Air Quality</div>
+          <p className="leading-snug text-ink-1 mt-1.5" style={{ fontSize: "clamp(22px, 2.5vw, 30px)", fontWeight: 500 }}>
             Worst AQI across {count} monitor{count === 1 ? "" : "s"}:{" "}
             <span className="tabular-nums" style={{ color: aqiTextColor(worstAqi), fontWeight: 700 }}>
               {worstAqi ?? "—"}
@@ -112,12 +107,12 @@ function Banner({ air }: { air: AirData | null }) {
               </span>
             )}
           </p>
-          <p className="mt-2" style={{ color: "#9BB0D6", fontSize: 14 }}>
+          <p className="mt-2 text-sm text-ink-2">
             Live from AirGradient · updated every 5 min by Pulse poller
           </p>
         </div>
       </div>
-    </section>
+    </Panel>
   );
 }
 
@@ -136,14 +131,14 @@ function Metric({
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <div className="flex items-center gap-1.5 text-[12px] uppercase tracking-wider" style={{ color: "#6B80AB" }}>
+      <div className="flex items-center gap-1.5 text-[12px] uppercase tracking-wider text-ink-3">
         <Icon className="w-3 h-3" />
         {label}
       </div>
       <div className="text-xl font-bold tabular-nums" style={{ color }}>
         {value ?? "—"}
         {value !== null && unit && (
-          <span className="text-xs ml-1" style={{ color: "#6B80AB", fontWeight: 400 }}>{unit}</span>
+          <span className="text-xs ml-1 text-ink-3" style={{ fontWeight: 400 }}>{unit}</span>
         )}
       </div>
     </div>
@@ -157,24 +152,20 @@ function MonitorCard({ m }: { m: AirMonitor }) {
   const co2Lbl = co2Label(co2);
   const accent = aqiBorderColor(aqi);
   return (
-    <div
-      className="telos-card metric"
-      style={{ cursor: "default", padding: 20, borderLeft: `3px solid ${accent}` }}
-    >
+    <Panel className="p-5" style={{ borderLeft: `3px solid ${accent}` }}>
       <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <Icon className="w-5 h-5" style={{ color: "var(--health)" }} />
-          <h3 className="text-base font-semibold" style={{ color: "#E8EFFF" }}>{m.name}</h3>
+          <h3 className="text-base font-semibold text-ink-1">{m.name}</h3>
         </div>
         <div className="flex items-center gap-2">
-          {m.type && <span className="pill pill-health">{m.type}</span>}
+          {m.type && <Pill dim="health">{m.type}</Pill>}
           <span
-            className="pill"
+            className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[12px] font-medium"
             style={{
               background: `${aqiTextColor(aqi)}1A`,
               color: aqiTextColor(aqi),
               border: `1px solid ${aqiTextColor(aqi)}55`,
-              fontSize: 12,
             }}
           >
             AQI {aqi ?? "—"}
@@ -227,8 +218,8 @@ function MonitorCard({ m }: { m: AirMonitor }) {
         />
       </div>
       <div
-        className="mt-4 pt-3 flex items-center justify-between text-[12px]"
-        style={{ borderTop: "1px dashed #1A2A4D", color: "#6B80AB" }}
+        className="mt-4 pt-3 flex items-center justify-between text-[12px] text-ink-3"
+        style={{ borderTop: "1px solid var(--line-1)" }}
       >
         <span>
           id {m.id}
@@ -236,38 +227,36 @@ function MonitorCard({ m }: { m: AirMonitor }) {
         </span>
         <span>{freshness(m.timestamp)}</span>
       </div>
-    </div>
+    </Panel>
   );
 }
 
 function Legend() {
   return (
-    <div className="telos-card" style={{ cursor: "default", padding: 16 }}>
-      <div className="text-[13px] uppercase tracking-wider mb-3" style={{ color: "#6B80AB" }}>
-        US AQI (PM2.5) scale
-      </div>
+    <Panel className="p-4">
+      <PanelHeader title="US AQI (PM2.5) scale" />
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 text-xs">
         {[
-          { color: "#4ADE80", label: "0–50 Good" },
-          { color: "#FBBF24", label: "51–100 Moderate" },
+          { color: "var(--ok)", label: "0–50 Good" },
+          { color: "var(--warn)", label: "51–100 Moderate" },
           { color: "#F59E0B", label: "101–150 USG" },
-          { color: "#F87171", label: "151–200 Unhealthy" },
+          { color: "var(--err)", label: "151–200 Unhealthy" },
           { color: "#A855F7", label: "201–300 Very Unhealthy" },
           { color: "#B91C1C", label: "300+ Hazardous" },
         ].map((band) => (
           <div key={band.label} className="flex items-center gap-2">
             <span className="w-3 h-3 rounded" style={{ background: band.color }} />
-            <span style={{ color: "#9BB0D6" }}>{band.label}</span>
+            <span className="text-ink-2">{band.label}</span>
           </div>
         ))}
       </div>
-      <div className="mt-3 pt-3 text-[12px]" style={{ borderTop: "1px dashed #1A2A4D", color: "#6B80AB" }}>
-        <span style={{ color: "#4ADE80" }}>CO₂ &lt; 800</span> fresh ·{" "}
-        <span style={{ color: "#FBBF24" }}>800–1200</span> elevated ·{" "}
+      <div className="mt-3 pt-3 text-[12px] text-ink-3" style={{ borderTop: "1px solid var(--line-1)" }}>
+        <span style={{ color: "var(--ok)" }}>CO₂ &lt; 800</span> fresh ·{" "}
+        <span style={{ color: "var(--warn)" }}>800–1200</span> elevated ·{" "}
         <span style={{ color: "#F59E0B" }}>1200–2000</span> stuffy ·{" "}
-        <span style={{ color: "#F87171" }}>&gt; 2000</span> poor
+        <span style={{ color: "var(--err)" }}>&gt; 2000</span> poor
       </div>
-    </div>
+    </Panel>
   );
 }
 
@@ -291,14 +280,11 @@ export default function AirPage() {
 
   if (error) {
     return (
-      <div className="p-8 max-w-5xl mx-auto">
-        <div
-          className="telos-card"
-          style={{ cursor: "default", borderLeft: "3px solid #F87171" }}
-        >
-          <div style={{ color: "#F87171", fontSize: 14 }}>Air Quality unavailable: {error}</div>
-        </div>
-      </div>
+      <PageShell>
+        <Panel style={{ borderLeft: "3px solid var(--err)" }}>
+          <div className="text-err text-sm">Air Quality unavailable: {error}</div>
+        </Panel>
+      </PageShell>
     );
   }
 
@@ -310,7 +296,8 @@ export default function AirPage() {
   });
 
   return (
-    <div className="p-6 lg:p-8 max-w-[1600px] mx-auto space-y-6" style={{ position: "relative" }}>
+    <PageShell>
+      <PageHeader icon={Wind} title="Air" subtitle="Indoor and outdoor air quality across your AirGradient monitors." />
       <Banner air={air} />
       <Legend />
       {sorted.length === 0 ? (
@@ -321,26 +308,23 @@ export default function AirPage() {
             hideInterview
             daPromptExample="walk me through connecting an air quality sensor"
           />
-          <div className="telos-card" style={{ cursor: "default" }}>
-            <div className="p-4 text-center" style={{ color: "#9BB0D6", fontSize: 14 }}>
+          <Panel>
+            <div className="p-4 text-center text-sm text-ink-2">
               No monitors in cache yet. Run{" "}
-              <code
-                className="px-2 py-0.5 rounded mono"
-                style={{ background: "#12203D", color: "#E8EFFF" }}
-              >
+              <code className="px-2 py-0.5 rounded mono bg-surface-1 text-ink-1">
                 bun ~/.claude/LIFEOS/PULSE/checks/airgradient-poll.ts
               </code>{" "}
               to prime, or wait for the next 5-minute poll.
             </div>
-          </div>
+          </Panel>
         </>
       ) : (
-        <section className="space-y-4">
+        <section className="flex flex-col gap-4">
           {sorted.map((m) => (
             <MonitorCard key={m.id} m={m} />
           ))}
         </section>
       )}
-    </div>
+    </PageShell>
   );
 }

@@ -1,4 +1,11 @@
 #!/usr/bin/env bun
+// Normalize env path vars Claude Code may inject unexpanded — literal $HOME/${HOME}
+// in LIFEOS_DIR/LIFEOS_CONFIG_DIR/PROJECTS_DIR resolves to a shadow dir (#1404 / PR #1451, author jbmml).
+for (const __k of ["LIFEOS_DIR", "LIFEOS_CONFIG_DIR", "PROJECTS_DIR"]) {
+  const __v = process.env[__k];
+  if (__v && /^\$\{?HOME\}?(\/|$)/.test(__v)) process.env[__k] = __v.replace(/^\$\{?HOME\}?/, process.env.HOME ?? "~");
+}
+
 /**
  * KnowledgeGraph — Associative graph navigation over LifeOS's knowledge archive
  *
@@ -26,6 +33,13 @@
 import { parseArgs } from "util";
 import * as fs from "fs";
 import * as path from "path";
+
+// Normalize env path vars that Claude Code injects without shell expansion (LifeOS#1404)
+for (const k of ["LIFEOS_DIR", "LIFEOS_CONFIG_DIR", "PROJECTS_DIR"]) {
+  const v = process.env[k];
+  if (v && /^\$\{?HOME\}?(\/|$)/.test(v)) process.env[k] = v.replace(/^\$\{?HOME\}?/, process.env.HOME ?? "~");
+}
+
 
 // ============================================================================
 // Configuration
@@ -80,24 +94,43 @@ function parseFrontmatter(content: string): Record<string, any> {
   const match = content.match(/^---\n([\s\S]*?)\n---/);
   if (!match) return {};
   const result: Record<string, any> = {};
-  for (const line of match[1].split("\n")) {
+  const lines = match[1].split("\n");
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    // Skip indented lines — they belong to the block-list/nested value of the key
+    // that introduced them (consumed via the lookahead below).
+    if (line.startsWith("  ") || line.startsWith("\t")) continue;
     const colonIdx = line.indexOf(":");
-    if (colonIdx > 0) {
-      const key = line.substring(0, colonIdx).trim();
-      // Skip indented lines (YAML nested content handled separately)
-      if (line.startsWith("  ") || line.startsWith("\t")) continue;
-      let value: any = line.substring(colonIdx + 1).trim();
-      if (value.startsWith("[") && value.endsWith("]")) {
-        value = value
-          .slice(1, -1)
-          .split(",")
-          .map((s: string) => s.trim().replace(/['"]/g, ""))
-          .filter((s: string) => s.length > 0);
-      } else if (value.startsWith('"') && value.endsWith('"')) {
-        value = value.slice(1, -1);
+    if (colonIdx <= 0) continue;
+    const key = line.substring(0, colonIdx).trim();
+    let value: any = line.substring(colonIdx + 1).trim();
+    if (value.startsWith("[") && value.endsWith("]")) {
+      value = value
+        .slice(1, -1)
+        .split(",")
+        .map((s: string) => s.trim().replace(/['"]/g, ""))
+        .filter((s: string) => s.length > 0);
+    } else if (value.startsWith('"') && value.endsWith('"')) {
+      value = value.slice(1, -1);
+    } else if (value.length === 0) {
+      // Empty scalar → possible YAML block-list. Collect following indented
+      // "- item" scalar entries (e.g. a `related:` or `tags:` block list) that
+      // the old parser silently dropped. Skip typed object items like
+      // "- slug: x" / "type: y" (they contain ":") — extractRelated owns the
+      // kb-v3 typed `related:` shape; leaving value "" preserves that.
+      const items: string[] = [];
+      for (let j = i + 1; j < lines.length; j++) {
+        const next = lines[j];
+        if (next.trim().length === 0) continue; // tolerate blank lines in the block
+        if (!next.startsWith("  ") && !next.startsWith("\t")) break; // dedent ends it
+        const m = next.trim().match(/^-\s+(.*)$/);
+        if (!m) continue;
+        const item = m[1].trim().replace(/['"]/g, "");
+        if (item.length > 0 && !item.includes(":")) items.push(item);
       }
-      result[key] = value;
+      if (items.length > 0) value = items;
     }
+    result[key] = value;
   }
   return result;
 }

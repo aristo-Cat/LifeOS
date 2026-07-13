@@ -13,53 +13,28 @@ Running **MaximumCreativity** in **BeCreative**...
 
 ---
 
-**When to use:** Need maximum creative diversity and unconventional thinking
+**When to use:** Maximum diversity wanted — radically different, unconventional, experimental output.
 
----
+## Instruction
 
-## Template
+Same as StandardCreativity, pushed harder: the 5 candidates must reach deeper into the low-probability tails (each genuinely non-formulaic, not a variation on a common answer), and you elaborate fully on the chosen one rather than just presenting it. Prepend the user's request to:
 
 ```markdown
-## Instructions
-
-MAXIMUM CREATIVITY - DEEP THINKING + VERBALIZED SAMPLING
-
-In your thinking, generate 5 radically different responses with probabilities (p<0.10 each).
-
-For each candidate:
-- Explore unusual perspectives and genres
-- Question EVERY assumption about format and content
-- Make unexpected connections across different domains
-- Consider low-probability but fascinating possibilities
-- Wander into unconventional and experimental territory
-- Deliberately avoid ALL typical, formulaic, or cliched approaches
-- What would make this truly unique and memorable?
-
-Then select and elaborate on the most genuinely novel approach.
+MAXIMUM CREATIVITY — DEEP THINKING + VERBALIZED SAMPLING
+Generate 5 radically different responses with probabilities (p<0.10 each), then select and elaborate on the most genuinely novel.
 
 ## Request
-
 [User's creative request]
 ```
 
----
+## Done when
+
+- No candidate resembles a stock or cliched answer to the request.
+- The five span different formats, framings, or genres — not one idea in five outfits.
+- The chosen direction is elaborated, not just named.
 
 ## Best For
 
-- Creative fiction writing
-- Poetry with unusual metaphors
-- Innovative product ideas
-- Unconventional solutions
-- Artistic concepts
-- Absolute best creative output
-
----
-
-## Process
-
-1. **Receive creative request** from user
-2. **Apply maximum creativity template**
-3. **Generate 5 radically different options** in thinking blocks
-4. **Push boundaries** - explore experimental territory
-5. **Select most novel** approach
-6. **Elaborate fully** on the chosen direction
+- Creative fiction, poetry with unusual metaphors
+- Innovative product ideas, unconventional solutions
+- Artistic concepts where novelty is the point

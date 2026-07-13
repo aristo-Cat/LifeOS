@@ -93,7 +93,7 @@ export default function VoiceActivityWaveform() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-40 text-zinc-600 text-xs">
+      <div className="flex items-center justify-center h-40 text-ink-3 text-xs">
         Loading voice events...
       </div>
     );
@@ -101,7 +101,7 @@ export default function VoiceActivityWaveform() {
 
   if (filteredEvents.length === 0 && allEvents.length === 0) {
     return (
-      <div className="flex items-center justify-center h-40 text-zinc-600 text-xs">
+      <div className="flex items-center justify-center h-40 text-ink-3 text-xs">
         No voice events recorded
       </div>
     );
@@ -126,15 +126,15 @@ export default function VoiceActivityWaveform() {
       {/* Header row */}
       <div className="flex items-center justify-between">
         {/* Time range selector */}
-        <div className="flex items-center gap-1 bg-zinc-800/50 rounded p-0.5">
+        <div className="flex items-center gap-1 bg-[rgba(20,28,56,0.5)] rounded p-0.5">
           {(["1h", "6h", "24h"] as TimeRange[]).map((r) => (
             <button
               key={r}
               onClick={() => setRange(r)}
               className={`px-2 py-0.5 rounded text-[13px] transition-colors ${
                 range === r
-                  ? "bg-zinc-700 text-zinc-200"
-                  : "text-zinc-500 hover:text-zinc-400"
+                  ? "bg-surface-3 text-ink-1"
+                  : "text-ink-3 hover:text-ink-2"
               }`}
             >
               {r}
@@ -152,7 +152,7 @@ export default function VoiceActivityWaveform() {
 
       {/* Waveform */}
       {filteredEvents.length === 0 ? (
-        <div className="flex items-center justify-center text-zinc-600 text-xs" style={{ height: `${WAVEFORM_HEIGHT}px` }}>
+        <div className="flex items-center justify-center text-ink-3 text-xs" style={{ height: `${WAVEFORM_HEIGHT}px` }}>
           No events in selected range
         </div>
       ) : (
@@ -173,7 +173,7 @@ export default function VoiceActivityWaveform() {
               y1={WAVEFORM_HEIGHT - 1}
               x2={1000}
               y2={WAVEFORM_HEIGHT - 1}
-              stroke="#3f3f46"
+              stroke="var(--line-1)"
               strokeWidth={0.5}
             />
 
@@ -264,17 +264,17 @@ export default function VoiceActivityWaveform() {
       {/* Tooltip */}
       {tooltip && (
         <div
-          className="absolute z-50 pointer-events-none bg-zinc-900 border border-zinc-700 rounded px-2 py-1.5 shadow-lg max-w-[250px]"
+          className="absolute z-50 pointer-events-none bg-surface-1 border border-line-2 rounded px-2 py-1.5 shadow-lg max-w-[250px]"
           style={{
             left: `${tooltip.x}px`,
             top: `${tooltip.y}px`,
             transform: "translate(-50%, -100%)",
           }}
         >
-          <div className="text-[13px] text-zinc-300 break-words">
+          <div className="text-[13px] text-ink-1 break-words">
             {tooltip.message || "(no message)"}
           </div>
-          <div className="text-[13px] text-zinc-500 mt-0.5">
+          <div className="text-[13px] text-ink-3 mt-0.5">
             {tooltip.timestamp}
           </div>
         </div>

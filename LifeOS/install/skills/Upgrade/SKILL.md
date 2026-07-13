@@ -1,6 +1,7 @@
 ---
 name: Upgrade
-description: "Generate prioritized LifeOS upgrade recommendations via 4 parallel threads: Thread 0 (prior-work audit — reads current Algorithm, PATTERNS.yaml, hooks, settings, recent ISAs, and KNOWLEDGE to assign Prior Status tags), Thread 1 (user context — TELOS goals, active projects, LifeOS system state), Thread 2 (source collection — Anthropic releases, YouTube channels, GitHub trending, custom sources), Thread 3 (internal reflections — Algorithm execution Q1/Q2 patterns). Output format: Discoveries table ranked by interestingness, then tiered Recommendations (CRITICAL/HIGH/MEDIUM/LOW) each with Prior Status (NEW/PARTIAL/DISCUSSED/REJECTED/DONE), then full Technique Details with before/after code. Every recommendation cites file:line evidence from Thread 0 — already-implemented items go to Skipped, never re-surfaced. Workflows: Upgrade, MineReflections, AlgorithmUpgrade, ResearchUpgrade, FindSources, TwitterBookmarks. USE WHEN upgrade, system upgrade, check Anthropic, new Claude features, algorithm upgrade, LifeOS upgrade, check bookmarks, scan bookmarks, twitter bookmarks, X bookmarks, bookmarks for upgrades, what have I bookmarked, mine reflections."
+version: 1.1.12
+description: "Generate prioritized LifeOS upgrade recommendations via 4 parallel threads (prior-work audit, user context, external source collection, internal reflections), output as a ranked Discoveries table plus tiered CRITICAL/HIGH/MEDIUM/LOW recommendations with Prior Status tags and before/after code. USE WHEN upgrade, system upgrade, check Anthropic, new Claude features, algorithm upgrade, LifeOS upgrade, check bookmarks, scan bookmarks, twitter bookmarks, X bookmarks, bookmarks for upgrades, what have I bookmarked, mine reflections."
 effort: high
 ---
 
@@ -125,7 +126,7 @@ These output patterns are **FAILURES**:
 | "Check out R Amjad's video on Claude Code" | Points to content instead of extracting it | "@ 5:42, R Amjad shows this technique: [quote]" |
 | "v2.1.16 has task management improvements" | Vague summary, no technique | "v2.1.16 adds `addBlockedBy` parameter: [code example]" |
 | "Consider looking into MCP updates" | Recommendation without extraction | "MCP now supports [specific feature]: [docs quote]" |
-| "This could be useful for your workflows" | Vague relevance | "This improves your Browser skill because [specific gap it fills]" |
+| "This could be useful for your workflows" | Vague relevance | "This improves your Interceptor skill because [specific gap it fills]" |
 | "Several videos covered AI agents" | Count without content | "[N] videos skipped — no extractable techniques" |
 | "This helps because it improves things" | Vague benefit | "How It Helps LifeOS: SecurityValidator currently only blocks commands. additionalContext enables reasoning context before tool execution, making decisions more nuanced." |
 | "A new hook feature" | No description of what it IS | "What It Is: PreToolUse hooks can return additionalContext that gets injected into the model's context before execution, enabling reasoning-based decisions rather than binary blocks." |

@@ -1,3 +1,7 @@
+---
+provenance: template
+---
+
 > 💰 SAMPLE TEMPLATE — Replace with your own data via /interview or by editing this file. Real Pulse Finance dashboards populate from here once you've run the Finances interview.
 
 # Financial Goals

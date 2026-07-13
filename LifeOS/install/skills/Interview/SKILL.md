@@ -1,6 +1,8 @@
 ---
 name: Interview
+version: 1.1.7
 description: "Reads seven constitutional files (TELOS, DA_IDENTITY, PRINCIPAL_IDENTITY, PROJECTS, system prompt, PRINCIPAL_TELOS, ARCHITECTURE_SUMMARY) via TelosFreshness, surfaces stalest items, drives contextual peer conversation. Routes to ContextCheckin; falls back to Phase0Setup on fresh install. ContextAudit surfaces TBD markers. USE WHEN /interview, resume interview, context check-in, telos check-in, what's stale, freshness check, fresh LifeOS install, configure DA name, review TELOS, quarterly context refresh. NOT FOR single edits (Telos), bulk intake (Migrate), identity-only (_PROFILE)."
+disable-model-invocation: true
 ---
 
 # Interview — constitutional-context peer conversation

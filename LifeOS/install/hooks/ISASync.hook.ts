@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 /**
+ * @version 1.4.11
  * ISASync.hook.ts — ISA → work.json sync via PostToolUse
  *
  * TRIGGER: PostToolUse (Write, Edit, MultiEdit, Read)

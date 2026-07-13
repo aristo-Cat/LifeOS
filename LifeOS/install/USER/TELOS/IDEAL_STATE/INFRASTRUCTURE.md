@@ -1,4 +1,5 @@
 ---
+provenance: template
 dimension: infrastructure
 kind: metric
 classification: private

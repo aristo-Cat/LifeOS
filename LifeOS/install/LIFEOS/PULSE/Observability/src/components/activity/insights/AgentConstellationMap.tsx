@@ -48,7 +48,7 @@ const AGENT_TYPE_COLORS: Record<string, { label: string; hex: string }> = {
   Explore: { label: "Explore", hex: "#34d399" },       // emerald-400
 };
 
-const DEFAULT_AGENT_COLOR = "#a1a1aa"; // zinc-400
+const DEFAULT_AGENT_COLOR = "var(--ink-2)"; // zinc-400
 
 const SVG_WIDTH = 500;
 const SVG_HEIGHT = 350;
@@ -201,12 +201,12 @@ export default function AgentConstellationMap() {
 
   if (isLoading) {
     return (
-      <div className="rounded-lg border border-white/[0.06] bg-zinc-900 p-4">
-        <h3 className="text-xs font-medium text-zinc-400 uppercase tracking-wider mb-3">
+      <div className="rounded-lg border border-white/[0.06] bg-surface-1 p-4">
+        <h3 className="text-xs font-medium text-ink-2 uppercase tracking-wider mb-3">
           Agent Constellation
         </h3>
         <div className="flex items-center justify-center h-[350px]">
-          <div className="w-48 h-48 rounded-full border-2 border-zinc-800 animate-pulse" />
+          <div className="w-48 h-48 rounded-full border-2 border-line-2 animate-pulse" />
         </div>
       </div>
     );
@@ -214,8 +214,8 @@ export default function AgentConstellationMap() {
 
   if (error) {
     return (
-      <div className="rounded-lg border border-white/[0.06] bg-zinc-900 p-4">
-        <h3 className="text-xs font-medium text-zinc-400 uppercase tracking-wider mb-3">
+      <div className="rounded-lg border border-white/[0.06] bg-surface-1 p-4">
+        <h3 className="text-xs font-medium text-ink-2 uppercase tracking-wider mb-3">
           Agent Constellation
         </h3>
         <p className="text-xs text-rose-400">Failed to load: {error}</p>
@@ -225,28 +225,28 @@ export default function AgentConstellationMap() {
 
   if (!parsed || totalSessions === 0) {
     return (
-      <div className="rounded-lg border border-white/[0.06] bg-zinc-900 p-4">
-        <h3 className="text-xs font-medium text-zinc-400 uppercase tracking-wider mb-3">
+      <div className="rounded-lg border border-white/[0.06] bg-surface-1 p-4">
+        <h3 className="text-xs font-medium text-ink-2 uppercase tracking-wider mb-3">
           Agent Constellation
         </h3>
         <div className="flex flex-col items-center justify-center py-12">
           <svg width={80} height={80} viewBox="0 0 80 80">
-            <circle cx={40} cy={40} r={30} fill="none" stroke="#3f3f46" strokeWidth={2} strokeDasharray="4 4" />
-            <circle cx={40} cy={40} r={3} fill="#52525b" />
+            <circle cx={40} cy={40} r={30} fill="none" stroke="var(--line-1)" strokeWidth={2} strokeDasharray="4 4" />
+            <circle cx={40} cy={40} r={3} fill="var(--line-1)" />
           </svg>
-          <p className="text-xs text-zinc-600 mt-3">No agent activity recorded</p>
+          <p className="text-xs text-ink-3 mt-3">No agent activity recorded</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="rounded-lg border border-white/[0.06] bg-zinc-900 p-4">
+    <div className="rounded-lg border border-white/[0.06] bg-surface-1 p-4">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-xs font-medium text-zinc-400 uppercase tracking-wider">
+        <h3 className="text-xs font-medium text-ink-2 uppercase tracking-wider">
           Agent Constellation
         </h3>
-        <span className="text-[14px] text-zinc-500 font-mono tabular-nums">
+        <span className="text-[14px] text-ink-3 font-mono tabular-nums">
           {totalAgents} agent{totalAgents !== 1 ? "s" : ""} across {totalSessions} session{totalSessions !== 1 ? "s" : ""}
         </span>
       </div>
@@ -264,7 +264,7 @@ export default function AgentConstellationMap() {
             y={CENTER_Y}
             textAnchor="middle"
             dominantBaseline="central"
-            className="fill-zinc-600"
+            className="fill-[var(--ink-3)]"
             fontSize={11}
             fontWeight={500}
           >
@@ -283,7 +283,7 @@ export default function AgentConstellationMap() {
                   y1={session.y}
                   x2={agent.x}
                   y2={agent.y}
-                  stroke="#52525b"
+                  stroke="var(--line-1)"
                   strokeWidth={1}
                   className="transition-opacity duration-150"
                   style={{
@@ -311,8 +311,8 @@ export default function AgentConstellationMap() {
                   cx={session.x}
                   cy={session.y}
                   r={SESSION_NODE_SIZE}
-                  fill={isHovered ? "#52525b" : "#3f3f46"}
-                  stroke={isHovered ? "#a1a1aa" : "#71717a"}
+                  fill={isHovered ? "var(--line-1)" : "var(--line-1)"}
+                  stroke={isHovered ? "var(--ink-2)" : "var(--ink-3)"}
                   strokeWidth={isHovered ? 2 : 1.5}
                   className="transition-all duration-150"
                   style={{ opacity: isDimmed ? 0.3 : 1 }}
@@ -371,23 +371,23 @@ export default function AgentConstellationMap() {
         {/* Agent tooltip */}
         {hoveredAgent && (
           <div
-            className="absolute z-50 px-2.5 py-1.5 rounded-md bg-zinc-800 border border-white/[0.08] shadow-lg whitespace-nowrap pointer-events-none"
+            className="absolute z-50 px-2.5 py-1.5 rounded-md bg-surface-2 border border-white/[0.08] shadow-lg whitespace-nowrap pointer-events-none"
             style={{
               left: tooltipPos.x,
               top: tooltipPos.y - 8,
               transform: "translate(-50%, -100%)",
             }}
           >
-            <p className="text-xs text-zinc-200 font-medium capitalize">
+            <p className="text-xs text-ink-1 font-medium capitalize">
               {hoveredAgent.type}
             </p>
             {hoveredAgent.model && (
-              <p className="text-[13px] text-zinc-500">
+              <p className="text-[13px] text-ink-3">
                 Model: {hoveredAgent.model}
               </p>
             )}
             {hoveredAgent.prompt && (
-              <p className="text-[13px] text-zinc-500 max-w-[200px] truncate">
+              <p className="text-[13px] text-ink-3 max-w-[200px] truncate">
                 {truncate(hoveredAgent.prompt, 80)}
               </p>
             )}
@@ -403,7 +403,7 @@ export default function AgentConstellationMap() {
               className="w-2 h-2 rounded-full shrink-0"
               style={{ backgroundColor: getAgentColor(type) }}
             />
-            <span className="text-[14px] text-zinc-400 capitalize">{type}</span>
+            <span className="text-[14px] text-ink-2 capitalize">{type}</span>
           </div>
         ))}
       </div>

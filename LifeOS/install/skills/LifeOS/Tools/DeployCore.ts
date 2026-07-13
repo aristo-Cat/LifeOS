@@ -32,11 +32,10 @@ import { copyMissing, detectDevTree } from "./InstallEngine";
 //  - MEMORY         per-install state, never shipped — but scaffoldMemory() creates the
 //                   empty tree at install so ISASync/hooks/memory writes have a home
 //                   (this is where EmitSkill's "MEMORY scaffolded fresh at setup" becomes true)
-//  - LIFEOS_INSTALL legacy installer engine, not part of the live runtime
 //  - node_modules / .git  never deploy
-// copyMissing's own SKIP_DIRS covers MEMORY/LIFEOS_INSTALL when nested, but these
+// copyMissing's own SKIP_DIRS covers MEMORY when nested, but these
 // are TOP-LEVEL entries of the runtime payload, so we filter them here explicitly.
-const RUNTIME_SKIP = new Set(["USER", "MEMORY", "LIFEOS_INSTALL", "node_modules", ".git"]);
+const RUNTIME_SKIP = new Set(["USER", "MEMORY", "node_modules", ".git"]);
 
 function arg(a: string[], flag: string): string | undefined {
   const i = a.indexOf(flag);
@@ -44,7 +43,7 @@ function arg(a: string[], flag: string): string | undefined {
 }
 
 interface DeployResult {
-  what: "skills" | "runtime" | "memory";
+  what: "skills" | "runtime" | "memory" | "dependencies";
   src: string;
   dst: string;
   present: boolean;
@@ -132,6 +131,39 @@ function scaffoldMemory(configRoot: string, apply: boolean): DeployResult {
   return r;
 }
 
+/**
+ * (d) shared runtime deps: install/package.json → configRoot/package.json, then
+ * `bun install` in configRoot. Several deployed hooks/TOOLS scripts (e.g.
+ * hooks/lib/identity.ts, LIFEOS/TOOLS/Banner.ts) import npm packages (yaml)
+ * that resolve via node_modules walked up from configRoot — without this step
+ * those scripts throw "Cannot find package" on first run after a fresh install.
+ */
+function deployDependencies(payloadInstall: string, configRoot: string, apply: boolean): DeployResult {
+  const src = join(payloadInstall, "package.json");
+  const dst = join(configRoot, "package.json");
+  const r: DeployResult = { what: "dependencies", src, dst, present: existsSync(src), copied: 0, actions: [], blockers: [], failures: [] };
+  if (!r.present) {
+    r.blockers.push(`dependency manifest missing: ${src} — point --skill-root at a staged release`);
+    return r;
+  }
+  if (!apply) {
+    r.actions.push(`copyMissing ${src} → ${dst}`, `bun install --cwd ${configRoot}`);
+    return r;
+  }
+  const { copied, failures } = copyMissing(src, dst);
+  r.copied = copied;
+  r.failures = failures;
+  if (failures.length === 0) {
+    const proc = Bun.spawnSync(["bun", "install"], { cwd: configRoot, stdout: "pipe", stderr: "pipe" });
+    if (proc.exitCode !== 0) {
+      r.failures.push(`bun install --cwd ${configRoot} exited ${proc.exitCode}: ${proc.stderr.toString().trim()}`);
+    } else {
+      r.actions.push(`bun install --cwd ${configRoot}`);
+    }
+  }
+  return r;
+}
+
 function main(): void {
   const a = process.argv.slice(2);
   const home = process.env.HOME || homedir();
@@ -154,6 +186,7 @@ function main(): void {
     deploySkills(payloadInstall, configRoot, apply),
     deployRuntime(payloadInstall, configRoot, apply),
     scaffoldMemory(configRoot, apply),
+    deployDependencies(payloadInstall, configRoot, apply),
   ];
 
   // A missing required payload source (blocker) or a copy failure is a hard

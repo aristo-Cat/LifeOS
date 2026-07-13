@@ -1,5 +1,6 @@
 ---
 name: AudioEditor
+version: 1.0.22
 description: "AI audio editing pipeline: Whisper word-level transcription → Claude segment classification (KEEP/CUT_FILLER/CUT_FALSE_START/CUT_STUTTER/CUT_DEAD_AIR) → ffmpeg with 40ms qsin crossfades and room-tone fill → optional Cleanvoice cloud polish. Distinguishes rhetorical from accidental pauses; breaths attenuated 50%. Modes: --preview, --aggressive, --polish. Workflow: Clean. USE WHEN clean audio, edit audio, remove filler words, clean podcast, remove ums, cut dead air, polish audio, trim recording, cut stutters. NOT FOR video composition (use Remotion)."
 effort: medium
 ---

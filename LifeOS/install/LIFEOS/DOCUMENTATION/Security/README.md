@@ -1,3 +1,7 @@
+---
+version: 1.7.4
+---
+
 # LifeOS Security — Minimal v2
 
 > A Life OS holds a life — goals, health, finances, relationships, credentials (`LIFEOS/DOCUMENTATION/LifeOs/LifeOsThesis.md`). The security model below exists because an OS trusted to run your life must be harder to subvert than the chatbots it replaces: external content is data, dangerous shapes get gated, and the boundary holds even when the principal isn't watching.
@@ -100,7 +104,7 @@ The ten release-flavored workflows under `skills/_LIFEOS/Workflows/` (`CreateSha
 
 Adding a pattern: append the regex line under the right section in `DENY_LIST.txt`. The next precheck run picks it up; the next `ShadowRelease.ts` build picks it up at startup. No code to edit.
 
-Hard exclusions (kept OUT of the deny-list, intentionally): `github.com/danielmiessler/PAI` (legitimate public clone URL), `fTtv3eikoepIosk8dTZ5` (Algorithm voice, intentionally shipped).
+Hard exclusions (kept OUT of the deny-list, intentionally): the public repo clone URL, `github.com/<repo-owner>/LifeOS` (legitimate attribution), `fTtv3eikoepIosk8dTZ5` (Algorithm voice, intentionally shipped).
 
 ## What's NOT Here (and why)
 

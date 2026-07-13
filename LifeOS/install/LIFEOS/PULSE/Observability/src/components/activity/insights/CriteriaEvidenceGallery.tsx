@@ -37,7 +37,7 @@ const EFFORT_COLORS: Record<string, string> = {
   Advanced: "bg-purple-400/20 text-purple-400",
   Deep: "bg-indigo-400/20 text-indigo-400",
   Comprehensive: "bg-fuchsia-400/20 text-fuchsia-400",
-  Native: "bg-zinc-400/20 text-zinc-400",
+  Native: "bg-[rgba(168,165,200,0.2)] text-ink-2",
 };
 
 const PHASE_BADGE_COLORS: Record<string, string> = {
@@ -48,8 +48,8 @@ const PHASE_BADGE_COLORS: Record<string, string> = {
   EXECUTE: "text-[#9ece6a]",
   VERIFY: "text-[#73daca]",
   LEARN: "text-[#e0af68]",
-  IDLE: "text-zinc-500",
-  COMPLETE: "text-zinc-500",
+  IDLE: "text-ink-3",
+  COMPLETE: "text-ink-3",
 };
 
 const INITIAL_VISIBLE = 30;
@@ -125,7 +125,7 @@ export default function CriteriaEvidenceGallery() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-40 text-zinc-600 text-xs">
+      <div className="flex items-center justify-center h-40 text-ink-3 text-xs">
         Loading criteria...
       </div>
     );
@@ -141,7 +141,7 @@ export default function CriteriaEvidenceGallery() {
 
   if (allCompleted.length === 0) {
     return (
-      <div className="flex items-center justify-center h-40 text-zinc-500 text-xs">
+      <div className="flex items-center justify-center h-40 text-ink-3 text-xs">
         No completed criteria yet
       </div>
     );
@@ -153,12 +153,12 @@ export default function CriteriaEvidenceGallery() {
   return (
     <div className="space-y-3">
       {/* Summary */}
-      <div className="text-xs text-zinc-400">
-        <span className="font-mono font-medium text-zinc-200">
+      <div className="text-xs text-ink-2">
+        <span className="font-mono font-medium text-ink-1">
           {allCompleted.length}
         </span>{" "}
         criteria completed across{" "}
-        <span className="font-mono font-medium text-zinc-200">
+        <span className="font-mono font-medium text-ink-1">
           {sessionCount}
         </span>{" "}
         sessions
@@ -166,7 +166,7 @@ export default function CriteriaEvidenceGallery() {
 
       {/* Search bar */}
       <div className="relative">
-        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500" />
+        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-ink-3" />
         <input
           type="text"
           placeholder="Filter criteria..."
@@ -175,7 +175,7 @@ export default function CriteriaEvidenceGallery() {
             setSearchQuery(e.target.value);
             setVisibleCount(INITIAL_VISIBLE);
           }}
-          className="w-full pl-8 pr-3 py-1.5 text-xs bg-zinc-800/50 border border-white/[0.06] rounded-md text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-white/[0.12] transition-colors"
+          className="w-full pl-8 pr-3 py-1.5 text-xs bg-[rgba(20,28,56,0.5)] border border-white/[0.06] rounded-md text-ink-1 placeholder:text-ink-3 focus:outline-none focus:border-white/[0.12] transition-colors"
         />
       </div>
 
@@ -190,7 +190,7 @@ export default function CriteriaEvidenceGallery() {
       {hasMore && (
         <button
           onClick={() => setVisibleCount((c) => c + LOAD_MORE_COUNT)}
-          className="w-full py-2 text-xs text-zinc-400 hover:text-zinc-200 bg-zinc-800/30 rounded-lg border border-white/[0.04] transition-colors"
+          className="w-full py-2 text-xs text-ink-2 hover:text-ink-1 bg-[rgba(20,28,56,0.3)] rounded-lg border border-white/[0.04] transition-colors"
         >
           Show more ({filtered.length - visibleCount} remaining)
         </button>
@@ -203,11 +203,11 @@ function CriterionCard({ item }: { item: CriterionWithContext }) {
   const { criterion, sessionName, effortLevel } = item;
   const phaseColorClass = PHASE_COLORS[criterion.createdInPhase] ?? "border-l-zinc-600";
   const effortColorClass = EFFORT_COLORS[effortLevel] ?? EFFORT_COLORS.Standard;
-  const phaseBadgeColor = PHASE_BADGE_COLORS[criterion.createdInPhase] ?? "text-zinc-500";
+  const phaseBadgeColor = PHASE_BADGE_COLORS[criterion.createdInPhase] ?? "text-ink-3";
 
   return (
     <div
-      className={`min-h-[100px] bg-zinc-800/40 border border-white/[0.04] rounded-lg p-3 border-l-2 ${phaseColorClass} space-y-2`}
+      className={`min-h-[100px] bg-[rgba(20,28,56,0.4)] border border-white/[0.04] rounded-lg p-3 border-l-2 ${phaseColorClass} space-y-2`}
     >
       {/* ID badge */}
       <span
@@ -217,20 +217,20 @@ function CriterionCard({ item }: { item: CriterionWithContext }) {
       </span>
 
       {/* Description */}
-      <p className="text-[15px] text-zinc-200 leading-relaxed">
+      <p className="text-[15px] text-ink-1 leading-relaxed">
         {criterion.description}
       </p>
 
       {/* Evidence */}
       {criterion.evidence && (
-        <p className="text-[14px] text-zinc-400 italic leading-relaxed">
+        <p className="text-[14px] text-ink-2 italic leading-relaxed">
           {criterion.evidence}
         </p>
       )}
 
       {/* Bottom row */}
       <div className="flex items-center justify-between pt-1">
-        <span className="text-[13px] text-zinc-500 truncate max-w-[70%]">
+        <span className="text-[13px] text-ink-3 truncate max-w-[70%]">
           {sessionName}
         </span>
         <span className={`text-[13px] font-mono ${phaseBadgeColor}`}>

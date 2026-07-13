@@ -91,9 +91,9 @@ export default function EffortDistributionDonut() {
 
   if (isLoading) {
     return (
-      <div className="rounded-lg border border-white/[0.06] bg-zinc-900 p-4">
+      <div className="rounded-lg border border-white/[0.06] bg-surface-1 p-4">
         <div className="flex items-center justify-center h-[240px]">
-          <div className="w-[180px] h-[180px] rounded-full border-4 border-zinc-800 animate-pulse" />
+          <div className="w-[180px] h-[180px] rounded-full border-4 border-line-2 animate-pulse" />
         </div>
       </div>
     );
@@ -101,8 +101,8 @@ export default function EffortDistributionDonut() {
 
   if (total === 0) {
     return (
-      <div className="rounded-lg border border-white/[0.06] bg-zinc-900 p-4">
-        <h3 className="text-xs font-medium text-zinc-400 uppercase tracking-wider mb-3">
+      <div className="rounded-lg border border-white/[0.06] bg-surface-1 p-4">
+        <h3 className="text-xs font-medium text-ink-2 uppercase tracking-wider mb-3">
           Effort Distribution
         </h3>
         <div className="flex flex-col items-center justify-center py-8">
@@ -120,7 +120,7 @@ export default function EffortDistributionDonut() {
               y={center}
               textAnchor="middle"
               dominantBaseline="central"
-              className="fill-zinc-600"
+              className="fill-[var(--ink-3)]"
               fontSize={14}
             >
               No data
@@ -132,8 +132,8 @@ export default function EffortDistributionDonut() {
   }
 
   return (
-    <div className="rounded-lg border border-white/[0.06] bg-zinc-900 p-4">
-      <h3 className="text-xs font-medium text-zinc-400 uppercase tracking-wider mb-3">
+    <div className="rounded-lg border border-white/[0.06] bg-surface-1 p-4">
+      <h3 className="text-xs font-medium text-ink-2 uppercase tracking-wider mb-3">
         Effort Distribution
       </h3>
 
@@ -196,7 +196,7 @@ export default function EffortDistributionDonut() {
                 <span className="text-2xl font-semibold text-white tabular-nums">
                   {hoveredSegment.count}
                 </span>
-                <span className="text-[14px] text-zinc-400">
+                <span className="text-[14px] text-ink-2">
                   {hoveredSegment.percentage.toFixed(0)}% {hoveredSegment.level}
                 </span>
               </>
@@ -205,7 +205,7 @@ export default function EffortDistributionDonut() {
                 <span className="text-[32px] font-semibold text-white leading-none tabular-nums">
                   {total}
                 </span>
-                <span className="text-[14px] text-zinc-400 mt-0.5">sessions</span>
+                <span className="text-[14px] text-ink-2 mt-0.5">sessions</span>
               </>
             )}
           </div>
@@ -224,10 +224,10 @@ export default function EffortDistributionDonut() {
                 className="w-2 h-2 rounded-full shrink-0"
                 style={{ backgroundColor: segment.color }}
               />
-              <span className="text-[14px] text-zinc-400">
+              <span className="text-[14px] text-ink-2">
                 {segment.level}
               </span>
-              <span className="text-[14px] text-zinc-600 font-mono tabular-nums">
+              <span className="text-[14px] text-ink-3 font-mono tabular-nums">
                 {segment.count}
               </span>
             </div>

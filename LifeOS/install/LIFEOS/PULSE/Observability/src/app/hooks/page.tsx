@@ -6,6 +6,8 @@ import { useSearchParams } from "next/navigation";
 import { Webhook, ArrowLeft, FileCode, Globe } from "lucide-react";
 import Link from "next/link";
 import EmptyStateGuide from "@/components/EmptyStateGuide";
+import { PageShell, PageHeader, Panel, StatTile, Pill } from "@/components/ui/chrome";
+import SystemHealthPanel from "@/components/SystemHealthPanel";
 
 interface HookEntry {
   event: string;
@@ -24,15 +26,6 @@ interface HookDetail {
 }
 
 type Dimension = "health" | "money" | "freedom" | "creative" | "relationships" | "rhythms";
-
-const DIM_COLORS: Record<Dimension, string> = {
-  health: "var(--health)",
-  money: "var(--money)",
-  freedom: "var(--freedom)",
-  creative: "var(--creative)",
-  relationships: "var(--relationships)",
-  rhythms: "var(--rhythms)",
-};
 
 const EVENT_DIMENSIONS: Record<string, Dimension> = {
   PreToolUse: "creative",
@@ -64,12 +57,6 @@ function eventDimension(event: string): Dimension {
   return EVENT_DIMENSIONS[event] || "money";
 }
 
-function eventCardClass(event: string): string {
-  if (event.includes("Failure") || event.includes("Error")) return "telos-card rec rec-high";
-  if (event.includes("Completed") || event === "PostToolUse") return "telos-card rec rec-low";
-  return "telos-card";
-}
-
 function HooksLanding({ hooks, events }: { hooks: HookEntry[]; events: string[] }) {
   const grouped = new Map<string, HookEntry[]>();
   for (const hook of hooks) {
@@ -87,7 +74,7 @@ function HooksLanding({ hooks, events }: { hooks: HookEntry[]; events: string[] 
   const sortedEvents = [...grouped.keys()].sort();
 
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-8">
+    <PageShell>
       {hooks.length === 0 && (
         <EmptyStateGuide
           section="Hook Activity"
@@ -96,102 +83,57 @@ function HooksLanding({ hooks, events }: { hooks: HookEntry[]; events: string[] 
           daPromptExample="show me which hooks fired in this session"
         />
       )}
-      <div className="telos-card goal-card dim-money" style={{ cursor: "default" }}>
-        <h1 className="text-2xl font-semibold tracking-tight" style={{ color: "#E8EFFF" }}>
-          Hooks
-        </h1>
-        <p className="mt-1 max-w-3xl" style={{ color: "#9BB0D6", fontSize: 14 }}>
-          Lifecycle event handlers that run shell commands or HTTP requests in response to
-          Claude Code events. Configured in settings.json; hooks intercept tool calls,
-          session events, and system changes.
-        </p>
-        <div className="progress-bar">
-          <div className="progress-fill" style={{ width: "70%" }} />
-        </div>
-        <div className="goal-foot">
-          <div className="goal-dims">
-            <span className="pill pill-money">money</span>
-            <span className="pill pill-creative">PreToolUse</span>
-            <span className="pill pill-rhythms">PostToolUse</span>
-          </div>
-          <span className="goal-delta flat-muted">event layer</span>
-        </div>
+      <PageHeader
+        title="Hooks"
+        icon={Webhook}
+        subtitle="Lifecycle event handlers that run shell commands or HTTP requests in response to Claude Code events. Configured in settings.json; they intercept tool calls, session events, and system changes."
+      />
+
+      <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(180px, 220px))" }}>
+        <StatTile label="Hooks" value={hooks.length} icon={Webhook} dim="money" />
+        <StatTile label="Events" value={events.length} icon={FileCode} dim="freedom" />
       </div>
 
-      <div className="metric-grid" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", maxWidth: 460 }}>
-        <div className="telos-card metric" style={{ cursor: "default" }}>
-          <div className="metric-top">
-            <Webhook className="w-4 h-4" style={{ color: "var(--money)" }} />
-            <span className="metric-label muted">Hooks</span>
-          </div>
-          <div className="metric-row">
-            <span className="metric-val mono">{hooks.length}</span>
-          </div>
-        </div>
-        <div className="telos-card metric" style={{ cursor: "default" }}>
-          <div className="metric-top">
-            <FileCode className="w-4 h-4" style={{ color: "var(--freedom)" }} />
-            <span className="metric-label muted">Events</span>
-          </div>
-          <div className="metric-row">
-            <span className="metric-val mono">{events.length}</span>
-          </div>
-        </div>
-      </div>
+      <SystemHealthPanel />
 
-      <div className="space-y-6">
+      <div className="flex flex-col gap-6">
         {sortedEvents.map((event) => {
           const eventHooks = grouped.get(event) || [];
           const dimension = eventDimension(event);
-          const eventColor = DIM_COLORS[dimension];
 
           return (
-            <div key={event}>
-              <h2
-                className="text-sm font-medium uppercase tracking-wider mb-3 flex items-center gap-2"
-                style={{ color: eventColor }}
-              >
-                <span
-                  className={`pill pill-${dimension}`}
-                  style={{
-                    color: eventColor,
-                    letterSpacing: 1.2,
-                  }}
-                >
-                  {event}
-                </span>
-                <span className="muted" style={{ fontSize: 12 }}>({eventHooks.length})</span>
-              </h2>
+            <div key={event} className="flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <Pill dim={dimension}>{event}</Pill>
+                <span className="text-[12px] text-ink-3 mono">({eventHooks.length})</span>
+              </div>
               {eventHooks.length === 0 ? (
-                <p className="pl-3 muted" style={{ fontSize: 13, fontStyle: "italic" }}>
-                  No hooks registered
-                </p>
+                <p className="pl-1 text-[13px] italic text-ink-3">No hooks registered</p>
               ) : (
-                <div className="space-y-2">
+                <div className="flex flex-col gap-2">
                   {eventHooks.map((hook, i) => (
                     <Link
                       key={`${hook.event}-${hook.matcher}-${i}`}
                       href={`/hooks?name=${encodeURIComponent(hook.fileName)}`}
-                      className={eventCardClass(event)}
-                      style={{ padding: "12px 18px", cursor: "pointer" }}
+                      className="block"
                     >
-                      <div className="flex items-center gap-3 flex-wrap">
-                        {hook.type === "http" ? (
-                          <Globe className="w-4 h-4 shrink-0" style={{ color: "var(--freedom)" }} />
-                        ) : (
-                          <FileCode className="w-4 h-4 shrink-0" style={{ color: "var(--money)" }} />
-                        )}
-                        <span className="mono" style={{ color: "#E8EFFF", fontSize: 13 }}>
-                          {hook.fileName}
-                        </span>
-                        <span className="muted" style={{ fontSize: 12 }}>
-                          matcher:{" "}
-                          <span className="mono" style={{ color: "#D6E1F5" }}>{hook.matcher}</span>
-                        </span>
-                        <span className={`pill ${hook.type === "http" ? "pill-freedom" : "pill-money"} ml-auto shrink-0`}>
-                          {hook.type}
-                        </span>
-                      </div>
+                      <Panel hover className="py-3 px-4">
+                        <div className="flex items-center gap-3 flex-wrap">
+                          {hook.type === "http" ? (
+                            <Globe className="w-4 h-4 shrink-0 text-dim-freedom" />
+                          ) : (
+                            <FileCode className="w-4 h-4 shrink-0 text-dim-money" />
+                          )}
+                          <span className="mono text-[13px] text-ink-1">{hook.fileName}</span>
+                          <span className="text-[12px] text-ink-3">
+                            matcher:{" "}
+                            <span className="mono text-ink-2">{hook.matcher}</span>
+                          </span>
+                          <span className="ml-auto shrink-0">
+                            <Pill dim={hook.type === "http" ? "freedom" : "money"}>{hook.type}</Pill>
+                          </span>
+                        </div>
+                      </Panel>
                     </Link>
                   ))}
                 </div>
@@ -200,22 +142,20 @@ function HooksLanding({ hooks, events }: { hooks: HookEntry[]; events: string[] 
           );
         })}
       </div>
-    </div>
+    </PageShell>
   );
 }
 
 function HookDetailView({ hook }: { hook: HookDetail }) {
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-4">
+    <div className="max-w-4xl mx-auto w-full px-4 sm:px-6 py-6 flex flex-col gap-4">
       <div className="flex items-center gap-3">
-        <Link href="/hooks" style={{ color: "#9BB0D6" }}>
+        <Link href="/hooks" className="text-ink-2 hover:text-ink-1">
           <ArrowLeft className="w-5 h-5" />
         </Link>
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight" style={{ color: "#E8EFFF" }}>
-            {hook.name}
-          </h1>
-          <p className="mt-0.5" style={{ color: "#9BB0D6", fontSize: 13 }}>
+          <h1 className="text-ink-1">{hook.name}</h1>
+          <p className="mt-0.5 text-[13px] text-ink-2">
             {(hook.size / 1024).toFixed(1)} KB ·{" "}
             {new Date(hook.lastModified).toLocaleDateString("en-US", {
               month: "short",
@@ -226,14 +166,11 @@ function HookDetailView({ hook }: { hook: HookDetail }) {
         </div>
       </div>
 
-      <div className="telos-card" style={{ cursor: "default", padding: 0, overflow: "hidden" }}>
-        <pre
-          className="text-xs mono overflow-x-auto max-h-[700px] overflow-y-auto leading-relaxed p-4"
-          style={{ background: "#060B1A", color: "#D6E1F5", margin: 0 }}
-        >
+      <Panel className="p-0 overflow-hidden">
+        <pre className="text-xs mono overflow-x-auto max-h-[700px] overflow-y-auto leading-relaxed p-4 m-0 bg-ground text-ink-2">
           <code>{hook.content}</code>
         </pre>
-      </div>
+      </Panel>
     </div>
   );
 }
@@ -274,7 +211,7 @@ function HooksPageInner() {
 
   return (
     <div className="flex items-center justify-center h-full">
-      <div style={{ color: "#6B80AB", fontSize: 14 }}>Loading...</div>
+      <div className="text-sm text-ink-3">Loading...</div>
     </div>
   );
 }
@@ -284,7 +221,7 @@ export default function HooksPage() {
     <Suspense
       fallback={
         <div className="flex items-center justify-center h-full">
-          <div style={{ color: "#6B80AB", fontSize: 14 }}>Loading...</div>
+          <div className="text-sm text-ink-3">Loading...</div>
         </div>
       }
     >

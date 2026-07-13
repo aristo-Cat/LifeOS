@@ -1,6 +1,7 @@
 ---
 name: Prompting
-description: "Meta-prompting standard library — the LifeOS system for generating, optimizing, and composing prompts programmatically. Three pillars: Standards (Anthropic best practices, context engineering, Fabric patterns); Templates (Handlebars — Briefing, Structure, Gate, Roster, Voice, plus eval templates Judge, Rubric, TestCase, Comparison, Report used by Agents/Evals; the Agents skill keeps its own DynamicAgent.hbs); Tools (RenderTemplate.ts, data-content separation). Philosophy: prompts that write prompts — structure is code, content is data. Output is always a prompt to be used elsewhere, not final content. USE WHEN meta-prompting, template generation, prompt optimization, prompt engineering, write a prompt, create system prompt, Handlebars template, eval prompt, judge prompt. NOT FOR generating final content (use the appropriate domain skill)."
+version: 1.1.21
+description: "Meta-prompting standard library for generating, optimizing, and composing prompts programmatically via Standards, Handlebars Templates, and Tools; output is always a prompt to use elsewhere, not final content. USE WHEN meta-prompting, template generation, prompt optimization, prompt engineering, write a prompt, create system prompt, Handlebars template, eval prompt, judge prompt. NOT FOR generating final content (use the appropriate domain skill)."
 effort: medium
 ---
 
@@ -43,6 +44,12 @@ Generates, optimizes, and composes prompts programmatically. It's the standard l
 
 Prompt engineering tends to get copy-pasted and rewritten by hand across every skill that needs it, so the same patterns drift apart and best practices live in one person's head. When you want to compose a prompt from data — spin up a custom agent, build an eval judge, generate a phased workflow — there's no clean way to separate the structure from the content. This skill makes structure code and content data: one Handlebars template plus different data renders specialized agents, workflows, and eval frameworks, and the engineering standards live in one place every skill can reference.
 
+## Ideal-State Prompting — the Default Standard
+
+**Every prompt this library generates or optimizes articulates the ideal state, not the procedure.** Say WHAT done looks like (as testable outcomes), the CONSTRAINTS, and the high-quality TOOLS available — then trust the model to find HOW. Reasoning choreography ("first analyze, then consider, then decide") is BPE-violating scaffolding: it caps a capable model and rots as models improve. Ideal-state prompting is *more* precise, not vaguer — the specificity moves to the outcome.
+
+Four keep-classes are legitimate HOW and survive the cut: **safety-gate**, **verified-gotcha**, **tool-contract**, **output-format-contract**. Deterministic tools (`*.ts`) are exempt. The test for any procedural line: *would a smarter model make this rule unnecessary?* Yes → cut; No → it's a keep-class. Full standard: `Standards.md` § Ideal-State Prompting.
+
 ## How It Works
 
 Three pillars carry the work:
@@ -63,10 +70,10 @@ Library skill — no `Workflows/` directory. Requests route to the rendering too
 
 ## Examples
 
-### Example 1: Using Briefing Template (Agent Skill)
+### Example 1: Using Briefing Template (compose an agent brief)
 
 ```typescript
-// skills/Agents/Tools/ComposeAgent.ts
+// Render a structured agent brief from data before launching general-purpose
 import { renderTemplate } from '${LIFEOS_SKILL_DIR}/Tools/RenderTemplate.ts';
 
 const prompt = renderTemplate('Primitives/Briefing.hbs', {
@@ -100,12 +107,15 @@ bun run RenderTemplate.ts \
   --data phased-analysis.yaml
 ```
 
-### Example 3: Custom Agent with Voice Mapping
+### Example 3: Render an Agent Brief from Data
 
 ```typescript
-// Generate specialized agent with appropriate voice
-const agent = composeAgent(['security', 'skeptical', 'thorough'], task, traits);
-// Returns: { name, traits, voice: 'default', voiceId: 'VOICE_ID...' }
+// Render a structured agent brief, then launch general-purpose with it
+const brief = renderTemplate('Primitives/Briefing.hbs', {
+  agent: { name: 'Skeptical Security Reviewer', role: 'auth bypass and input validation' },
+  task: { description: 'Review the auth flow', questions: [...] },
+});
+// Pass `brief` as the prompt to Agent(subagent_type="general-purpose")
 ```
 
 ## Integration with Other Skills

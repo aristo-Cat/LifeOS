@@ -1,3 +1,7 @@
+---
+provenance: template
+---
+
 # TELOS — Your Life Operating Goals
 
 > 🎯 SAMPLE TEMPLATES — Every `.md` file in this directory ships as a SAMPLE with placeholder entries marked `(sample)`. They show the SHAPE of populated TELOS data so you can see what to aim for. Run `/interview` (or talk to your DA) to replace the samples with your real mission, goals, beliefs, etc. Pulse will display populated entries here once you run the interview.

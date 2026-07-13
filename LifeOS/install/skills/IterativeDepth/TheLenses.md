@@ -76,29 +76,4 @@ Each lens is a structured perspective that forces exploration of a problem from 
 
 ---
 
-## SLA-Based Lens Selection
-
-| SLA | Lenses Used | Which Ones | Time Budget |
-|-----|-------------|------------|-------------|
-| **Instant** | 0 | Skip IterativeDepth entirely | 0s |
-| **Fast** | 2 | Literal + Failure | <30s |
-| **Standard** | 4 | Literal + Stakeholder + Failure + Experiential | <2min |
-| **Deep** | 8 | All 8 lenses | <5min |
-
-At **Fast** SLA, the two most commonly productive lenses (surface requirements + what goes wrong) run as brief internal thought exercises — not spawned agents.
-
-At **Standard**, 4 lenses run. These can be parallelized as 2 pairs of background agents.
-
-At **Deep**, all 8 lenses run. These can be parallelized as 4 pairs or 8 individual agents for maximum coverage.
-
----
-
-## Lens Selection for Custom Depth
-
-When invoked with a specific count (e.g., "do 3 passes"), select lenses in order from Lens 1 through Lens N. The ordering is designed so that earlier lenses are more universally applicable.
-
-For specialized domains, the Algorithm can override lens selection:
-- **Security-focused task:** Prioritize Failure, Stakeholder, Temporal
-- **UX-focused task:** Prioritize Experiential, Stakeholder, Literal
-- **Architecture task:** Prioritize Temporal, Constraint Inversion, Analogical
-- **Ambiguous request:** Prioritize Meta, Stakeholder, Literal
+Draw from this catalog. The lenses are ordered concrete-to-abstract and common-to-specialized, so a short run reaching for the earlier ones covers the most universally useful ground — but pick whatever the problem calls for, in any order.

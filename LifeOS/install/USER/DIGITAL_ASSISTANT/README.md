@@ -1,3 +1,7 @@
+---
+provenance: template
+---
+
 # DA — Digital Assistant Identity
 
 This directory holds the identity, voice, and personality of every Digital

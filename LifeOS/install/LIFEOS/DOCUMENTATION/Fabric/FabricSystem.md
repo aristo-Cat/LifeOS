@@ -3,6 +3,7 @@ name: FabricReference
 description: Reference document for Fabric pattern system. For full functionality, use the Fabric skill directly.
 created: 2025-12-17
 updated: 2026-01-18
+version: 1.1.6
 ---
 
 # Fabric Pattern System Reference

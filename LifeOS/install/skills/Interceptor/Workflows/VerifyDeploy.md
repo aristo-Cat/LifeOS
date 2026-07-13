@@ -30,10 +30,10 @@ Verify a deployment by opening the target URL in real Chrome and capturing a **f
 
 ```bash
 source ~/.claude/LIFEOS/USER/CUSTOMIZATIONS/SKILLS/Interceptor/preferences.env
-bash ~/.claude/skills/Interceptor/Tools/PreflightIsolation.sh
+bash ~/.claude/skills/Interceptor/Tools/EnsureTestProfile.sh
 ```
 
-Non-zero exit → STOP and surface the message verbatim. Do not fall back to the Default profile; do not auto-run `LaunchTestProfile.sh` (operator-confirmed launch only — see SKILL.md). `INTERCEPTOR_TEST_CONTEXT_ID` is the pinned isolated context; every browser verb below passes it. Screenshots go through `Tools/Capture.sh`, never raw `interceptor screenshot`.
+`EnsureTestProfile.sh` runs the isolation gate AND auto-recovers: if the test profile window just isn't open (exit 5/6) it launches the configured profile, polls until the pinned context connects, and prints `READY`. It only ever succeeds after the gate passes (pinned-UUID match + Default-deny), so a wrong launch can never be driven. Non-zero exit → STOP and surface the message verbatim; do not fall back to the Default profile. (Call `PreflightIsolation.sh` directly when you explicitly want the gate with NO auto-launch.) `INTERCEPTOR_TEST_CONTEXT_ID` is the pinned isolated context; every browser verb below passes it. Screenshots go through `Tools/Capture.sh`, never raw `interceptor screenshot`.
 
 ### 1. Open the Target URL (in the isolated profile)
 
@@ -113,6 +113,6 @@ Full verification = ALL FOUR probes captured and clean (with the noise rules abo
 ## Notes
 
 - For authenticated pages, Interceptor uses your real Chrome login sessions. No profile setup needed.
-- For public pages where speed matters and auth isn't needed, agent-browser (Browser skill) is acceptable.
+- For public pages where speed matters and auth isn't needed, WebFetch (or the BrightData ladder) is fine.
 - Always use `http://localhost:PORT` instead of `localhost:PORT` for local dev URLs.
 - If Chrome is not running, start it first. Interceptor requires an active Chrome instance with the extension loaded.

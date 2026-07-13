@@ -224,7 +224,12 @@ export function replayOntoSnapshot(
   let suffix = '';
   try {
     const buf = readFileSync(logPath);
-    suffix = buf.subarray(offset).toString('utf-8');
+    // Clamp the replay range to the size measured by stat() above (PR #1462, author tjkang):
+    // appends happen outside the lock, so the file can grow between the stat and this read.
+    // Replaying past the measured size while returning that smaller size as the offset would
+    // double-apply the extra events on the next replay. Events in [size, buf.length) sit after
+    // the returned offset, so the next fold picks them up exactly once.
+    suffix = buf.subarray(offset, Math.min(size, buf.length)).toString('utf-8');
   } catch {
     return { registry: { sessions: snapshot.sessions || {} }, offset };
   }

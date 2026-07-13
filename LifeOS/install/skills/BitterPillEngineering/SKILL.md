@@ -1,5 +1,6 @@
 ---
 name: BitterPillEngineering
+version: 1.0.8
 description: "Audits any AI instruction set for over-prompting using the core test — would a smarter model make this rule unnecessary? Applies Five Questions to every rule (Claude already does this? Contradiction? Redundant? One-off fix? Vague?) then classifies as CUT/RESOLVE/MERGE/EVALUATE/SHARPEN/MOVE/KEEP. Workflows: Audit (full system, token savings), QuickCheck (single file). Principle: less scaffolding = better output. USE WHEN BPE, bitter pill, audit setup, over-prompting, trim instructions, dead weight, simplify setup, clean up CLAUDE.md. NOT FOR attacking logical flaws in ideas (use RedTeam)."
 effort: medium
 ---
@@ -93,6 +94,12 @@ For every rule, instruction, or preference found, evaluate:
 4. **One-off fix?** Was this added to fix one specific bad output rather than improve outputs generally?
 5. **Vague?** Would Claude interpret this differently every time? (e.g., "be more natural", numeric personality scales)
 
+## The HOW-vs-WHAT Test (sixth question, first-class)
+
+Beyond the Five Questions, audit every rule for **procedural over-prompting**: does it dictate execution methodology or reasoning choreography ("first analyze X, then consider Y, then decide Z") instead of articulating the ideal state (WHAT done looks like) plus the tools? If it scripts the model's HOW rather than naming the WHAT, it is scaffolding — flag it **CUT**.
+
+Exception — four keep-classes are legitimate HOW, never cut them: **safety-gate** (confirmation/destructive-op guard/approval), **verified-gotcha** (a documented non-obvious failure), **tool-contract** (exact CLI/API/path recipe), **output-format-contract** (required deliverable shape). Deterministic tools (`*.ts`) are exempt. This is the positive form of the core test: a rule that survives "would a smarter model make this unnecessary?" is either a keep-class or genuine architecture. Full doctrine: `LIFEOS/RULES/Philosophy.md` § Ideal-State Prompting.
+
 ## Classification
 
 | Category | Action |
@@ -102,7 +109,7 @@ For every rule, instruction, or preference found, evaluate:
 | Duplicates another rule | **MERGE** — one location, one statement |
 | One-off fix for past mistake | **EVALUATE** — still relevant or already learned? |
 | Vague / unquantifiable | **SHARPEN** — add specific DO/DON'T examples, or cut |
-| Loaded but rarely actionable | **MOVE to on-demand** — load via CONTEXT_ROUTING when needed |
+| Loaded but rarely actionable | **MOVE to on-demand** — load via the CLAUDE.md routing table when needed |
 | Specific, actionable, non-default | **KEEP** — this is what good instructions look like |
 
 ## Anti-Fragile vs Fragile

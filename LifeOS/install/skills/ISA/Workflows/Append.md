@@ -97,7 +97,7 @@ Output the exact text that was appended, plus the path. Caller can re-emit for c
 
 ## Why this workflow exists
 
-The Deutsch C/R/L Changelog format is the most opinionated piece of the v6.2.0 doctrine and the easiest to dilute. Three failure modes if there's no canonical writer:
+The Deutsch C/R/L Changelog format is the most opinionated piece of the ISA doctrine and the easiest to dilute. Three failure modes if there's no canonical writer:
 
 1. **Free-form prose creep:** "we changed our minds about X" instead of the four-piece structure.
 2. **Half-entries:** `conjectured` + `criterion now` without the refutation evidence in between.

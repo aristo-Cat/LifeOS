@@ -16,7 +16,7 @@ export default function FocusIndicator({ focus }: FocusIndicatorProps) {
         />
         {/* Dot marker */}
         <div
-          className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-white border-2 border-zinc-900 shadow-sm shadow-white/20"
+          className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-white border-2 border-line-1 shadow-sm shadow-white/20"
           style={{ left: `calc(${pct}% - 5px)` }}
         />
       </div>

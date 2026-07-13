@@ -6,13 +6,32 @@ import { useSearchParams } from "next/navigation";
 import MarkdownRenderer from "@/components/wiki/MarkdownRenderer";
 import { Zap, ArrowLeft, Pencil, Check, X, Loader2 } from "lucide-react";
 import Link from "next/link";
+import {
+  PageShell,
+  PageHeader,
+  Panel,
+  StatTile,
+  TabBar,
+  Pill,
+  dimStyle,
+  type Dim,
+} from "@/components/ui/chrome";
 
 interface SkillMeta {
   name: string;
+  dir?: string;
   description: string;
   effort: string;
   hasWorkflows: boolean;
   lastModified: string;
+}
+
+// A skill is "private" purely by naming convention: its on-disk directory
+// starts with "_" and the rest is all-caps (e.g. _EXAMPLE, _MY_TOOL).
+// No skill names are hardcoded — whatever the user has that matches shows up.
+function isPrivateSkill(skill: SkillMeta): boolean {
+  const key = skill.dir ?? skill.name;
+  return key.startsWith("_") && key === key.toUpperCase();
 }
 
 interface SkillDetail {
@@ -25,111 +44,72 @@ interface SkillDetail {
   wordCount: number;
 }
 
-function effortTone(effort: string): "green-up" | "flat-muted" | "coral-down" {
-  if (effort === "easy" || effort === "low") return "green-up";
-  if (effort === "hard" || effort === "high") return "coral-down";
-  return "flat-muted";
+function effortDim(effort: string): Dim {
+  if (effort === "easy" || effort === "low") return "ok";
+  if (effort === "hard" || effort === "high") return "err";
+  return "neutral";
 }
 
 function SkillsLanding({ skills }: { skills: SkillMeta[] }) {
-  const privateSkills = skills.filter((s) => s.name.startsWith("_"));
-  const publicSkills = skills.filter((s) => !s.name.startsWith("_"));
+  const [tab, setTab] = useState<"public" | "private">("public");
+  const privateSkills = skills.filter(isPrivateSkill);
+  const publicSkills = skills.filter((s) => !isPrivateSkill(s));
+  const active = tab === "public" ? publicSkills : privateSkills;
 
   return (
-    <div className="p-6 max-w-6xl mx-auto space-y-8">
-      <div className="telos-card goal-card dim-creative" style={{ cursor: "default" }}>
-        <h1 className="text-2xl font-semibold tracking-tight" style={{ color: "#E8EFFF" }}>
-          Skills
-        </h1>
-        <p className="mt-1 max-w-2xl" style={{ color: "#9BB0D6", fontSize: 14 }}>
-          Domain-specific capabilities that activate on trigger phrases. Each skill bundles
-          prompts, workflows, tools, and templates into a self-contained unit.
+    <PageShell>
+      <PageHeader
+        title="Skills"
+        icon={Zap}
+        subtitle="Domain-specific capabilities that activate on trigger phrases. Each skill bundles prompts, workflows, tools, and templates into a self-contained unit."
+      />
+
+      <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(180px, 220px))" }}>
+        <StatTile label="Skills" value={skills.length} icon={Zap} dim="creative" />
+      </div>
+
+      <TabBar
+        tabs={[
+          { id: "public", label: "Public", dim: "blue", hint: publicSkills.length },
+          { id: "private", label: "Private", dim: "creative", hint: privateSkills.length },
+        ]}
+        active={tab}
+        onChange={setTab}
+      />
+
+      {tab === "private" && (
+        <p className="-mt-2 text-[13px] text-ink-3">
+          Prefixed with _ and all-caps — personal integrations and platform-specific
+          automations, read live from your skills directory.
         </p>
-        <div className="progress-bar">
-          <div className="progress-fill" style={{ width: "76%" }} />
-        </div>
-        <div className="goal-foot">
-          <div className="goal-dims">
-            <span className="pill pill-creative">creative</span>
-            <span className="pill pill-health">easy</span>
-            <span className="pill pill-relationships">workflows</span>
-          </div>
-          <span className="goal-delta flat-muted">skill library</span>
-        </div>
-      </div>
+      )}
 
-      <div className="metric-grid" style={{ gridTemplateColumns: "minmax(200px, 280px)" }}>
-        <div className="telos-card metric" style={{ cursor: "default" }}>
-          <div className="metric-top">
-            <Zap className="w-4 h-4" style={{ color: "var(--creative)" }} />
-            <span className="metric-label muted">Skills</span>
-          </div>
-          <div className="metric-row">
-            <span className="metric-val mono">{skills.length}</span>
-          </div>
-        </div>
+      <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))" }}>
+        {active.map((skill) => (
+          <SkillCard key={skill.name} skill={skill} />
+        ))}
       </div>
-
-      <div className="space-y-8">
-        <div>
-          <h2
-            className="text-sm font-medium tracking-wider uppercase mb-3"
-            style={{ color: "var(--creative)" }}
-          >
-            Public Skills ({publicSkills.length})
-          </h2>
-          <div className="goals-grid">
-            {publicSkills.map((skill) => (
-              <SkillCard key={skill.name} skill={skill} />
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <h2
-            className="text-sm font-medium tracking-wider uppercase mb-1"
-            style={{ color: "var(--creative)" }}
-          >
-            Private Skills ({privateSkills.length})
-          </h2>
-          <p className="mb-3" style={{ color: "#6B80AB", fontSize: 13 }}>
-            Prefixed with _ — personal integrations and platform-specific automations.
-          </p>
-          <div className="goals-grid">
-            {privateSkills.map((skill) => (
-              <SkillCard key={skill.name} skill={skill} />
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
+    </PageShell>
   );
 }
 
 function SkillCard({ skill }: { skill: SkillMeta }) {
-  const effortClass = effortTone(skill.effort);
-
   return (
-    <Link
-      href={`/skills?name=${encodeURIComponent(skill.name)}`}
-      className="telos-card goal-card dim-creative"
-    >
-      <div className="goal-title">
-        <Zap className="w-4 h-4 shrink-0" style={{ color: "var(--creative)" }} />
-        <span style={{ color: "#E8EFFF" }}>{skill.name}</span>
-      </div>
-      <p style={{ color: "#9BB0D6", fontSize: 13, lineHeight: 1.5 }}>
-        {skill.description.slice(0, 140)}
-        {skill.description.length > 140 ? "…" : ""}
-      </p>
-      <div className="goal-foot">
-        <div className="goal-dims">
-          <span className={effortClass}>
-            {skill.effort}
-          </span>
-          {skill.hasWorkflows && <span className="pill pill-relationships">workflows</span>}
+    <Link href={`/skills?name=${encodeURIComponent(skill.name)}`} className="block">
+      <Panel hover className="h-full flex flex-col gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <Zap className="w-4 h-4 shrink-0 text-dim-creative" />
+          <span className="font-medium text-ink-1 truncate">{skill.name}</span>
         </div>
-      </div>
+        <p className="text-[13px] leading-relaxed text-ink-2">
+          {skill.description.slice(0, 140)}
+          {skill.description.length > 140 ? "…" : ""}
+        </p>
+        <div className="flex items-center gap-1.5 mt-auto pt-1">
+          <Pill dim={effortDim(skill.effort)}>{skill.effort}</Pill>
+          {skill.hasWorkflows && <Pill dim="relationships">workflows</Pill>}
+        </div>
+      </Panel>
     </Link>
   );
 }
@@ -155,18 +135,19 @@ function SkillDetailView({ skill }: { skill: SkillDetail }) {
     },
   });
 
+  const btnBase =
+    "inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[13px] font-medium cursor-pointer";
+
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-4">
+    <div className="max-w-4xl mx-auto w-full px-4 sm:px-6 py-6 flex flex-col gap-4">
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div className="flex items-center gap-3">
-          <Link href="/skills" style={{ color: "#9BB0D6" }}>
+          <Link href="/skills" className="text-ink-2 hover:text-ink-1">
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight" style={{ color: "#E8EFFF" }}>
-              {skill.name}
-            </h1>
-            <p className="mt-0.5" style={{ color: "#9BB0D6", fontSize: 13 }}>
+            <h1 className="text-ink-1">{skill.name}</h1>
+            <p className="mt-0.5 text-[13px] text-ink-2">
               {skill.wordCount} words ·{" "}
               {new Date(skill.lastModified).toLocaleDateString("en-US", {
                 month: "short",
@@ -183,12 +164,9 @@ function SkillDetailView({ skill }: { skill: SkillDetail }) {
               <button
                 onClick={() => mutation.mutate(editContent)}
                 disabled={mutation.isPending}
-                className="pill flex items-center gap-1.5"
+                className={btnBase}
                 style={{
-                  padding: "6px 14px",
-                  background: "rgba(52,211,153,0.18)",
-                  color: "var(--health)",
-                  border: "1px solid rgba(52,211,153,0.45)",
+                  ...dimStyle("ok"),
                   cursor: mutation.isPending ? "not-allowed" : "pointer",
                   opacity: mutation.isPending ? 0.6 : 1,
                 }}
@@ -205,8 +183,8 @@ function SkillDetailView({ skill }: { skill: SkillDetail }) {
                   setEditing(false);
                   setEditContent(skill.content);
                 }}
-                className="pill flex items-center gap-1.5"
-                style={{ padding: "6px 14px", cursor: "pointer" }}
+                className={btnBase}
+                style={dimStyle("neutral")}
               >
                 <X className="w-4 h-4" />
                 Cancel
@@ -218,8 +196,8 @@ function SkillDetailView({ skill }: { skill: SkillDetail }) {
                 setEditing(true);
                 setEditContent(skill.content);
               }}
-              className="pill flex items-center gap-1.5"
-              style={{ padding: "6px 14px", cursor: "pointer" }}
+              className={btnBase}
+              style={dimStyle("neutral")}
             >
               <Pencil className="w-4 h-4" />
               Edit
@@ -229,15 +207,7 @@ function SkillDetailView({ skill }: { skill: SkillDetail }) {
       </div>
 
       {mutation.isError && (
-        <div
-          className="px-3 py-2 rounded-md"
-          style={{
-            background: "rgba(248,113,113,0.15)",
-            border: "1px solid rgba(248,113,113,0.35)",
-            color: "#F87171",
-            fontSize: 13,
-          }}
-        >
+        <div className="px-3 py-2 rounded-md text-[13px]" style={dimStyle("err")}>
           Failed to save changes.
         </div>
       )}
@@ -246,16 +216,15 @@ function SkillDetailView({ skill }: { skill: SkillDetail }) {
         <textarea
           value={editContent}
           onChange={(e) => setEditContent(e.target.value)}
-          className="w-full h-[600px] rounded-lg p-4 text-sm mono resize-y"
-          style={{ background: "#0F1A33", border: "1px solid #1A2A4D", color: "#E8EFFF", outline: "none" }}
+          className="w-full h-[600px] rounded-lg p-4 text-sm mono resize-y bg-surface-1 border border-line-2 text-ink-1 outline-none"
           spellCheck={false}
         />
       ) : (
-        <div className="telos-card" style={{ cursor: "default" }}>
+        <Panel>
           <div className="prose prose-invert max-w-none">
             <MarkdownRenderer content={skill.content} />
           </div>
-        </div>
+        </Panel>
       )}
     </div>
   );
@@ -297,7 +266,7 @@ function SkillsPageInner() {
 
   return (
     <div className="flex items-center justify-center h-full">
-      <div style={{ color: "#6B80AB", fontSize: 14 }}>Loading...</div>
+      <div className="text-sm text-ink-3">Loading...</div>
     </div>
   );
 }
@@ -307,7 +276,7 @@ export default function SkillsPage() {
     <Suspense
       fallback={
         <div className="flex items-center justify-center h-full">
-          <div style={{ color: "#6B80AB", fontSize: 14 }}>Loading...</div>
+          <div className="text-sm text-ink-3">Loading...</div>
         </div>
       }
     >

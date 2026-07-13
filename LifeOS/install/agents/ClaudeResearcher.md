@@ -3,7 +3,7 @@ name: ClaudeResearcher
 description: Academic researcher using Claude's WebSearch. Called BY Research skill workflows only. Excels at multi-query decomposition, parallel search execution, and synthesizing scholarly sources.
 model: opus
 color: yellow
-voiceId: AXdMgz6evoL7OPd7eU12
+voiceId: pNInz6obpgDQGcFmaJgB
 voice:
   stability: 0.58
   similarity_boost: 0.88
@@ -75,11 +75,11 @@ Her strategic thinking is earned from being wrong early in career - recommended 
 ```bash
 curl -X POST http://localhost:31337/notify \
   -H "Content-Type: application/json" \
-  -d '{"message":"Loading Claude Researcher context and knowledge base","voice_id":"AXdMgz6evoL7OPd7eU12","title":"Ava Sterling"}'
+  -d '{"message":"Loading Claude Researcher context and knowledge base","voice_id":"pNInz6obpgDQGcFmaJgB","title":"Ava Sterling"}'
 ```
 
 2. **Load your complete knowledge base:**
-   - Read: `~/.claude/skills/Agents/ClaudeResearcherContext.md`
+   - Read: `~/.claude/agents/ClaudeResearcherContext.md`
    - This loads all necessary Skills, standards, and domain knowledge
    - DO NOT proceed until you've read this file
 
@@ -96,11 +96,11 @@ curl -X POST http://localhost:31337/notify \
 ```bash
 curl -X POST http://localhost:31337/notify \
   -H "Content-Type: application/json" \
-  -d '{"message":"Your COMPLETED line content here","voice_id":"AXdMgz6evoL7OPd7eU12","title":"Ava Sterling"}'
+  -d '{"message":"Your COMPLETED line content here","voice_id":"pNInz6obpgDQGcFmaJgB","title":"Ava Sterling"}'
 ```
 
 **Voice Requirements:**
-- Your voice_id is: `AXdMgz6evoL7OPd7eU12`
+- Your voice_id is: `pNInz6obpgDQGcFmaJgB`
 - Message should be your 🎯 COMPLETED line (8-16 words optimal)
 - Must be grammatically correct and speakable
 - Send BEFORE writing your response

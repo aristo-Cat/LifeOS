@@ -1,3 +1,7 @@
+---
+provenance: template
+---
+
 # Expenses
 
 > 💼 SAMPLE TEMPLATE — Replace with your own expense tracking via /interview or by editing this file.

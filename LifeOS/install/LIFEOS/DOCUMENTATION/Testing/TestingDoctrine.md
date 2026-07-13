@@ -1,9 +1,10 @@
 ---
-last_updated: 2026-06-13T00:00:00.000Z
-last_updated_by: <da-name>
+last_updated: 2026-07-11T00:00:00.000Z
+last_updated_by: kai
 convention: pai-freshness-v1
 last_reviewed: 2026-05-08T01:30:00.000Z
 last_reviewed_by: <principal>
+version: 1.0.24
 ---
 
 # LifeOS Testing Doctrine
@@ -18,7 +19,7 @@ This document is the result of a deep analysis of how the Bun project itself (`o
 
 ## Why this doctrine exists
 
-LifeOS ships a lot of TypeScript across hooks, skills, tools, Pulse, Arbol Workers, and the release pipeline. Verification has been ad-hoc — `curl` checks, manual `bun run` invocations, eyeballing diffs. Several recurring failure modes (silent OAuth/API-key billing, identity-grep gates, ISA parsing, Pulse VoiceServer, TheRouter classifier) are exactly the class of bugs a real harness catches.
+LifeOS ships a lot of TypeScript across hooks, skills, tools, Pulse, Arbol Workers, and the release pipeline. Verification has been ad-hoc — `curl` checks, manual `bun run` invocations, eyeballing diffs. Several recurring failure modes (silent OAuth/API-key billing, identity-grep gates, ISA parsing, Pulse VoiceServer, the since-retired TheRouter classifier) are exactly the class of bugs a real harness catches.
 
 The ISA already declares the test surface (Algorithm v6.3.0 doctrine: *"the ISA IS the test harness because the ISCs are the tests"*). What's been missing is the *invocable probe* behind each ISC. This doctrine closes that gap by making `bun test path/to/foo.test.ts` the canonical answer to "how does this ISC actually verify?"
 
@@ -30,7 +31,7 @@ The ISA already declares the test surface (Algorithm v6.3.0 doctrine: *"the ISA 
 |---------|-----------|--------------|
 | **Single shared harness, zero external deps** | `test/harness.ts` (1985 lines, 98 exports, header comment forbids external deps) | `~/.claude/test/harness.ts` |
 | **Parallel `test/` tree mirroring API surface, not co-location** | `src/bun.js/api/spawn.zig` → `test/js/bun/spawn/*.test.ts` | `hooks/<Hook>.hook.ts` → `test/hooks/<Hook>.hook.test.ts` |
-| **Subprocess testing for CLI behavior** | 591 of 1526 test files spawn `bun` | `Inference.ts`, `TheRouter.hook.ts`, hook handlers tested via `Bun.spawn` |
+| **Subprocess testing for CLI behavior** | 591 of 1526 test files spawn `bun` | `Inference.ts`, hook handlers tested via `Bun.spawn` (the former `TheRouter.hook.ts` suite was removed with the hook, 2026-07-11) |
 | **`tempDir` with `DisposableString`** | `test/harness.ts:263-294` | `paiTempDir(prefix, fileMap)` returns `using`-disposable |
 | **Scrubbed env constant** | `bunEnv` in `test/harness.ts:50-104` | `paiTestEnv` scrubs API keys, OAuth tokens, real `HOME` |
 | **`await using proc` + 3-way `Promise.all`** | `test/cli/heap-prof.test.ts` | Standard subprocess capture pattern |
@@ -57,7 +58,7 @@ The ISA already declares the test surface (Algorithm v6.3.0 doctrine: *"the ISA 
 
 ## Doctrine — the rules
 
-These are non-negotiable. Violations get caught at the ISA `## Test Strategy` review or at the VERIFY-phase Cato audit.
+These are non-negotiable. Violations get caught at the ISA `## Test Strategy` review or at the VERIFY-phase Forge cross-vendor audit.
 
 ### 1. The harness is `~/.claude/test/harness.ts`. Zero external deps.
 
@@ -87,7 +88,7 @@ Snapshot files at `test/<surface>/__snapshots__/<name>.test.ts.snap`.
 import { paiTestEnv, paiBunExe } from "../harness";
 
 await using proc = Bun.spawn({
-  cmd: [paiBunExe(), "LIFEOS/TOOLS/Inference.ts", "--mode", "advisor"],
+  cmd: [paiBunExe(), "LIFEOS/TOOLS/Inference.ts", "--level", "low"],
   env: paiTestEnv,  // never process.env
   stdin: "pipe",
   stdout: "pipe",
@@ -299,7 +300,7 @@ If a test needs to render a webpage and inspect the DOM → Interceptor. Otherwi
 ## Adoption sequence
 
 1. **Phase 1 (this work).** Doctrine doc, `bunfig.toml`, `test/harness.ts` skeleton, one reference test (`test/tools/Inference.test.ts`) proving the path. → THIS DELIVERABLE.
-2. **Phase 2.** Cover the load-bearing critical paths: `Inference.ts`, `TheRouter.hook.ts`, `ISASync.hook.ts`, `RemoveTrailingNewline.hook.ts`, `Pulse VoiceServer`, every release-gate handler, the ISA Append workflow's C/R/L parser. Per-path coverage threshold at 80% line.
+2. **Phase 2.** Cover the load-bearing critical paths: `Inference.ts`, `ISASync.hook.ts`, `RemoveTrailingNewline.hook.ts`, `Pulse VoiceServer`, every release-gate handler, the ISA Append workflow's C/R/L parser. Per-path coverage threshold at 80% line. (`TheRouter.hook.ts` was on this list until it was retired 2026-07-11.)
 3. **Phase 3.** Cover every active skill workflow (Scaffold, Append, Reconcile, Seed, CheckCompleteness for ISA; equivalent core paths for other skills).
 4. **Phase 4.** Add the validation-pass layers: a `pai-doctrine.test.ts` that asserts `CLAUDE.md` and `LIFEOS_SYSTEM_PROMPT.md` cross-references resolve; a `pai-secrets.test.ts` that asserts no API keys leak into the public release staging dir.
 5. **Phase 5.** Wire `bun test` into the VERIFY-phase tool-table rule of the next Algorithm minor version.
@@ -324,7 +325,7 @@ Phases 2–5 are tracked separately as PROJECTS.md entries; they're not part of 
 
 ## Cross-references
 
-- Algorithm doctrine on ISA-as-test-harness: `~/.claude/LIFEOS/ALGORITHM/v6.19.0.md` § Doctrine (line 17)
+- Algorithm doctrine on ISA-as-test-harness: `~/.claude/LIFEOS/ALGORITHM/v8.4.0.md` § Doctrine (line 17)
 - ISA format spec: `~/.claude/LIFEOS/DOCUMENTATION/Isa/IsaFormat.md`
 - Bun test docs: <https://bun.sh/docs/cli/test>, <https://bun.sh/docs/test/writing>, <https://bun.sh/docs/test/lifecycle>, <https://bun.sh/docs/test/snapshots>, <https://bun.sh/docs/test/coverage>, <https://bun.sh/docs/test/mocks>
 - Bun's own test doctrine: <https://github.com/oven-sh/bun/blob/main/test/CLAUDE.md>

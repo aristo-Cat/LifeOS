@@ -31,7 +31,7 @@ source ~/.claude/LIFEOS/USER/CUSTOMIZATIONS/SKILLS/Interceptor/preferences.env
 bash ~/.claude/skills/Interceptor/Tools/PreflightIsolation.sh
 ```
 
-Non-zero exit → STOP and surface the message verbatim. Do not fall back to the Default profile; do not auto-run `LaunchTestProfile.sh` (operator-confirmed launch only — see SKILL.md). `INTERCEPTOR_TEST_CONTEXT_ID` is the pinned isolated context; every browser verb below passes it. Reproduce in the isolated profile by default; only route to the main profile if the bug is specifically tied to the operator's signed-in session (and they said so). Screenshots go through `Tools/Capture.sh`, never raw `interceptor screenshot`.
+Prefer `bash ~/.claude/skills/Interceptor/Tools/EnsureTestProfile.sh` — it runs the gate and auto-launches the test profile if it isn't open (exit 5/6), only proceeding after the pinned-UUID match passes. Non-zero exit → STOP and surface the message verbatim; do not fall back to the Default profile. `INTERCEPTOR_TEST_CONTEXT_ID` is the pinned isolated context; every browser verb below passes it. Reproduce in the isolated profile by default; only route to the main profile if the bug is specifically tied to the operator's signed-in session (and they said so). Screenshots go through `Tools/Capture.sh`, never raw `interceptor screenshot`.
 
 ### 1. Open the Affected Page (in the isolated profile)
 

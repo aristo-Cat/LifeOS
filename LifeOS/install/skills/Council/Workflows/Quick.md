@@ -18,22 +18,20 @@ Running the **Quick** workflow in the **Council** skill to get fast perspectives
 - Topic or question to evaluate
 - Optional: Custom council members
 
-## CRITICAL: Agent Composition
+## Members
 
-**ALL council members MUST be custom-composed agents via the Agents skill's ComposeAgent tool. NEVER use built-in agent types (Architect, Designer, Engineer, PerplexityResearcher, etc.).**
-
-See `CouncilMembers.md` for full instructions.
+Write 4 member briefs inline (name + role + stance), then launch with `general-purpose`. See `CouncilMembers.md`.
 
 ## Execution
 
-### Step 1: Compose & Announce Quick Council
+### Step 1: Write & Announce Quick Council
 
-Compose 4 agents with topic-specific traits via ComposeAgent, then announce:
+Write 4 member briefs tailored to the topic, then announce:
 
 ```markdown
 ## Quick Council: [Topic]
 
-**Council Members:** [List composed agent names]
+**Council Members:** [List member names with one-line roles]
 **Mode:** Single round (fast perspectives)
 ```
 
@@ -41,7 +39,7 @@ Compose 4 agents with topic-specific traits via ComposeAgent, then announce:
 
 Launch all council members in parallel using `subagent_type: "general-purpose"`.
 
-**Each agent prompt includes the composed agent's full prompt PLUS:**
+**Each agent prompt includes the member's brief PLUS:**
 ```
 QUICK COUNCIL CHECK
 
@@ -92,7 +90,7 @@ Run: "Council: [topic]" for 3-round structured discussion.
 
 ## Timing
 
-- Total: 15-30 seconds (composition + single parallel round)
+- Total: 15-30 seconds (single parallel round)
 
 ## Done
 

@@ -41,14 +41,14 @@ export const SECRET_VALUE_SHAPES: readonly RegExp[] = [
  * Most-sensitive match wins (RESTRICTED sub-paths beat the LIFEOS/USER CONFIDENTIAL default). */
 export const PATH_CLASS_RULES: ReadonlyArray<{ re: RegExp; cls: DataClass }> = [
   { re: /(?:^|[\s'"`\/=])\.env\b/, cls: "RESTRICTED" },
-  { re: /PAI\/USER\/CONFIG\/CREDENTIALS\//, cls: "RESTRICTED" },
-  { re: /PAI\/USER\/WORK\/CUSTOMERS\//, cls: "RESTRICTED" },
+  { re: /(?:LIFEOS|PAI)\/USER\/CONFIG\/CREDENTIALS\//, cls: "RESTRICTED" },
+  { re: /(?:LIFEOS|PAI)\/USER\/WORK\/CUSTOMERS\//, cls: "RESTRICTED" },
   { re: /skills\/_[A-Z]/, cls: "CONFIDENTIAL" }, // any private (underscore-prefixed) skill dir — generalized off a hardcoded customer prefix. Customer-RESTRICTED data is caught by USER/WORK/CUSTOMERS above + the release deny-list; on the capped GLM route (PUBLIC ceiling) CONFIDENTIAL blocks identically to RESTRICTED.
-  { re: /PAI\/USER\/TELOS\/FINANCES\//, cls: "RESTRICTED" },
-  { re: /PAI\/USER\/CONTACTS\.md/, cls: "RESTRICTED" },
-  { re: /PAI\/MEMORY\/KNOWLEDGE\/(?:People|Companies)\//, cls: "CONFIDENTIAL" },
-  { re: /PAI\/MEMORY\/(?:RELATIONSHIP|SECURITY)\//, cls: "CONFIDENTIAL" },
-  { re: /PAI\/USER\//, cls: "CONFIDENTIAL" }, // privacy-boundary default
+  { re: /(?:LIFEOS|PAI)\/USER\/TELOS\/FINANCES\//, cls: "RESTRICTED" },
+  { re: /(?:LIFEOS|PAI)\/USER\/CONTACTS\.md/, cls: "RESTRICTED" },
+  { re: /(?:LIFEOS|PAI)\/MEMORY\/KNOWLEDGE\/(?:People|Companies)\//, cls: "CONFIDENTIAL" },
+  { re: /(?:LIFEOS|PAI)\/MEMORY\/(?:RELATIONSHIP|SECURITY)\//, cls: "CONFIDENTIAL" },
+  { re: /(?:LIFEOS|PAI)\/USER\//, cls: "CONFIDENTIAL" }, // privacy-boundary default
 ];
 
 /** Classify a payload string. Most-sensitive signal wins; clean text => PUBLIC. */

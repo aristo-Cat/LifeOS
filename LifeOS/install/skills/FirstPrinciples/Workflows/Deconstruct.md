@@ -23,71 +23,15 @@ Running the **Deconstruct** workflow in the **FirstPrinciples** skill to break d
 
 ---
 
-## Process
+## What a Done Deconstruction Shows
 
-### Step 1: Identify the Subject
+Take the subject apart until you hit elements that can't be decomposed further, then separate what's fundamental from what's inherited. The output must:
 
-What are we deconstructing?
-- A problem to solve
-- A system to understand
-- A cost to reduce
-- A constraint to examine
-- An architecture to evaluate
+- Start from the **stated** components (what the market/industry says it's made of) and drill each into its **actual** constituents — material inputs, minimum viable version, raw-material cost.
+- Isolate the **fundamental truths**: laws of physics, mathematical certainties, empirically verified facts, irreducible requirements. Industry best-practices, "how it's always been done," market prices, and conventional wisdom are NOT fundamental truths.
+- **Map the gap** between the stated cost/complexity and the actual fundamental cost — that gap is where the leverage is.
 
-**Write**: "We are deconstructing: [subject]"
-
-### Step 2: List Stated Components
-
-What does everyone say this is made of?
-
-Ask:
-- What are the commonly accepted parts of this?
-- What does the market/industry say this includes?
-- What would a typical description list?
-
-**Write**: List all stated components without judgment
-
-### Step 3: Go Deeper - Actual Constituents
-
-For each component, ask: "What is THIS actually made of?"
-
-**Key Questions**:
-- What are the material/physical constituents?
-- What are the actual inputs required?
-- What is the minimum viable version of this component?
-- If we bought the raw materials, what would they cost?
-
-**Example - Battery Pack**:
-- Stated: "Battery pack = $600/kWh"
-- Deeper: Cobalt + Nickel + Aluminum + Carbon + Polymers + Seal
-- Actual: Raw materials on commodity market = ~$80/kWh
-- Insight: 87% of cost is assembly/margin, not fundamental
-
-### Step 4: Identify the Fundamental Truths
-
-What remains when you can't decompose further?
-
-**Fundamental truths are**:
-- Laws of physics
-- Mathematical certainties
-- Empirically verified facts
-- Irreducible requirements
-
-**NOT fundamental truths**:
-- Industry best practices
-- "How it's always been done"
-- Market prices
-- Conventional wisdom
-
-**Write**: List only the irreducible truths
-
-### Step 5: Map the Gap
-
-Compare stated vs actual:
-
-| Stated Component | Actual Constituents | Gap/Insight |
-|------------------|---------------------|-------------|
-| [Market view] | [Fundamental parts] | [What we learned] |
+The one non-obvious move: a **market price is not a fundamental cost**. "Battery pack = $600/kWh" deconstructs to ~$80/kWh of commodity materials — 87% of the price is assembly and margin, not physics.
 
 ---
 

@@ -1,3 +1,7 @@
+---
+provenance: template
+---
+
 # Definitions — User Vocabulary
 
 > Bootstrap default. Run `/interview` to capture your canonical terms.

@@ -4,25 +4,14 @@ last_updated_by: kai
 last_reviewed: 2026-07-02
 last_reviewed_by: kai
 convention: pai-freshness-v1
+version: 1.5.1
 ---
 
 # Custom Skill System
 
 > Skills are the Life OS's action surface. The thesis (`LIFEOS/DOCUMENTATION/LifeOs/LifeOsThesis.md`) puts it directly: "Skills expand so the DA can take more actions to close the gap." Every skill added is a new class of move the DA can make in the current→ideal-state hill-climb; the structure rules below exist so those moves stay discoverable, composable, and safe to ship.
 
-**The MANDATORY configuration system for ALL LifeOS skills.**
-
----
-
-## THIS IS THE AUTHORITATIVE SOURCE
-
-This document defines the **required structure** for every skill in the LifeOS system.
-
-**ALL skill creation MUST follow this structure** - including skills created by the CreateSkill skill.
-
-**"Canonicalize a skill"** = Restructure it to match this exact format, including TitleCase naming.
-
-If a skill does not follow this structure, it is not properly configured and will not work correctly.
+**This document is the authoritative definition of the required structure for every LifeOS skill; all skill creation — including CreateSkill's — conforms to it. "Canonicalize a skill" = restructure to match this exact format, including TitleCase naming. A skill that doesn't follow it is not properly configured and will not work correctly.**
 
 ---
 
@@ -202,6 +191,14 @@ description: "What this customization adds"
 
 ---
 
+## Authoring Standard — Ideal-State Prompting (WHAT, not HOW)
+
+**A skill body and its workflows articulate the ideal state, not the procedure.** Say WHAT a done deliverable looks like (as testable outcomes), the CONSTRAINTS, and the TOOLS available — then trust the model to find HOW. Numbered step-lists that choreograph the model's reasoning for open-ended cognitive work ("first analyze, then consider, then decide") are BPE-violating scaffolding: they cap a capable model and rot as models improve. The test for any procedural line: *would a smarter model make this rule unnecessary?* Yes → cut it; No → it's one of the four keep-classes below.
+
+**Four keep-classes are legitimate HOW — keep them:** safety-gates (confirmation, destructive-op guards, approvals), verified-gotchas (documented non-obvious failures — this is what the `## Gotchas` section is FOR), tool-contracts (exact CLI/API/path recipes — Workflows carrying deterministic invocation are correct), and output-format-contracts (the required deliverable shape). Deterministic Tools (`*.ts`) are exempt entirely. Everything else that reads as methodology is a candidate to cut. Full doctrine: `LIFEOS/RULES/Philosophy.md` § Ideal-State Prompting; authoring standard: `skills/Prompting/Standards.md` § Ideal-State Prompting.
+
+This is the default for every new skill and workflow, and the standard `CreateSkill` writes to and audits against.
+
 ## The Required Structure
 
 Every SKILL.md has two parts:
@@ -211,11 +208,14 @@ Every SKILL.md has two parts:
 ```yaml
 ---
 name: SkillName
+version: 1.0.0                    # per-skill semver — new skills scaffold at 1.0.0
 description: [What it does]. USE WHEN [intent triggers using OR]. [Additional capabilities].
 implements: Science              # Optional: declares Science Protocol compliance
 science_cycle_time: meso         # Optional: micro | meso | macro
 ---
 ```
+
+**Per-skill versioning.** Every skill carries its own `version:` — always three levels, **`Major.Feature.Patch`** (system-wide rule; see OPERATIONAL_RULES) — independent of the OS version (`LIFEOS/VERSION`) and of every other skill — the same umbrella model the Algorithm and Memory lines use. A new skill scaffolds at `1.0.0` (CreateSkill stamps it). Bumps are NOT hand-applied; at private-sync time the `<your-release-skill>` `UpdateKaiRepo` / `VersionBump` flow runs `BumpSkillVersions.ts`, which scopes `ClassifyChange --path skills/<name>` per changed skill and bumps its `version:` (patch/feature/major, major human-gated), recording each in the SYSTEMUPDATES registry. A skill edit rolls up into the OS version too. Public skills inherit the private `version:` at release/emit time — there is no separate public version line.
 
 **Rules:**
 - `name` uses **TitleCase**

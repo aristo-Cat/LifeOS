@@ -1,3 +1,7 @@
+---
+provenance: template
+---
+
 # SKILLCUSTOMIZATIONS
 
 **Purpose:** Per-skill overrides — the place to change a default skill behavior without forking the skill itself.

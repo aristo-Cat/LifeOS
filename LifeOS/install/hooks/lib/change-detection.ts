@@ -227,7 +227,7 @@ export function categorizeChange(path: string): ChangeCategory | null {
   }
 
   if (path.includes('hooks/')) return 'hook';
-  if (path.includes('MEMORY/PAISYSTEMUPDATES/')) return 'documentation';
+  if (path.includes('MEMORY/SYSTEMUPDATES/')) return 'documentation';
   if (path.includes('MEMORY/')) return 'memory-system';
   if (path.endsWith('settings.json')) return 'config';
   if (path.endsWith('.md') && !path.includes('WORK/')) return 'documentation';

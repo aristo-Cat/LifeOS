@@ -64,7 +64,7 @@ const TOOL_STYLE_MAP: Record<string, { bg: string; text: string }> = {
   TodoWrite: { bg: "bg-[#f7768e]/10", text: "text-[#f7768e]" },
 };
 
-const DEFAULT_STYLE = { bg: "bg-[#565f89]/10", text: "text-[#a9b1d6]" };
+const DEFAULT_STYLE = { bg: "bg-[rgba(107,128,171,0.1)]", text: "text-[var(--ink-2)]" };
 
 // ─── Agent Colors ───
 
@@ -318,9 +318,9 @@ export default function LivePulseChart({
         <div className="flex items-center gap-4 flex-wrap">
           {/* Skills */}
           <div className="flex items-center gap-2 shrink-0">
-            <span className="text-sm text-[#565f89] font-medium uppercase">SKILLS:</span>
+            <span className="text-sm text-[var(--ink-3)] font-medium uppercase">SKILLS:</span>
             {skills.length === 0 ? (
-              <span className="text-sm font-medium text-[#565f89]">—</span>
+              <span className="text-sm font-medium text-[var(--ink-3)]">—</span>
             ) : (
               skills.slice(0, 3).map((s) => (
                 <div key={s.name} className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-sm bg-[#bb9af7]/10">
@@ -331,15 +331,15 @@ export default function LivePulseChart({
             )}
           </div>
 
-          <span className="text-[#414868]">|</span>
+          <span className="text-[var(--line-2)]">|</span>
 
           {/* Workflows */}
           <div className="flex items-center gap-2 shrink-0">
-            <span className="text-sm text-[#565f89] font-medium uppercase">WORKFLOWS:</span>
+            <span className="text-sm text-[var(--ink-3)] font-medium uppercase">WORKFLOWS:</span>
             {workflows.length === 0 ? (
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-sm bg-[#565f89]/20">
-                <Hammer size={14} className="text-[#565f89]" />
-                <span className="font-medium text-[#565f89]">None</span>
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-sm bg-[rgba(107,128,171,0.2)]">
+                <Hammer size={14} className="text-[var(--ink-3)]" />
+                <span className="font-medium text-[var(--ink-3)]">None</span>
               </div>
             ) : (
               workflows.slice(0, 3).map((w) => (
@@ -351,18 +351,18 @@ export default function LivePulseChart({
             )}
           </div>
 
-          <span className="text-[#414868]">|</span>
+          <span className="text-[var(--line-2)]">|</span>
 
           {/* Tools */}
           <div className="flex items-center gap-2 shrink-0">
-            <span className="text-sm text-[#565f89] font-medium uppercase">TOOLS:</span>
+            <span className="text-sm text-[var(--ink-3)] font-medium uppercase">TOOLS:</span>
             {topTools.length === 0 ? (
               ["Read", "Edit", "Bash"].map((t) => {
                 const Icon = TOOL_ICON_MAP[t] || Wrench;
                 return (
-                  <div key={t} className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-sm bg-[#565f89]/20">
-                    <Icon size={14} className="text-[#565f89]" />
-                    <span className="font-medium text-[#565f89]">{t}</span>
+                  <div key={t} className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-sm bg-[rgba(107,128,171,0.2)]">
+                    <Icon size={14} className="text-[var(--ink-3)]" />
+                    <span className="font-medium text-[var(--ink-3)]">{t}</span>
                   </div>
                 );
               })
@@ -410,10 +410,10 @@ export default function LivePulseChart({
             ["User", "Agent"].map((name) => (
               <div
                 key={name}
-                className="flex-1 min-w-0 text-xs font-medium px-3 py-1.5 rounded-lg flex items-center gap-2 justify-center bg-[#565f89]/20"
+                className="flex-1 min-w-0 text-xs font-medium px-3 py-1.5 rounded-lg flex items-center gap-2 justify-center bg-[rgba(107,128,171,0.2)]"
               >
-                <Moon size={10} className="shrink-0 text-[#565f89]" />
-                <span className="font-mono truncate text-[#565f89]">{name}</span>
+                <Moon size={10} className="shrink-0 text-[var(--ink-3)]" />
+                <span className="font-mono truncate text-[var(--ink-3)]">{name}</span>
               </div>
             ))
           ) : (
@@ -435,7 +435,7 @@ export default function LivePulseChart({
                   key={name}
                   onClick={() => matchingAgentId && onAgentPillClick?.(matchingAgentId)}
                   className={`flex-1 min-w-0 text-xs font-medium px-3 py-1.5 rounded-lg border transition-all cursor-pointer flex items-center gap-2 justify-center ${
-                    active ? "text-white" : "text-[#9aa5ce] opacity-40 hover:opacity-70"
+                    active ? "text-white" : "text-[var(--ink-2)] opacity-40 hover:opacity-70"
                   }`}
                   style={{
                     borderColor: color + (active ? "60" : "20"),
@@ -451,7 +451,7 @@ export default function LivePulseChart({
                   {count >= 1 && (
                     <span
                       className="px-1.5 py-0.5 text-[16px] font-bold rounded min-w-[20px] text-center shrink-0"
-                      style={{ backgroundColor: color, color: "#1a1b26" }}
+                      style={{ backgroundColor: color, color: "var(--ground)" }}
                     >
                       {count}
                     </span>
@@ -473,7 +473,7 @@ export default function LivePulseChart({
           />
           {!hasData && (
             <div className="absolute inset-0 flex items-center justify-center">
-              <div className="flex items-center gap-3 text-[#565f89] text-base">
+              <div className="flex items-center gap-3 text-[var(--ink-3)] text-base">
                 <Loader2 size={20} strokeWidth={2} className="animate-spin text-blue-500" />
                 <span className="font-medium">Waiting for events...</span>
               </div>

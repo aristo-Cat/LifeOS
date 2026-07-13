@@ -1,6 +1,7 @@
 ---
 name: Knowledge
-description: "Manage the LifeOS Knowledge Archive — a curated, typed graph of notes across four entity domains: People, Companies, Ideas, and Research. Operations: search, add, harvest, develop, ingest (with ripple updates to related notes), contradictions, graph, retrieve, mine. Every note ships with typed `related:` frontmatter links across 8 relationship types. USE WHEN knowledge, knowledge base, search knowledge, what do we know about, archive, harvest, knowledge status, develop note, add to knowledge, ingest, contradictions, knowledge graph, retrieve, mine conversations. NOT FOR session/ISA context recovery (use ContextSearch), published content semantic search across blog/newsletter/X/LinkedIn (use _CONTENTSEARCH), or one-shot URL/YouTube ingestion via the Arbol harvester pipeline (use _HARVEST)."
+version: 1.0.13
+description: "Manage the LifeOS Knowledge Archive — a curated, typed graph of People, Companies, Ideas, and Research notes with typed related: links; search, add, harvest, develop, ingest, and graph-navigate. USE WHEN knowledge, knowledge base, search knowledge, what do we know about, archive, harvest, knowledge status, develop note, add to knowledge, ingest, contradictions, knowledge graph, retrieve, mine conversations. NOT FOR session/ISA context recovery (use ContextSearch), published content semantic search across blog/newsletter/X/LinkedIn (use _CONTENTSEARCH), or one-shot URL/YouTube ingestion via the Arbol harvester pipeline (use _HARVEST)."
 argument-hint: [search|add|harvest|develop|ingest|contradictions|graph|retrieve|mine|<query>]
 effort: low
 context: fork

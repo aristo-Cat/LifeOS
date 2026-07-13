@@ -1,3 +1,7 @@
+---
+provenance: template
+---
+
 # Config — Credentials and LifeOS Configuration
 
 This directory holds the structured config that LifeOS tools read at runtime:

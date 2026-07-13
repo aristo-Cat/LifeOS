@@ -11,6 +11,14 @@ import {
   Clock,
 } from "lucide-react";
 import EmptyStateGuide from "@/components/EmptyStateGuide";
+import {
+  PageShell,
+  PageHeader,
+  Panel,
+  Pill,
+  EmptyState,
+  dimStyle,
+} from "@/components/ui/chrome";
 
 interface HypothesisSummary {
   slug: string;
@@ -76,32 +84,32 @@ function HypothesisCard({
   }
 
   return (
-    <div
-      className={`bg-white/[0.02] border rounded-xl p-4 space-y-3 transition-colors ${
-        expiresSoon ? "border-amber-500/40" : "border-white/[0.06]"
-      }`}
+    <Panel
+      className="space-y-3"
+      style={expiresSoon ? { borderColor: "var(--warn)" } : undefined}
     >
       <div className="flex items-start gap-3">
-        <div className="p-2 rounded-lg bg-purple-500/20 shrink-0">
-          <Sparkles size={16} className="text-purple-300" />
+        <div
+          className="p-2 rounded-lg shrink-0"
+          style={dimStyle("relationships", true)}
+        >
+          <Sparkles size={16} />
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="text-sm font-medium text-zinc-200 leading-snug">
+          <h3 className="text-sm font-medium text-ink-1 leading-snug normal-case" style={{ fontFamily: "'concourse-t3', sans-serif" }}>
             {hypothesis.claim || hypothesis.slug}
           </h3>
           <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
-            <span className="text-emerald-400 font-semibold tabular-nums">
-              {confidencePct}% confidence
+            <Pill dim="ok">{confidencePct}% confidence</Pill>
+            <span className="text-ink-3">
+              → <span className="text-ink-2">{hypothesis.target_frame}</span>
             </span>
-            <span className="text-zinc-500">
-              → <span className="text-zinc-300">{hypothesis.target_frame}</span>
-            </span>
-            <span className="text-zinc-500">
+            <span className="text-ink-3">
               {hypothesis.evidence_count} signals
             </span>
             <span
               className={`flex items-center gap-1 ${
-                expiresSoon ? "text-amber-400 font-semibold" : "text-zinc-500"
+                expiresSoon ? "text-warn font-semibold" : "text-ink-3"
               }`}
             >
               <Clock size={11} />
@@ -114,21 +122,23 @@ function HypothesisCard({
       <div className="flex items-center gap-2 flex-wrap">
         <button
           onClick={() => onGraduate(hypothesis.slug)}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/30 transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors"
+          style={dimStyle("ok", true)}
         >
           <CheckCircle2 size={12} />
           Graduate
         </button>
         <button
           onClick={() => onReject(hypothesis.slug)}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md bg-red-500/10 text-red-300 border border-red-500/30 hover:bg-red-500/20 transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors"
+          style={dimStyle("err", true)}
         >
           <XCircle size={12} />
           Reject
         </button>
         <button
           onClick={toggleExpand}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04] transition-colors ml-auto"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md text-ink-2 hover:text-ink-1 hover:bg-surface-3 transition-colors ml-auto"
         >
           {expanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
           {expanded ? "Hide" : "Evidence"}
@@ -136,51 +146,51 @@ function HypothesisCard({
       </div>
 
       {expanded && (
-        <div className="pt-3 border-t border-white/[0.04] space-y-3 text-xs">
+        <div className="pt-3 border-t border-line-1 space-y-3 text-xs">
           {loadingDetail && (
-            <div className="text-zinc-500 italic">Loading detail…</div>
+            <div className="text-ink-3 italic">Loading detail…</div>
           )}
           {detail && (
             <>
               <div>
-                <div className="text-zinc-400 uppercase tracking-wide text-[13px] mb-1">
+                <div className="text-ink-3 uppercase tracking-wide text-[13px] mb-1">
                   Evidence ({detail.evidence_signals.length} signals)
                 </div>
-                <ul className="space-y-0.5 text-zinc-300 font-mono">
+                <ul className="space-y-0.5 text-ink-2 mono">
                   {detail.evidence_signals.slice(0, 8).map((sig) => (
                     <li key={sig} className="truncate">
                       {sig}
                     </li>
                   ))}
                   {detail.evidence_signals.length > 8 && (
-                    <li className="text-zinc-600">
+                    <li className="text-ink-3">
                       +{detail.evidence_signals.length - 8} more
                     </li>
                   )}
                 </ul>
               </div>
               <div>
-                <div className="text-zinc-400 uppercase tracking-wide text-[13px] mb-1">
+                <div className="text-ink-3 uppercase tracking-wide text-[13px] mb-1">
                   Falsifier
                 </div>
-                <p className="text-zinc-300">{detail.falsifier}</p>
+                <p className="text-ink-2">{detail.falsifier}</p>
               </div>
               {detail.suggested_action && (
                 <div>
-                  <div className="text-zinc-400 uppercase tracking-wide text-[13px] mb-1">
+                  <div className="text-ink-3 uppercase tracking-wide text-[13px] mb-1">
                     Suggested Action
                   </div>
-                  <p className="text-zinc-300">{detail.suggested_action}</p>
+                  <p className="text-ink-2">{detail.suggested_action}</p>
                 </div>
               )}
-              <div className="text-zinc-600 text-[12px] font-mono">
+              <div className="text-ink-3 text-[12px] mono">
                 generated {formatTimestamp(detail.generated)}
               </div>
             </>
           )}
         </div>
       )}
-    </div>
+    </Panel>
   );
 }
 
@@ -255,7 +265,7 @@ export default function HypothesesPage() {
   if (items === null && !error) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <div className="animate-pulse text-zinc-500 text-sm">
+        <div className="animate-pulse text-ink-3 text-sm">
           Loading hypotheses…
         </div>
       </div>
@@ -264,41 +274,40 @@ export default function HypothesesPage() {
 
   if (error) {
     return (
-      <div className="flex-1 overflow-y-auto p-4 space-y-6">
-        <div className="flex flex-col items-center justify-center py-12">
-          <div className="bg-white/[0.03] p-6 rounded-2xl mb-4 inline-block">
-            <RefreshCw size={40} className="text-zinc-600" />
-          </div>
-          <p className="text-base font-medium text-zinc-300 mb-1">
-            Hypothesis API not reachable
-          </p>
-          <p className="text-sm text-zinc-600 font-mono">{error}</p>
-        </div>
-      </div>
+      <PageShell>
+        <EmptyState
+          icon={RefreshCw}
+          title="Hypothesis API not reachable"
+          hint={<span className="mono">{error}</span>}
+        />
+      </PageShell>
     );
   }
 
   const hypotheses = items || [];
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 space-y-6">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h2 className="text-lg font-semibold text-zinc-200 flex items-center gap-2">
-            <Sparkles size={18} className="text-purple-400" />
-            Hypotheses
-          </h2>
-          <p className="text-sm text-zinc-400 mt-1 max-w-2xl">
+    <PageShell>
+      <PageHeader
+        icon={Sparkles}
+        title="Hypotheses"
+        subtitle={
+          <span className="max-w-2xl inline-block">
             Pending wisdom candidates from the proactive deriver loop. Graduate
-            promotes the claim to a <code className="text-zinc-300">WISDOM/FRAMES</code>{" "}
-            file; reject archives it; unreviewed hypotheses age out at 30 days.
-          </p>
-        </div>
-        <div className="flex items-center gap-2 text-xs text-zinc-600">
-          <RefreshCw size={12} />
-          {lastFetch ? `synced ${formatTimestamp(lastFetch.toISOString())}` : "syncing…"}
-        </div>
-      </div>
+            promotes the claim to a{" "}
+            <code className="text-ink-2">WISDOM/FRAMES</code> file; reject
+            archives it; unreviewed hypotheses age out at 30 days.
+          </span>
+        }
+        actions={
+          <span className="flex items-center gap-2 text-xs text-ink-3">
+            <RefreshCw size={12} />
+            {lastFetch
+              ? `synced ${formatTimestamp(lastFetch.toISOString())}`
+              : "syncing…"}
+          </span>
+        }
+      />
 
       {hypotheses.length === 0 ? (
         <EmptyStateGuide
@@ -320,9 +329,10 @@ export default function HypothesesPage() {
         </div>
       )}
 
-      <div className="text-[12px] text-zinc-600 font-mono pt-2 border-t border-white/[0.04]">
-        source: MEMORY/WISDOM/FRAMES/_hypotheses/ · api: /api/hypotheses · deriver: launchd com.lifeos.deriver
+      <div className="text-[12px] text-ink-3 mono pt-2 border-t border-line-1">
+        source: MEMORY/WISDOM/FRAMES/_hypotheses/ · api: /api/hypotheses ·
+        deriver: launchd com.lifeos.deriver
       </div>
-    </div>
+    </PageShell>
   );
 }

@@ -1,3 +1,7 @@
+---
+provenance: template
+---
+
 > 📝 SAMPLE TEMPLATE — Replace with your own data via /interview or by editing this file directly. Real Pulse content lives here once you've run the Health interview.
 
 # Health

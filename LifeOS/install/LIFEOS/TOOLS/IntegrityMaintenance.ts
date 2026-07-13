@@ -14,7 +14,7 @@
  * }
  *
  * Output:
- * - Creates PAISYSTEMUPDATES entry with AI-generated narrative
+ * - Creates SYSTEMUPDATES entry with AI-generated narrative
  * - Sends voice notification with summary
  */
 

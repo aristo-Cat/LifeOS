@@ -1,4 +1,5 @@
 ---
+status: RETIRED 2026-07-11 — historical doctrine. Modes/tiers were abolished with Algorithm v8 and system prompt v3.0.0 (one adaptive format). Kept as record only; nothing routes here.
 last_updated: 2026-05-13
 last_updated_by: kai
 convention: pai-freshness-v1
@@ -46,7 +47,7 @@ LifeOS has two distinct "mode" concepts. They overlap at the Native tab.
 
 | Layer | Concept | Where set | Values |
 |-------|---------|-----------|--------|
-| **Layer 1 — Response Mode** | Shape of the output template | `hooks/TheRouter.hook.ts` at UserPromptSubmit | MINIMAL / NATIVE / ALGORITHM |
+| **Layer 1 — Response Mode** | Shape of the output template | `TheRouter.hook.ts` (retired 2026-07-11) at UserPromptSubmit | MINIMAL / NATIVE / ALGORITHM |
 | **Layer 2 — Algorithm Mode** | Cognitive pattern the Algorithm runs | Algorithm at OBSERVE (writes ISA frontmatter `mode:`) | iterate / optimize / ideate / loop |
 
 **Native is the only tab that crosses both layers** — it surfaces sessions classified as Layer 1 NATIVE for Pulse display, even though no Layer 2 mode (and no ISA) was created.
@@ -68,7 +69,7 @@ Set at the **OBSERVE phase** of the Algorithm via deterministic trigger detectio
 
 ### Response-mode crossover (Native)
 
-Set by `hooks/TheRouter.hook.ts` at UserPromptSubmit. When the TheRouter classifier emits `MODE: NATIVE`, session metadata captures `mode: native` for Pulse display. No full ISA created.
+Set by `TheRouter.hook.ts` (retired 2026-07-11) at UserPromptSubmit. When the TheRouter classifier emits `MODE: NATIVE`, session metadata captures `mode: native` for Pulse display. No full ISA created.
 
 ### External pipeline (Ladder)
 
@@ -112,7 +113,7 @@ E-level sets the tier; mode sets the execution pattern. Both can be set simultan
 - Loop skill: `~/.claude/skills/Loop/SKILL.md`
 - Ideate skill (router stub): `~/.claude/skills/Ideate/SKILL.md`
 - Parameter schema: `../parameter-schema.md`
-- Capabilities (thinking enumeration): `../capabilities.md`
+- Capabilities: the system-prompt skill list is the sole inventory (capabilities.md removed at v7.0.0)
 - Target types: `../target-types.md`
 - Eval-mode guide: `../eval-guide.md`
 - Algorithm system doc: `LIFEOS/DOCUMENTATION/Algorithm/AlgorithmSystem.md`

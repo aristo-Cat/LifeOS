@@ -58,96 +58,16 @@ Additional Identifiers: [Old phone, email, employer, school]
 
 ---
 
-### Step 2: LAUNCH PARALLEL INVESTIGATION (9+ Agents)
+### Step 2: Parallel Investigation
 
-**CRITICAL: Launch ALL agents in a SINGLE message with multiple Task tool calls**
+**Done = every source category below returns, dispatched concurrently as parallel research agents in one message.** Give each agent the subject profile and the category it owns; let it run its own sub-searches. Scale the fan-out to the case — a common name across many states justifies extra agents on spelling variants and neighboring locations; a rare name in one city needs only a few.
 
-This is the main investigation step. Deploy 9+ agents across 3 categories simultaneously.
+**Source categories to cover:**
+- **People-search aggregators** — TruePeopleSearch, FastPeopleSearch, Spokeo and peers; run name variations (phonetic, ethnic, maiden) for address history, relatives, employment. Detail: `PublicRecordsSearch.md`, and the aggregator table in `SKILL.md`.
+- **Social media** — LinkedIn/Facebook/Instagram/X/TikTok via Google x-ray and username-pattern enumeration. Recipes: `SocialMediaSearch.md`.
+- **Public records & news** — property, voter, court, business, professional-license records in the subject's known and neighboring jurisdictions, plus news/obituary/alumni mentions. Recipes: `PublicRecordsSearch.md`.
 
----
-
-#### CATEGORY 1: People Search Aggregators (3 agents minimum)
-
-**Agent 1: ClaudeResearcher - Primary Name Search**
-```
-Prompt: Search for [FULL NAME] with these exact spelling variations: [list all].
-Location: [CITY, STATE]. Age approximately [AGE].
-Search TruePeopleSearch, FastPeopleSearch, Spokeo concepts.
-Return: current address, phone, relatives, associates, email.
-```
-
-**Agent 2: ClaudeResearcher - Comprehensive Search**
-```
-Prompt: Comprehensive people search for [NAME] from [LOCATION].
-Try phonetic and ethnic spelling variations of the surname.
-Focus on: address history, family tree, employment history.
-Return all possible matches with confidence assessment.
-```
-
-**Agent 3: GeminiResearcher - Alternative Spellings**
-```
-Prompt: Find person whose name sounds like [NAME] from [LOCATION].
-The surname is likely Eastern European - try: [variations].
-Search for family members who might have similar surname.
-Return any matches with spelling variations that worked.
-```
-
----
-
-#### CATEGORY 2: Social Media Search (3 agents minimum)
-
-**Agent 4: ClaudeResearcher - LinkedIn/Facebook**
-```
-Prompt: Search LinkedIn and Facebook for [NAME] from [LOCATION].
-Use Google x-ray: site:linkedin.com/in "[NAME]" "[LOCATION]"
-Also search: site:facebook.com "[NAME]" "[SCHOOL/CONTEXT]"
-Return profile URLs and any contact information visible.
-```
-
-**Agent 5: GrokResearcher - Twitter/X Deep Search**
-```
-Prompt: Search Twitter/X for [NAME] or username variations.
-Try handles like: [firstname][lastname], [first]_[last], etc.
-Search for mentions, tagged posts, location-based posts.
-Check for any public posts mentioning [LOCATION] or [CONTEXT].
-```
-
-**Agent 6: CodexResearcher - Username Enumeration**
-```
-Prompt: If we find any username, enumerate across platforms.
-Try common patterns: [first][last], [first].[last], [first][last][birthyear]
-Conceptually search: Instagram, TikTok, Reddit, GitHub.
-Cross-reference any found usernames across platforms.
-```
-
----
-
-#### CATEGORY 3: Public Records & News (3 agents minimum)
-
-**Agent 7: ClaudeResearcher - Property/Voter Records**
-```
-Prompt: Search California public records for [NAME].
-Focus on: Alameda County property records, CA voter registration.
-Also check neighboring counties: Santa Clara, Contra Costa.
-Return any official records with addresses or DOB.
-```
-
-**Agent 8: GeminiResearcher - Court/Business Records**
-```
-Prompt: Search for [NAME] in California court records and business filings.
-Check: CA Secretary of State business search, court records.
-Look for any legal filings, business registrations, professional licenses.
-```
-
-**Agent 9: ClaudeResearcher - News & Mentions**
-```
-Prompt: Search for news articles, obituaries, or public mentions of [NAME].
-Check: local news archives in subject's known metro area, alumni mentions.
-Search for family members that might lead to subject.
-Include any professional or community involvement.
-```
-
----
+Every discovered identifier is a fresh lead for the reverse-lookup and network steps below.
 
 **What to Compile from ALL Agent Results:**
 - All addresses found (current and historical)

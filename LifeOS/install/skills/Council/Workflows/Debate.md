@@ -18,55 +18,24 @@ Running the **Debate** workflow in the **Council** skill to run multi-agent deba
 - Topic or question to debate
 - Optional: Custom council member descriptions (otherwise auto-composed)
 
-## CRITICAL: Agent Composition
+## Members
 
-**ALL council members MUST be custom-composed agents via the Agents skill's ComposeAgent tool. NEVER use built-in agent types (Architect, Designer, Engineer, PerplexityResearcher, etc.).**
-
-Built-in types are generic and topic-ignorant. Council debates require agents with domain-specific knowledge, unique voices, and distinct analytical approaches tailored to the debate topic.
-
-See `CouncilMembers.md` for full instructions on composing agents.
+Council members are custom agents you write inline, then launch with `subagent_type: "general-purpose"`. Write four different briefs tailored to the topic — a bare built-in type with no persona produces bland agreement. See `CouncilMembers.md`.
 
 ## Execution
 
-### Step 0: Compose Council Members
+### Step 0: Write the Council Members
 
-Before any debate rounds, compose 4 custom agents tailored to the topic using ComposeAgent:
-
-```bash
-# Analyze the topic and determine what perspectives create productive friction
-# Then compose each agent with topic-specific traits:
-
-bun run ~/.claude/skills/Agents/Tools/ComposeAgent.ts \
-  --traits "[domain],enthusiastic,systematic" \
-  --task "[debate topic]" \
-  --output json
-
-bun run ~/.claude/skills/Agents/Tools/ComposeAgent.ts \
-  --traits "[domain],skeptical,meticulous" \
-  --task "[debate topic]" \
-  --output json
-
-bun run ~/.claude/skills/Agents/Tools/ComposeAgent.ts \
-  --traits "[domain],pragmatic,analytical" \
-  --task "[debate topic]" \
-  --output json
-
-bun run ~/.claude/skills/Agents/Tools/ComposeAgent.ts \
-  --traits "research,analytical,comparative" \
-  --task "[debate topic]" \
-  --output json
-```
-
-Each agent gets a unique name, voice, voice_id, color, and personality prompt.
+Before any debate rounds, analyze the topic, decide the 4 perspectives that create the most productive friction, and write a brief for each: a name, their role/expertise, the stance they hold, and what they'll push on. No tool call — you write these directly. See `CouncilMembers.md` for the slot guidance and an example brief.
 
 ### Step 1: Announce the Council
 
-Output the debate header with the composed agent names:
+Output the debate header with the member names:
 
 ```markdown
 ## Council Debate: [Topic]
 
-**Council Members:** [List composed agent names with their trait descriptions]
+**Council Members:** [List member names with their one-line role descriptions]
 **Rounds:** 3 (Positions -> Responses -> Synthesis)
 ```
 
@@ -76,7 +45,7 @@ Launch 4 parallel Agent calls (one per composed council member).
 
 **CRITICAL: Use `subagent_type: "general-purpose"` for ALL agents. NEVER use built-in types.**
 
-**Each agent prompt includes the composed agent's full prompt PLUS:**
+**Each agent prompt includes the member's brief PLUS:**
 ```
 COUNCIL DEBATE - ROUND 1: INITIAL POSITIONS
 
@@ -112,7 +81,7 @@ Give your initial position on this topic from your specialized perspective.
 
 Launch 4 parallel Agent calls with Round 1 transcript included.
 
-**Each agent prompt includes the composed agent's full prompt PLUS:**
+**Each agent prompt includes the member's brief PLUS:**
 ```
 COUNCIL DEBATE - ROUND 2: RESPONSES & CHALLENGES
 
@@ -135,7 +104,7 @@ The value is in genuine intellectual friction -- engage with their actual argume
 
 Launch 4 parallel Agent calls with Round 1 + Round 2 transcripts.
 
-**Each agent prompt includes the composed agent's full prompt PLUS:**
+**Each agent prompt includes the member's brief PLUS:**
 ```
 COUNCIL DEBATE - ROUND 3: SYNTHESIS
 
@@ -174,7 +143,7 @@ After all rounds complete, synthesize the debate:
 
 ## Timing
 
-- Agent Composition: ~5-10 seconds (4 ComposeAgent calls)
+- Writing member briefs: inline (orchestrator writes 4 briefs)
 - Round 1: ~10-20 seconds (parallel)
 - Round 2: ~10-20 seconds (parallel)
 - Round 3: ~10-20 seconds (parallel)

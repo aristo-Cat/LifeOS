@@ -22,6 +22,13 @@
  * appending a registry entry, reviewing the change, committing — never a
  * runtime mutation.
  *
+ * FORKS: this file is regenerated at release, so a fork that appends a type
+ * here is carrying a patch and will see it clobbered/conflicted on pull. That
+ * is a deliberate trade-off (LifeOS#1450): the registry and the MutationTier
+ * allowlist are tamper boundaries, kept closed rather than extended via a
+ * USER/CUSTOMIZATIONS overlay. If you fork with custom types, maintain the
+ * registry edit as your fork's patch.
+ *
  * CLI:
  *   bun MemoryTypes.ts list                # print the registry
  *   bun MemoryTypes.ts resolve <type> <item-json>   # show resolved storage path

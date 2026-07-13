@@ -1,9 +1,10 @@
 ---
-last_updated: 2026-05-25T18:45:00Z
-last_updated_by: {{PRINCIPAL_NAME}}
+last_updated: 2026-07-11T00:00:00Z
+last_updated_by: kai
 convention: pai-freshness-v1
 last_reviewed: 2026-05-25T18:45:00Z
 last_reviewed_by: {{PRINCIPAL_NAME}}
+version: 1.0.3
 ---
 
 # Curation Coverage — what LifeOS autonomic systems touch
@@ -59,7 +60,7 @@ These files are Tier D from the memory subsystem's POV (untouchable by the revie
 | `MEMORY/RELATIONSHIP/**` | `RelationshipMemory.hook.ts` | UserPromptSubmit | Per turn (batched) |
 | `MEMORY/WISDOM/**` | `WisdomFrameUpdater`, `WisdomCrossFrameSynthesizer` | Algorithm LEARN phase | Per LEARN; planned monthly cron in P3 |
 | `MEMORY/SECURITY/**` | `SecurityPipeline.hook.ts` | Tool calls | Per event |
-| `MEMORY/OBSERVABILITY/**` | Many hooks (ToolActivityTracker, ToolFailureTracker, MemoryReviewer, etc.) | Tool events | Continuous |
+| `MEMORY/OBSERVABILITY/**` | Many hooks (EventLogger, MemoryReviewer, etc.) | Tool events | Continuous |
 | `MEMORY/STATE/work.json` | `hooks/ISASync.hook.ts`, `LIFEOS/TOOLS/AlgoPhase.ts` | Phase transitions | Per change |
 | `MEMORY/STATE/session-names.json` | `LIFEOS/TOOLS/SessionRename.ts` (manual), `SessionAnalysis` (auto-name) | First prompt at session start; manual rename | One-shot per session |
 | `MEMORY/VOICE/voice-events.jsonl` | Pulse VoiceServer | Voice event | Per fire |

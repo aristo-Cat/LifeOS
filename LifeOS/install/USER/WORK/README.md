@@ -1,3 +1,7 @@
+---
+provenance: template
+---
+
 # WORK/
 
 > 💼 SAMPLE TEMPLATE — Replace with your own work data via /interview or by editing these files.

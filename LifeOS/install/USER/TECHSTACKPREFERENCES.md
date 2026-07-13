@@ -1,3 +1,7 @@
+---
+provenance: template
+---
+
 # Tech Stack Preferences
 
 > Languages, tools, and conventions you prefer — the DA uses these when suggesting or writing code.

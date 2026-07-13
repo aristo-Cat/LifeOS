@@ -13,65 +13,27 @@ Running **DomainSpecific** in **BeCreative**...
 
 ---
 
-**When to use:** Creativity within specific domains (artistic, business, technical)
+**When to use:** Creativity scoped to a domain (artistic, business, technical) where the winning candidate must be judged against that domain's own criteria.
 
----
+## Instruction
 
-## Artistic Creativity Template
-
-```markdown
-## Instructions
-
-DEEP THINKING - ARTISTIC CREATIVITY
-
-Think deeply about this artistic challenge:
-- Explore bold and experimental approaches
-- Question conventional aesthetic assumptions
-- Make unexpected connections across art forms
-- Consider emotional impact and audience experience
-- Push boundaries while maintaining coherence
-
-Generate artistically bold and innovative responses.
-
-## Challenge
-
-[Artistic challenge]
-```
-
-**Best for:** Visual arts, music, writing, performance, design
-
----
-
-## Business Innovation Template
+Run the standard generate-diverse-candidates move, then evaluate against the domain's success criteria instead of generic novelty — emotional impact and coherence for art, scalability and customer behavior for business, and so on. Prepend the challenge to:
 
 ```markdown
-## Instructions
-
-DEEP THINKING - BUSINESS INNOVATION
-
-Think deeply about this business challenge:
-- Question conventional business model assumptions
-- Explore approaches from other industries
-- Consider customer psychology and behavior
-- Evaluate scalability and sustainability
-- Balance innovation with practical implementation
-
-Generate innovative business solutions that challenge conventional thinking.
+DEEP THINKING — [DOMAIN] CREATIVITY
+Generate diverse candidates that challenge [domain] conventions, then select the one that best meets [domain] criteria (e.g. emotional impact + coherence for art; scalability + customer behavior for business).
 
 ## Challenge
-
-[Business challenge]
+[Domain challenge]
 ```
 
-**Best for:** Strategy, marketing, product, operations, growth
+## Done when
 
----
+- Candidates break a real convention of the named domain, not a generic one.
+- Selection is justified against domain criteria, not just "most creative."
 
-## Process
+## Best For
 
-1. **Identify domain** - artistic, business, or other
-2. **Select appropriate template** for the domain
-3. **Apply domain-specific thinking prompts**
-4. **Generate options** that challenge domain conventions
-5. **Evaluate against domain criteria** (e.g., scalability for business, emotional impact for art)
-6. **Output refined solution** appropriate for the domain
+- **Artistic:** visual arts, music, writing, performance, design
+- **Business:** strategy, marketing, product, operations, growth
+- Any domain with its own bar for "good"

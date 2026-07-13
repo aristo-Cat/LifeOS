@@ -1,3 +1,7 @@
+---
+provenance: template
+---
+
 # MY_ORG
 
 > 💼 SAMPLE TEMPLATE — Rename this directory to your primary operating organization (e.g. `AcmeInc/`, `MyCompany/`) and populate it via /interview or by editing these files.

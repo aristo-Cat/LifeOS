@@ -62,7 +62,7 @@ INPUT CONTENT
 
 **🚨 NO TEXT IN IMAGES — EXACTLY ONE EXCEPTION: the "{{DA_NAME}}" signature.**
 - ✅ **The "{{DA_NAME}}" signature IS REQUIRED** — every blog-header image MUST be signed "{{DA_NAME}}", bottom-right corner, added PROGRAMMATICALLY in Step 7 (never prompted into the model — models hallucinate garbled text). This is the SOLE permitted mark. (Principal directive 2026-06-20: re-required after the 2026-05-02 removal; it must always be there.)
-- 🚨 The signature is a **human handwriting** style, NOT formal calligraphy. Use `Bradley-Hand-Bold` — semi-transparent charcoal. Snell-Roundhand / Apple-Chancery / Savoye (calligraphy/script faces) are WRONG and were rejected (2026-06-20: "It's a human like signature not fucking caligraphy").
+- 🚨 The signature is a **human handwriting** style, NOT formal calligraphy. Use `SignPainter-HouseScript` — cursive human-signature hand, small (~3% of width), semi-transparent charcoal, tucked into the composition (2026-07-09 directive: more cursive, smaller, part of the image). Formal calligraphy faces Snell-Roundhand / Apple-Chancery / Savoye remain WRONG (2026-06-20: "It's a human like signature not fucking caligraphy").
 - ❌ No OTHER text: no watermarks, no labels, no annotations, no captions, no logos, no titles, no subtitles
 - ❌ No readable text of any kind beyond the "{{DA_NAME}}" signature — even the model hallucinating partial words counts as failure
 - The image carries the meaning visually. All text other than the {{DA_NAME}} signature belongs in the post body, not on the canvas.
@@ -428,9 +428,26 @@ DO NOT include any signature text in the prompt — AI models hallucinate garble
 NO other text.
 ```
 
+### 🚨 STEP 5A: BEST-IMAGE DELIBERATION (MANDATORY — principal directive 2026-07-09)
+
+**Before writing any prompt, stop and think deeply about what the BEST POSSIBLE image for THIS essay would be.** Not "what subjects should appear" — what image would make the argument land hardest. The 2026-07-09 Claude Tag session proved the gap: subject-list prompts ("a desk with a laptop, an AI figure, a colleague") produced flat tableaus that got rejected twice; a composition reasoned from the essay's actual argument (a chat window as thin facade, a robot workshop behind it passing work up) produced immediately-accepted images. Same models, same technique block — the difference was the deliberation.
+
+The deliberation, in order:
+
+1. **Name the essay's central mechanism or tension in one sentence.** Not the topic — the thing the essay actually argues (e.g. "the mundane chat surface hides an industrial workforce").
+2. **Ask: what scene would make a stranger FEEL that in one look?** Generate 2-3 genuinely different scene concepts before picking. Consider (as options, not rules): architectural devices the charcoal technique loves — cutaway, cross-section, facade/backstage, multi-floor, iceberg; scale contrast; before/after split; a single frozen action.
+3. **Give every element a narrative ROLE and a spatial relationship** — X feeds into Y, Z carries W up to V. If an element is just "present," cut it or connect it. This is what separates a scene from a tableau.
+4. **Demand continuity and density in the prompt**: "one connected structure, nothing floats in isolation." This both reads better and survives background removal (isolated fragments are what rembg destroys).
+5. **Sanity-check against the failure modes**: would this read at thumbnail size? Does it need readable text to work (it must not)? Does the argument survive with color stripped?
+
+The scene concept from this step BECOMES the composition brief for both model prompts. The prompt is written as a STORY of the scene, not a list of its contents.
+
+**Interior-white ban (2026-07-09, "giant white space" incident):** never prompt interior surfaces — desks, panels, windows, paper stacks — as bright white, and never leave surface color unstated (models default to white). State "warm cream paper tone" for any large flat surface so it blends with the sepia page. A baked-white desk or window survives background removal as a giant white rectangle on the cream blog page. Same class as the 2026-06-20 white-box bug, but INSIDE the subject where rembg can't help.
+
 ### Prompt Quality Check
 
 Before generating, verify:
+- [ ] **BEST-IMAGE DELIBERATION ran** (Step 5A) — the composition came from reasoning about the essay's argument, not from a default subject list
 - [ ] **PROBLEM IS VISIBLE** — someone could understand what's wrong just from the image
 - [ ] **Concrete subjects present** — nouns from title/content appear visually (not abstracted)
 - [ ] Emotional register explicitly stated
@@ -802,15 +819,16 @@ magick "~/Downloads/[name].png" -trim +repage -resize 1024x "~/Downloads/[name].
 
 # 7.1 — "{{DA_NAME}}" SIGNATURE (human handwriting, NOT calligraphy)
 #   🟢 AUTO-STAMPED BY Generate.ts (2026-06-26): any `--workflow=Essay` or `--thumbnail`
-#   run now stamps "{{DA_NAME}}" itself (bottom-right, Bradley-Hand-Bold), before the thumbnail
+#   run now stamps "{{DA_NAME}}" itself (bottom-right, SignPainter-HouseScript cursive, ~3% width,
+#   slight rotation — small, integrated; 2026-07-09 directive), before the thumbnail
 #   is derived, so it lands on BOTH the transparent PNG and the sepia thumb. You do NOT
 #   run this command after a normal Generate.ts run — doing so DOUBLE-stamps.
 #   This manual command is ONLY for: (a) a hand-built image that never went through
 #   Generate.ts, or (b) re-stamping after rembg ate the signature. Opt out at generation
 #   with `--no-signature`. Snell-Roundhand/Apple-Chancery/Savoye are calligraphy → REJECTED (2026-06-20).
 magick "~/Downloads/[name].png" -gravity SouthEast \
-  -font "Bradley-Hand-Bold" -pointsize 50 -fill "rgba(55,45,38,0.62)" \
-  -annotate +30+18 "{{DA_NAME}}" "~/Downloads/[name].png"
+  -font "SignPainter-HouseScript" -pointsize 31 -fill "rgba(55,45,38,0.55)" \
+  -annotate 352x352+44+30 "{{DA_NAME}}" "~/Downloads/[name].png"
 
 # 1. Convert the signed transparent PNG to WebP for inline blog display
 cwebp -q 86 -alpha_q 100 "~/Downloads/[name].png" -o "~/Downloads/[name].webp"
@@ -828,7 +846,7 @@ magick "~/Downloads/[name].png" -background "#EAE9DF" -flatten -resize 512x -qua
 ls -lh ~/Downloads/[name].webp ~/Downloads/[name]-thumb-optimized.png
 ```
 
-**🚨 The Step 7.1 `-annotate` "{{DA_NAME}}" signature is REQUIRED and is the ONLY sanctioned `-annotate` use. History: the signature was removed 2026-05-02, then explicitly RE-REQUIRED by {{PRINCIPAL_NAME}} on 2026-06-20 ("essay images need to always be signed by {{DA_NAME}}"). It must be a human-handwriting font (`Bradley-Hand-Bold`), never calligraphy (Snell/Chancery/Savoye were rejected). Do NOT `-annotate` anything else onto the canvas — no watermark, no titles, no labels (the rare per-request figure labels are a separate, explicitly-asked-for case, color-coded to the figures).**
+**🚨 The Step 7.1 `-annotate` "{{DA_NAME}}" signature is REQUIRED and is the ONLY sanctioned `-annotate` use. History: the signature was removed 2026-05-02, then explicitly RE-REQUIRED by {{PRINCIPAL_NAME}} on 2026-06-20 ("essay images need to always be signed by {{DA_NAME}}"). It must be the cursive signature hand (`SignPainter-HouseScript`, small, integrated — 2026-07-09), never formal calligraphy (Snell/Chancery/Savoye were rejected). Do NOT `-annotate` anything else onto the canvas — no watermark, no titles, no labels (the rare per-request figure labels are a separate, explicitly-asked-for case, color-coded to the figures).**
 
 **Expected Results:**
 - Main WebP image: ~150-500KB (from ~7.5MB PNG)
@@ -976,7 +994,7 @@ The cap exists because compute spent on 16+ failed generations is compute that s
 
 **0. SIGNATURE CHECK (REQUIRED — not optional):**
 - Is the "{{DA_NAME}}" signature present in the BOTTOM RIGHT CORNER? It MUST be (Step 7.1, every blog header).
-- Is it human handwriting (Bradley-Hand-Bold), NOT calligraphy? Snell/Chancery/Savoye script faces are WRONG (rejected 2026-06-20).
+- Is it the cursive signature hand (SignPainter-HouseScript), small and integrated, NOT formal calligraphy? Snell/Chancery/Savoye script faces are WRONG (rejected 2026-06-20).
 - Not bottom center. Not near the subject. BOTTOM RIGHT CORNER.
 - If missing, calligraphic, wrong location, or garbled → re-run Step 7.1 (it's a programmatic stamp, so just re-stamp; no regen needed).
 
@@ -1022,7 +1040,7 @@ The cap exists because compute spent on 16+ failed generations is compute that s
 ### Validation Checklist
 
 **🚨 MANDATORY ELEMENTS (if ANY are missing, REGENERATE):**
-- [ ] **"{{DA_NAME}}" SIGNATURE PRESENT** — human-handwriting style (Bradley-Hand-Bold), bottom-right, added programmatically in Step 7.1. Its absence is a FAIL (required since 2026-06-20).
+- [ ] **"{{DA_NAME}}" SIGNATURE PRESENT** — cursive signature hand (SignPainter-HouseScript), small, bottom-right, added programmatically in Step 7.1. Its absence is a FAIL (required since 2026-06-20).
 - [ ] **NO OTHER TEXT** — beyond the "{{DA_NAME}}" signature (and any per-request figure labels {{PRINCIPAL_NAME}} explicitly asked for): zero watermarks, zero stray labels, zero hallucinated letters. Model-baked text → REGENERATE.
 - [ ] **INLINE IS TRANSPARENT (srgba)** — `identify -format "%[channels]" [name].webp` prints `srgba`. `srgb` = opaque = the white-box-on-cream bug → re-cut with RemoveBg.
 - [ ] **PROBLEM TYPE VISIBLE** — the problem type (sorting, double standard, etc.) is immediately obvious

@@ -4,6 +4,7 @@ last_updated_by: kai
 last_reviewed: 2026-07-02
 last_reviewed_by: kai
 convention: pai-freshness-v1
+version: 1.0.6
 ---
 
 # LifeOS — The Life Operating System Thesis

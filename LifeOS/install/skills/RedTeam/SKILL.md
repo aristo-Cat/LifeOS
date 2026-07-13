@@ -1,6 +1,7 @@
 ---
 name: RedTeam
-description: "Military-grade adversarial analysis deploying 32 parallel expert agents (engineers, architects, pentesters, interns) to stress-test ideas, strategies, and plans — not systems. Two workflows: ParallelAnalysis (decompose into 24 atomic claims → 32-agent parallel attack → synthesis → steelman → counter-argument) and AdversarialValidation (competing proposals synthesized into best solution). Targets arguments, not network vulnerabilities. Severity-ranked findings with remediation. Invoked by Ideate (TEST) and WorldThreatModel. USE WHEN red team, attack idea, counterarguments, critique, stress test, devil's advocate, find weaknesses, break this, poke holes, strongest objection. NOT FOR collaborative debate to find best path (use Council)."
+version: 1.1.16
+description: "Adversarial analysis deploying parallel expert agents to stress-test ideas, strategies, and plans — decomposes into atomic claims, attacks them, then steelmans and counter-argues, producing severity-ranked findings with remediation. USE WHEN red team, attack idea, counterarguments, critique, stress test, devil's advocate, find weaknesses, break this, poke holes, strongest objection. NOT FOR collaborative debate to find best path (use Council)."
 effort: high
 ---
 
@@ -35,15 +36,15 @@ If this directory exists, load and apply any PREFERENCES.md, configurations, or 
 
 ## What It Does
 
-Attacks ideas, strategies, and plans to find their weak points before reality does. It breaks an argument into atomic claims, deploys 32 parallel expert agents (engineers, architects, pentesters, interns) to stress-test each one, then synthesizes the findings into a steelman of the argument plus the strongest counter-argument against it.
+Attacks ideas, strategies, and plans to find their weak points before reality does. It breaks an argument into atomic claims, deploys many parallel expert agents (engineers, architects, pentesters, interns) to stress-test each one, then synthesizes the findings into a steelman of the argument plus the strongest counter-argument against it.
 
 ## The Problem
 
-People fall in love with their own plans. Once you've committed to an idea, your brain hunts for reasons it works and skips past the reasons it doesn't — and the people around you are often too polite or too aligned to push hard. So flawed strategies sail through unchallenged until they fail in production, in the market, or in the meeting where someone finally asks the hard question. This skill is the hard question, run 32 ways at once: it attacks the argument deliberately and at volume so the weak points surface while they're still cheap to fix.
+People fall in love with their own plans. Once you've committed to an idea, your brain hunts for reasons it works and skips past the reasons it doesn't — and the people around you are often too polite or too aligned to push hard. So flawed strategies sail through unchallenged until they fail in production, in the market, or in the meeting where someone finally asks the hard question. This skill is the hard question, run many ways at once: it attacks the argument deliberately and at volume so the weak points surface while they're still cheap to fix.
 
 ## How It Works
 
-Military-grade adversarial analysis using parallel agent deployment. It breaks arguments into atomic components, attacks from 32 expert perspectives (engineers, architects, pentesters, interns), synthesizes findings, and produces sharp counter-arguments alongside the steelman version of the case. Targets arguments, not network vulnerabilities.
+Military-grade adversarial analysis using parallel agent deployment. It breaks arguments into atomic components, attacks from many expert perspectives (engineers, architects, pentesters, interns), synthesizes findings, and produces sharp counter-arguments alongside the steelman version of the case. Targets arguments, not network vulnerabilities.
 
 ## Workflow Routing
 
@@ -69,12 +70,7 @@ Running the **WorkflowName** workflow in the **RedTeam** skill to ACTION...
 | **ParallelAnalysis** | Stress-test existing content | Steelman + Counter-argument (8-points each) |
 | **AdversarialValidation** | Produce new content via competition | Synthesized solution from competing proposals |
 
-**The Five-Phase Protocol (ParallelAnalysis):**
-1. **Decomposition** - Break into 24 atomic claims
-2. **Parallel Analysis** - 32 agents examine strengths AND weaknesses
-3. **Synthesis** - Identify convergent insights
-4. **Steelman** - Strongest version of the argument
-5. **Counter-Argument** - Strongest rebuttal
+**The deliverable (ParallelAnalysis):** the strongest steelman of the argument and the strongest surviving counter-argument against it, each an 8-point story explanation (12-16 words per point), attacking real weaknesses not strawmen, ranked by severity.
 
 ---
 

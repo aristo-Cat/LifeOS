@@ -1,5 +1,6 @@
 ---
 name: Loop
+version: 1.0.7
 description: "Iterative improvement loop — refine a target across multiple Algorithm cycles toward ideal state. USE WHEN loop, iterate, refine, multiple passes, keep improving, revisit, rework."
 disable-model-invocation: true
 effort: medium

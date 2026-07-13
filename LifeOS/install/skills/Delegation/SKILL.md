@@ -1,6 +1,7 @@
 ---
 name: Delegation
-description: "Parallelize work via six patterns: built-in agents (Algorithm/Explore/Plan/general-purpose via Task), worktree-isolated agents (conflict-free parallel edits), background agents (run_in_background, non-blocking), custom agents (ComposeAgent → Task), agent teams (TeamCreate + TaskCreate + SendMessage for multi-turn coordination), parallel task dispatch. Two-tier: lightweight (haiku, max_turns=3, one-shot) vs full (multi-step). Decision rule: agents need to talk or share state → Teams; independent one-shot → Subagents. Auto-invoked by Algorithm at 3+ workstreams. USE WHEN parallel execution, agent team, swarm, spawn agents, fan out, divide and conquer, multi-agent, coordinate agents. NOT FOR single-agent personality composition (use Agents)."
+version: 1.0.23
+description: "Parallelizes work across six patterns — built-in agents, worktree-isolated agents, background agents, custom inline-brief agents, multi-turn agent teams, and parallel task dispatch — choosing teams when agents must share state, subagents when independent. USE WHEN parallel execution, agent team, swarm, spawn agents, fan out, divide and conquer, multi-agent, coordinate agents, custom agents."
 effort: medium
 ---
 
@@ -8,7 +9,7 @@ effort: medium
 
 ## What It Does
 
-Parallelizes work across six patterns: built-in agents, worktree-isolated agents, background agents, custom agents via ComposeAgent, agent teams via TeamCreate, and parallel task dispatch. It also splits delegation into two weights — lightweight one-shot workers (haiku, capped turns) versus full agents that iterate with tools. The Algorithm auto-invokes it once work hits three or more independent workstreams.
+Parallelizes work across six patterns: built-in agents, worktree-isolated agents, background agents, custom agents via inline briefs, agent teams via TeamCreate, and parallel task dispatch. It also splits delegation into two weights — lightweight one-shot workers (capped turns) versus full agents that iterate with tools. The Algorithm auto-invokes it once work hits three or more independent workstreams.
 
 ## The Problem
 
@@ -22,7 +23,7 @@ Doing independent work serially wastes time, but throwing every task at a heavyw
 
 | the user Says | System | Tool | What Happens |
 |-------------|--------|------|-------------|
-| "**custom agents**", "**specialized agents**", "spin up agents", "launch agents" | **Agents Skill** (ComposeAgent) | `Task(subagent_type="general-purpose", prompt=<ComposeAgent output>)` | Unique personalities, voices, colors via trait composition |
+| "**custom agents**", "**specialized agents**", "spin up agents", "launch agents" | **Inline briefs** | `Task(subagent_type="general-purpose", prompt=<inline brief: name + role + stance>)` | Distinct personas written per topic |
 | "**create an agent team**", "**agent team**", "**swarm**" | **Claude Code Teams** | `TeamCreate` → `TaskCreate` → `SendMessage` | Persistent team with shared task list, message coordination, multi-turn collaboration |
 
 **These are NOT the same thing:**
@@ -37,13 +38,13 @@ Doing independent work serially wastes time, but throwing every task at a heavyw
 - **Large codebase changes** spanning 5+ files benefit from parallel workers
 - **Research + execution** can proceed simultaneously
 - **"Create an agent team"** — use TeamCreate for persistent coordinated teams
-- **Unattended autonomous work where auditability matters more than speed** — spawn an Observer team (Agents skill → SPAWNOBSERVERS) alongside the primary agent, reading the tool-activity audit log, voting continue/halt/escalate. ONLY use when BOTH (a) time is not a constraint and (b) auditability is the primary requirement. Never for interactive or time-sensitive work. See Agents/SKILL.md "Observer Team Archetype" for shape and guardrails.
+- **Unattended autonomous work where auditability matters more than speed** — the Observer-team pattern (read-only agents watching the tool-activity audit log, voting continue/halt/escalate) is a fit here, but it is not currently implemented; it was retired with the Agents skill and would need to be rebuilt as its own component before use.
 
 ## Delegation Patterns
 
 ### 1. Built-In Agents
 
-**⚠️ Built-in agents are for internal workflow routing ONLY.** When the user asks for custom, specialized, or uniquely-voiced agents, use the Agents skill (section 4 below) instead.
+**⚠️ Built-in agents are for internal workflow routing ONLY.** When the user asks for custom, specialized, or uniquely-voiced agents, write an inline brief per agent (section 4 below) and launch `general-purpose`.
 
 Use `Task(subagent_type="AgentType")` with these specialized agents:
 
@@ -90,22 +91,20 @@ Standard `Task()` calls that block until complete:
 - Use for sequential dependencies
 - Default mode — most common
 
-### 4. Custom Agents (via Agents Skill)
+### 4. Custom Agents (inline briefs)
 
 **Trigger:** "custom agents", "spin up agents", "launch agents", "specialized agents"
-**Action:** Invoke the **Agents skill** → run `ComposeAgent.ts` → launch with `Task(subagent_type="general-purpose")`
+**Action:** Write a distinct brief for each agent — a name, a role/expertise, and a stance — then launch each with `Task(subagent_type="general-purpose")`. No composition tool; the orchestrator writes the persona.
 
-```bash
-# Step 1: Compose agent identity
-bun run ~/.claude/skills/Agents/Tools/ComposeAgent.ts --traits "security,skeptical,thorough" --task "Review auth" --output json
-
-# Step 2: Launch with composed prompt
-Task(subagent_type="general-purpose", prompt=<ComposeAgent JSON .prompt field>)
+```typescript
+Task(
+  subagent_type="general-purpose",
+  prompt=<agent brief: "You are a skeptical security reviewer focused on auth bypass..."> + <task + context>
+)
 ```
 
-- Each agent gets unique personality, voice, and color via ComposeAgent
-- Use DIFFERENT trait combinations for each agent to get unique voices
-- Never use built-in agent types for custom work — compose via the Agents skill
+- Give each agent a DIFFERENT brief so their perspectives actually diverge
+- A capable model writes a sharper topic-specific persona than any trait lookup
 - Ideal for: domain experts, adversarial reviewers, creative brainstormers, parallel analysis
 
 ### 5. Agent Teams (via TeamCreate)
@@ -122,7 +121,7 @@ Task(subagent_type="general-purpose", prompt=<ComposeAgent JSON .prompt field>)
 ```
 
 **This is a COMPLETELY DIFFERENT system from custom agents:**
-- **Custom agents** (Agents skill) = fire-and-forget parallel workers, no shared state
+- **Custom agents** (inline briefs) = fire-and-forget parallel workers, no shared state
 - **Agent teams** (TeamCreate) = persistent coordinated teams with shared task lists, messaging, multi-turn
 
 **Team Guidelines:**
@@ -178,10 +177,10 @@ Not all delegation needs a full agent. Match delegation weight to task complexit
 **For:** One-shot extraction, classification, summarization, simple Q&A against provided content.
 
 ```
-Task(subagent_type="general-purpose", model="haiku", max_turns=3, prompt="...")
+Task(subagent_type="general-purpose", max_turns=3, prompt="...")
 ```
 
-- Use `model="haiku"` for cost/speed efficiency
+- Model is a per-dispatch judgment call (`model` param; unspecified inherits the session model)
 - Set `max_turns=3` — if it can't finish in 3 turns, it needs full delegation
 - Provide all input inline in the prompt (no tool use expected)
 - Examples: "Classify this text as X/Y/Z", "Extract the 5 key points from this", "Summarize this in 2 sentences"
@@ -193,7 +192,7 @@ Task(subagent_type="general-purpose", model="haiku", max_turns=3, prompt="...")
 Task(subagent_type="general-purpose", prompt="...")  # or specialized agent type
 ```
 
-- Default model (sonnet/opus inherited from parent)
+- Unspecified model inherits the session model (harness behavior)
 - No max_turns restriction — agent iterates until done
 - Agent uses tools autonomously (Read, Grep, Bash, etc.)
 - Examples: "Research X and produce a report", "Refactor these 5 files", "Debug why test Y fails"
@@ -221,6 +220,10 @@ The tier delegation floors set a *minimum* fan-out. This gate sets the *ceiling*
 
 **Output at the Delegation Gate:** `📐 RIGHT-SIZE: [0-agent inline | N agents, disk-probed | N>8, verify-budget reserved + fallback named]`.
 
+## Agent Briefs Are Ideal-State Prompts
+
+**Every inline brief and Workflow subagent prompt articulates the ideal state, not the procedure.** State WHAT a done result looks like (as testable outcomes), the CONSTRAINTS, and the TOOLS available — then trust the agent to find HOW. A brief that choreographs the agent's reasoning ("first search, then extract, then verify, then synthesize") is BPE-violating scaffolding: it caps a capable agent and rots as models improve. This is the highest-volume prompting surface in the system (subagent briefs are written constantly at runtime), so the discipline matters most here. Keep the four keep-classes — safety-gate, verified-gotcha, tool-contract, output-format-contract — and delete the choreography. Prefer stating the coverage OUTCOME over a hardcoded fan-out count ("trust a match only when 3+ independent sources align", not "spawn exactly 15 agents"). Full standard: `skills/Prompting/Standards.md` § Ideal-State Prompting.
+
 ## Anti-Patterns (Don't Do These)
 
 - Don't delegate what Grep/Glob/Read can do in <2 seconds
@@ -228,12 +231,12 @@ The tier delegation floors set a *minimum* fan-out. This gate sets the *ceiling*
 - Don't create teams for fewer than 3 independent workstreams
 - Don't send agents work without full context — they start fresh
 - Don't use built-in agent names for custom agents
-- Don't use built-in agent types when user asks for specialized or custom agents — always use ComposeAgent via the Agents skill
+- Don't use bare built-in agent types when user asks for specialized or custom agents — write a distinct inline brief per agent and launch `general-purpose`
 - Don't use full delegation for one-shot extraction/classification — use lightweight tier
 
 ## Gotchas
 
-- **Delegation uses Claude Code's built-in TeamCreate** — NOT the Agents skill's ComposeAgent. These are different systems.
+- **Delegation uses Claude Code's built-in TeamCreate** for coordinated teams — distinct from one-shot custom agents (inline briefs on `general-purpose`). These are different patterns.
 - **3+ independent workstreams warrant delegation.** For 1-2 tasks, direct work is faster than team coordination overhead.
 - **Agent teams share a task list.** Use TaskCreate/TaskUpdate for coordination, not ad-hoc messages.
 - **Teams overkill for single-file tasks.** (Mar 2026 reflection: "one agent that can both read code and write JSX is better than three specialists who can't coordinate")

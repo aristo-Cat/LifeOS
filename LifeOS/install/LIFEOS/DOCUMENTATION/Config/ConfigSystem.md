@@ -1,3 +1,7 @@
+---
+version: 1.2.5
+---
+
 # LifeOS Configuration
 
 > The system/user split is the LifeOS boundary made physical (`LifeOs/LifeOsThesis.md`): the OS (system tree) is the same for everyone and ships publicly; the *life* (USER tree — identity, TELOS, current state) is yours alone. The merge machinery below is what lets one framework run any life without leaking any of them.

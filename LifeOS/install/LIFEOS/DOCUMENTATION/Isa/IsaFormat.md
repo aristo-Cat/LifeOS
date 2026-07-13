@@ -1,4 +1,10 @@
-# LifeOS ISA Format Specification v2.7 (Algorithm v6.3.0)
+---
+version: 1.5.19
+---
+
+# LifeOS ISA Format Specification v2.13.0 (Algorithm v6.25.0)
+
+> **v2.13.0 (Algorithm v6.25.0) — ISA scale + a real deletion.** The body grows from twelve sections to **fourteen**: `## Dependencies` (after Constraints) declares cross-ISA needs machine-readably; `## Bridge Criteria` (after Criteria) holds cross-ISA integration ISCs verified at VERIFY across the seam. New optional frontmatter `parent:` / `children:` links ISAs into a tree with **constraint inheritance** (a child cannot violate an ancestor Constraint). **The hard numeric ISC count floors (≥16/≥32/≥128/≥256) are DELETED** and replaced by the **Coverage Gate** — every subsystem named in Vision/Goal has a container ISC decomposed via the Splitting Test to single-probe leaves; coverage is the gate, count never is. Full doctrine in Algorithm v6.25.0 § *ISA Hierarchy & Cross-ISA Integration* and § *ISC Quality System*. The harness executor (`isa run`, reads `## Test Strategy`) is the paired build, tracked separately.
 
 > **LifeOS moves people from current state to ideal state** by writing down what done looks like as testable claims, then refining the writing until every claim survives every test it can be subjected to. The ISA is that written record — the LifeOS loop (`LIFEOS/DOCUMENTATION/LifeOs/LifeOsThesis.md`) at single-artifact scale.
 
@@ -89,6 +95,17 @@ Optional field (added on rework/continuation):
 iteration: 2                              # Incremented when revisiting a completed task
 ```
 
+Optional fields (NEW v2.13.0 / Algorithm v6.25.0 — ISA hierarchy):
+
+```yaml
+parent: 20260706-tolkien-world            # slug of the parent ISA (omit for a root/standalone ISA)
+children:                                 # slugs of child ISAs this one rolls up (omit for a leaf)
+  - 20260706-combat-system
+  - 20260706-magic-system
+```
+
+**Semantics:** `parent`/`children` link ISAs into a tree. A child **inherits every ancestor `## Constraints`** — an inherited Constraint cannot be violated by a child ISC; overriding one is a parent-level renegotiation logged in the parent's `## Decisions`, never a silent child override. A parent's `progress:` may roll up its children (`3/5 children closed`). Both fields are omitted for a standalone single-ISA task (the common case). A change to any linked ISA triggers the Algorithm's blast-radius pass (v6.25.0) which lists downstream ISCs to re-verify; **conflict detection is automated, resolution stays human.**
+
 Optional fields (NEW v2.8 / Algorithm v6.4.0+ — Principal-Stated Goal):
 
 ```yaml
@@ -150,8 +167,10 @@ frame_drift_summary: ""                # NEW v2.11 / Algorithm v6.8.0+ — ≤14
 
 Optional fields (NEW v2.10 / 2026-05-13 — Response Mode + Journey Surface):
 
+> **`response_mode` / `algorithm_mode` RETIRED 2026-07-11.** Mode classification (minimal/native/algorithm) was abolished system-wide and `TheRouter.hook.ts` — its setter — was deleted; nothing writes these keys on new sessions. Existing ISAs keep them (tolerant parsing). The Journey Surface fields (`current_state`/`ideal_state`/`capabilities_invoked`) are unaffected.
+
 ```yaml
-response_mode: algorithm        # minimal | native | algorithm — Layer 1 set by TheRouter.hook.ts
+response_mode: algorithm        # minimal | native | algorithm — Layer 1, formerly set by TheRouter.hook.ts (retired 2026-07-11)
 algorithm_mode: iterate         # iterate | optimize | ideate | loop — Layer 2 (alias of `mode:` for clarity)
 
 current_state: "Code has 47 type errors blocking deploy"   # The "before" — one-line summary of reality now
@@ -161,8 +180,7 @@ capabilities_invoked:           # Array of capabilities actually invoked via too
   - ISA                         # (closed enumeration, see LIFEOS/ALGORITHM/capabilities.md)
   - SystemsThinking
   - FirstPrinciples
-  - Forge                       # delegate agents also recorded here
-  - Cato
+  - Forge                       # delegate agents also recorded here (build or audit mode)
 ```
 
 **Required-when:**
@@ -172,7 +190,7 @@ capabilities_invoked:           # Array of capabilities actually invoked via too
 - `capabilities_invoked`: populated incrementally as the Algorithm fires each capability via tool call. Appended-only — no removal on revert. Mirrors the `🏹 CAPABILITIES SELECTED` block in Algorithm phase output, but records actual invocations not intended ones.
 
 **Lifecycle:**
-- `response_mode`: immutable once set at session start. Set by TheRouter.hook.ts via additionalContext propagation.
+- `response_mode`: immutable once set at session start. Formerly set by `TheRouter.hook.ts` via additionalContext propagation (retired 2026-07-11 — no longer written on new sessions).
 - `algorithm_mode`: changes only when the Algorithm explicitly switches mode (rare; e.g., user mid-task says "actually let's ideate this").
 - `current_state`: immutable once written. The "before" snapshot doesn't change as work progresses.
 - `ideal_state`: should align with `principal_stated_goal:` when set; can be refined as the ISA tightens (matches the "living explanation" pattern).
@@ -278,16 +296,18 @@ algorithm_config:
 | 2 | `## Vision` | Experiential intent — what euphoric surprise looks like | OBSERVE |
 | 3 | `## Out of Scope` | Anti-vision — what is *not* included, declared in prose | OBSERVE |
 | 4 | `## Principles` | Substrate-independent truths the work must respect | OBSERVE |
-| 5 | `## Constraints` | Immovable architectural mandates | OBSERVE |
-| 6 | `## Goal` | Hard-to-vary spine — 1–3 sentences naming verifiable done | OBSERVE |
-| 7 | `## Criteria` | Atomic ISCs (one binary tool probe each), including derived `Anti:` | OBSERVE → EXECUTE |
-| 8 | `## Test Strategy` | Per-ISC verification (`isc \| anchors_to \| type \| check \| threshold \| tool`) — `anchors_to` is NEW v2.8 (v6.4.0): trace to `literal` or `derived: <sub-claim>` | OBSERVE/PLAN |
-| 9 | `## Features` | Work breakdown (`name \| satisfies \| depends_on \| parallelizable \| intelligence`) — `intelligence` is NEW v2.9 (v6.18.0): optional per-task dispatch level (`low\|medium\|high\|max`), empty = inherit the tier curve; down-route-only, scored to the Feature's hardest ISC, producer-locked (see Algorithm § Per-Task Intelligence Routing) | PLAN |
-| 10 | `## Decisions` | Timestamped log including dead ends; `refined:` prefix | any phase |
-| 11 | `## Changelog` | Conjecture / refuted-by / learned / criterion-now entries | LEARN |
-| 12 | `## Verification` | Evidence per ISC | VERIFY |
+| 5 | `## Constraints` | Immovable architectural mandates (plus every Constraint inherited from `parent:`) | OBSERVE |
+| 6 | `## Dependencies` | **NEW v2.13.0 (v6.25.0)** — cross-ISA needs, one machine-readable line each: `requires: <slug> — <what/contract>`. OBSERVE loads these ISAs into context before scaffolding criteria. Omit when the ISA has no cross-ISA needs. | OBSERVE |
+| 7 | `## Goal` | Hard-to-vary spine — 1–3 sentences naming verifiable done | OBSERVE |
+| 8 | `## Criteria` | Atomic ISCs (one binary tool probe each), including derived `Anti:` / `Antecedent:` | OBSERVE → EXECUTE |
+| 9 | `## Bridge Criteria` | **NEW v2.13.0 (v6.25.0)** — cross-ISA integration ISCs: `- [ ] ISC-N: Bridge: <what must hold across the seam>`, with `anchors_to: cross: <slug>` in Test Strategy. Verified at VERIFY as a distinct pass after leaf criteria. Omit when the ISA integrates with no siblings. | OBSERVE → EXECUTE |
+| 10 | `## Test Strategy` | Per-ISC verification (`isc \| anchors_to \| type \| check \| threshold \| tool`) — the harness contract `isa run` reads. `anchors_to` traces to `literal`, `derived: <sub-claim>`, or **`cross: <slug>`** (v2.13.0, bridge ISCs) | OBSERVE/PLAN |
+| 11 | `## Features` | Work breakdown (`name \| satisfies \| depends_on \| parallelizable \| intelligence`) — `intelligence` is NEW v2.9 (v6.18.0): optional per-task dispatch level (`low\|medium\|high\|max`), empty = inherit the tier curve; down-route-only, scored to the Feature's hardest ISC, producer-locked (see Algorithm § Per-Task Intelligence Routing) | PLAN |
+| 12 | `## Decisions` | Timestamped log including dead ends; `refined:` prefix | any phase |
+| 13 | `## Changelog` | Conjecture / refuted-by / learned / criterion-now entries | LEARN |
+| 14 | `## Verification` | Evidence per ISC (leaf + bridge) | VERIFY |
 
-(Optimize mode adds `## Experiments` between Test Strategy and Features.)
+(Optimize mode adds `## Experiments` between Test Strategy and Features. `## Dependencies` and `## Bridge Criteria` appear only when the ISA participates in a hierarchy — a single-ISA task omits both, exactly like any other empty section.)
 
 ### Tier Completeness Gate (HARD at every tier, NEW v2.7)
 
@@ -296,8 +316,10 @@ algorithm_config:
 | **E1** | Goal, Criteria |
 | **E2** | Problem, Goal, Criteria, Test Strategy |
 | **E3** | Problem, Vision, Out of Scope, Constraints, Goal, Criteria, Features, Test Strategy |
-| **E4** | All twelve |
-| **E5** | All twelve + active Interview workflow run before BUILD |
+| **E4** | All fourteen* |
+| **E5** | All fourteen* + active Interview workflow run before BUILD |
+
+\* `## Dependencies` and `## Bridge Criteria` are **conditional-required**: mandatory when the ISA has any `parent:`/`children:`/cross-ISA relationship, omitted (like any empty section) for a standalone single-ISA task. A hierarchical ISA that omits them fails the gate; a standalone one that omits them passes.
 
 Project ISA override: any `<project>/ISA.md` requires E3+ structure regardless of task tier. Enforced by `Skill("ISA", "check completeness")`.
 
@@ -416,7 +438,7 @@ This rule **is** the operational form of hard-to-variability. An ISC that has a 
 
 **Nested ISCs are allowed when they help organize a complex ISA.** Use markdown nested checkboxes; ID format `ISC-N.M.K` for hierarchical IDs (parent `ISC-1` has children `ISC-1.1`, `ISC-1.2`; child `ISC-1.1` has grandchildren `ISC-1.1.1`, `ISC-1.1.2`). The granularity rule applies at the **leaf** level — leaves are atomic testable claims; parents are aggregations that pass when all descendant leaves pass. Don't nest for the sake of nesting; flat is fine when the ISA is small. The point is organization, not decomposition for its own sake.
 
-**Tier ISC floors (Algorithm v5.2.0+; HARD on count at E4/E5 since v6.1.0):** at E2+, the granularity rule's natural N must meet the tier floor — E2 ≥16, E3 ≥32, E4 ≥128, E5 ≥256. At **E2/E3** the floor is soft — relaxable with show-your-math justification in `## Decisions`. At **E4/E5** the floor is HARD on the count: under-decomposition is rejected and the work must keep splitting via the Splitting Test until each ISC is one binary tool probe. E1 (Standard) has no floor — fast-path stays under 90s with whatever ISC count the task naturally produces. The floor is a count anchor only — category mix, capability count, and thinking-vs-delegation balance remain model-picked.
+**Coverage Gate — replaces the count floors (Algorithm v6.25.0).** The hard numeric ISC floors (E2 ≥16, E3 ≥32, E4 ≥128, E5 ≥256) are **DELETED**. They were a count anchor, and a count rewards splitting theater — atomizing to hit a number rather than to reach a probe. The gate now is **coverage**: every subsystem named in Vision/Goal has a container ISC, and every container decomposes via the Splitting Test until each leaf is a single binary tool probe. A 24-leaf ISA passes if it covers the surface; a 300-leaf ISA fails if a named subsystem has none. Never split to hit a number; split until each leaf is one probe, then stop. Coverage is checkable by the harness; a count never was.
 
 **Doctrinal minimums (preserved across versions):** anti-criteria ≥1 (a goal with zero failure modes worth naming is under-specified). Antecedent ≥1 when the goal is experiential (the doctrinal hook for aesthetic/resonant work). v5.3.0 expressed both as prose prefixes (`Anti:` / `Antecedent:`) rather than bracket letters; v5.5.0 dropped the residual `ISC-A-N` numbering so anti-criteria number sequentially in the same pool as every other ISC. The gate rules themselves are unchanged.
 

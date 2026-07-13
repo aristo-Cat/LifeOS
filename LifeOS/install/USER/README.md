@@ -1,3 +1,7 @@
+---
+provenance: template
+---
+
 # USER/ — Your Identity Layer
 
 This directory holds everything LifeOS knows about you: identity, voice,

@@ -1,5 +1,13 @@
 #!/usr/bin/env bun
+// Normalize env path vars Claude Code may inject unexpanded — literal $HOME/${HOME}
+// in LIFEOS_DIR/LIFEOS_CONFIG_DIR/PROJECTS_DIR resolves to a shadow dir (#1404 / PR #1451, author jbmml).
+for (const __k of ["LIFEOS_DIR", "LIFEOS_CONFIG_DIR", "PROJECTS_DIR"]) {
+  const __v = process.env[__k];
+  if (__v && /^\$\{?HOME\}?(\/|$)/.test(__v)) process.env[__k] = __v.replace(/^\$\{?HOME\}?/, process.env.HOME ?? "~");
+}
+
 /**
+ * @version 1.1.5
  * DriftReminder — UserPromptSubmit hook for deterministic voice drift nudges.
  *
  * Reads the Stop-hook last-response cache and emits at most one context line
@@ -12,6 +20,13 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { firstBannedHit } from "./lib/banned-vocab";
+
+// Normalize env path vars that Claude Code injects without shell expansion (LifeOS#1404)
+for (const k of ["LIFEOS_DIR", "LIFEOS_CONFIG_DIR", "PROJECTS_DIR"]) {
+  const v = process.env[k];
+  if (v && /^\$\{?HOME\}?(\/|$)/.test(v)) process.env[k] = v.replace(/^\$\{?HOME\}?/, process.env.HOME ?? "~");
+}
+
 
 interface HookInput {
   prompt?: string;
@@ -36,7 +51,9 @@ const INITIAL_STATE: DriftState = {
   last_text: null,
   schema_version: 1,
 };
-const MODE_BANNERS = ["LifeOS | NATIVE MODE", "LifeOS ALGORITHM", "═══ LifeOS ═══"] as const;
+// One format since 2026-07-11 (modes retired): the single LifeOS banner.
+// The ═══ substring matches the unified `════ LifeOS ═══…` header.
+const MODE_BANNERS = ["═══ LifeOS ═══"] as const;
 
 async function readStdinWithTimeout(timeoutMs: number = STDIN_TIMEOUT_MS): Promise<string> {
   return new Promise((resolve, reject) => {

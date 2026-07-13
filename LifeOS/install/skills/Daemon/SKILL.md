@@ -1,5 +1,6 @@
 ---
 name: Daemon
+version: 1.0.15
 description: "Manage the public daemon profile — a digital representation of what you're working on. DaemonAggregator reads LifeOS sources (TELOS, KNOWLEDGE, PROJECTS, MEMORY/WORK, identity) → daemon-data.json. SecurityFilter strips names/paths/credentials via deterministic patterns (NOT LLM). Workflows: UpdateDaemon, ReadDaemon, PreviewDaemon, DeployDaemon. USE WHEN daemon, update daemon, daemon profile, deploy daemon, preview daemon, read daemon, public profile, digital presence. NOT FOR LifeOS system management (use _LIFEOS)."
 effort: medium
 ---

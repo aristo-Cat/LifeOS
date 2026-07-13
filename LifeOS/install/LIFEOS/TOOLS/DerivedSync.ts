@@ -39,7 +39,7 @@ type StateFile = {
   lastRun: string;
 };
 
-type ActionKind = "telos-summary" | "pai-state" | "data-plane-page";
+type ActionKind = "telos-summary" | "pai-state" | "data-plane-page" | "deny-hashes";
 
 type PlannedAction = {
   kind: ActionKind;
@@ -200,6 +200,14 @@ function isStateSource(path: string): boolean {
   return path.startsWith(sourcePath("TELOS", "IDEAL_STATE") + "/") || path.startsWith(sourcePath("TELOS", "CURRENT_STATE") + "/");
 }
 
+/** Corpus files DeriveDenyHashes.ts reads — a change means the salted-hash leak
+ * filter must regenerate so new contacts/domains/hostnames become covered. */
+function isDenyCorpusSource(path: string): boolean {
+  return /\/(PRINCIPAL_IDENTITY|RESUME|CONTACTS|GEAR)\.md$/.test(path)
+    || /\/TELOS\/TELOS\.md$/.test(path)
+    || path.includes("/MEMORY/_NETWORK/");
+}
+
 function parseManifestId(path: string): string | null {
   const text = readFileSync(path, "utf-8");
   const match = text.match(/^\s*id\s*=\s*"([^"]+)"\s*$/m);
@@ -240,6 +248,16 @@ function plannedActions(changed: string[]): PlannedAction[] {
       cmd: ["bun", join(TOOLS_DIR, "UpdateLifeosState.ts")],
       timeoutMs: DEFAULT_TIMEOUT_MS,
       triggeredBy: stateSources,
+    });
+  }
+
+  const denyCorpus = changed.filter(isDenyCorpusSource);
+  if (denyCorpus.length > 0) {
+    actions.push({
+      kind: "deny-hashes",
+      cmd: ["bun", join(TOOLS_DIR, "DeriveDenyHashes.ts")],
+      timeoutMs: DEFAULT_TIMEOUT_MS,
+      triggeredBy: denyCorpus,
     });
   }
 

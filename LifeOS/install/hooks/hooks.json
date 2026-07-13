@@ -7,10 +7,6 @@
           {
             "type": "command",
             "command": "$HOME/.claude/hooks/ContextReduction.hook.sh"
-          },
-          {
-            "type": "command",
-            "command": "$HOME/.claude/hooks/ArtWorkflowGuard.hook.ts"
           }
         ]
       },
@@ -41,16 +37,16 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$HOME/.claude/hooks/SetQuestionTab.hook.ts"
+            "command": "$HOME/.claude/hooks/TabState.hook.ts"
           }
         ]
       },
       {
-        "matcher": "Write|Edit|MultiEdit",
+        "matcher": "Bash|Write|Edit|MultiEdit",
         "hooks": [
           {
             "type": "command",
-            "command": "$HOME/.claude/hooks/SystemFileGuard.hook.ts"
+            "command": "$HOME/.claude/hooks/PreToolGuard.hook.ts"
           }
         ]
       }
@@ -90,7 +86,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$HOME/.claude/hooks/QuestionAnswered.hook.ts"
+            "command": "$HOME/.claude/hooks/TabState.hook.ts"
           }
         ]
       },
@@ -105,28 +101,6 @@
             "type": "command",
             "command": "$HOME/.claude/hooks/CheckpointPerISC.hook.ts",
             "timeout": 30
-          },
-          {
-            "type": "command",
-            "command": "$HOME/.claude/hooks/TelosSummarySync.hook.ts",
-            "timeout": 5,
-            "async": true
-          },
-          {
-            "type": "command",
-            "command": "$HOME/.claude/hooks/IdentityToSettingsSync.hook.ts",
-            "timeout": 5,
-            "async": true
-          },
-          {
-            "type": "command",
-            "command": "$HOME/.claude/hooks/SettingsBackport.hook.ts",
-            "timeout": 15
-          },
-          {
-            "type": "command",
-            "command": "bun $HOME/.claude/hooks/HookHealer.hook.ts --posttool",
-            "timeout": 5
           }
         ]
       },
@@ -141,28 +115,6 @@
             "type": "command",
             "command": "$HOME/.claude/hooks/CheckpointPerISC.hook.ts",
             "timeout": 30
-          },
-          {
-            "type": "command",
-            "command": "$HOME/.claude/hooks/TelosSummarySync.hook.ts",
-            "timeout": 5,
-            "async": true
-          },
-          {
-            "type": "command",
-            "command": "$HOME/.claude/hooks/IdentityToSettingsSync.hook.ts",
-            "timeout": 5,
-            "async": true
-          },
-          {
-            "type": "command",
-            "command": "$HOME/.claude/hooks/SettingsBackport.hook.ts",
-            "timeout": 15
-          },
-          {
-            "type": "command",
-            "command": "bun $HOME/.claude/hooks/HookHealer.hook.ts --posttool",
-            "timeout": 5
           }
         ]
       },
@@ -177,12 +129,6 @@
             "type": "command",
             "command": "$HOME/.claude/hooks/CheckpointPerISC.hook.ts",
             "timeout": 30
-          },
-          {
-            "type": "command",
-            "command": "$HOME/.claude/hooks/TelosSummarySync.hook.ts",
-            "timeout": 5,
-            "async": true
           }
         ]
       },
@@ -190,14 +136,13 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$HOME/.claude/hooks/ToolActivityTracker.hook.ts",
+            "command": "$HOME/.claude/hooks/EventLogger.hook.ts",
             "timeout": 5,
             "async": true
           }
         ]
       }
     ],
-    "PreCompact": [],
     "SessionEnd": [
       {
         "hooks": [
@@ -211,11 +156,15 @@
           },
           {
             "type": "command",
-            "command": "$HOME/.claude/hooks/RelationshipMemory.hook.ts"
+            "command": "$HOME/.claude/hooks/UpdateCounts.hook.ts"
           },
           {
             "type": "command",
-            "command": "$HOME/.claude/hooks/UpdateCounts.hook.ts"
+            "command": "$HOME/.claude/hooks/MemoryHealthGate.hook.ts"
+          },
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/DocIntegrity.hook.ts"
           },
           {
             "type": "command",
@@ -225,15 +174,6 @@
       }
     ],
     "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "$HOME/.claude/hooks/TheRouter.hook.ts",
-            "timeout": 35
-          }
-        ]
-      },
       {
         "hooks": [
           {
@@ -268,27 +208,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$HOME/.claude/hooks/MemoryReviewTrigger.hook.ts",
-            "timeout": 5,
-            "async": true
-          }
-        ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "$HOME/.claude/hooks/LoadMemory.hook.ts",
-            "timeout": 5,
-            "async": true
-          }
-        ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "$HOME/.claude/hooks/MemoryDeltaSurface.hook.ts",
+            "command": "$HOME/.claude/hooks/MemoryTurnStart.hook.ts",
             "timeout": 8
           }
         ]
@@ -299,7 +219,16 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$HOME/.claude/hooks/ToolFailureTracker.hook.ts"
+            "command": "$HOME/.claude/hooks/EventLogger.hook.ts"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/AlgorithmNudge.hook.ts",
+            "timeout": 5
           }
         ]
       }
@@ -319,7 +248,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$HOME/.claude/hooks/ConfigAudit.hook.ts"
+            "command": "$HOME/.claude/hooks/EventLogger.hook.ts"
           }
         ]
       }
@@ -364,7 +293,7 @@
           },
           {
             "type": "command",
-            "command": "$HOME/.claude/hooks/ResponseTabReset.hook.ts"
+            "command": "$HOME/.claude/hooks/TabState.hook.ts"
           },
           {
             "type": "command",
@@ -372,27 +301,15 @@
           },
           {
             "type": "command",
-            "command": "$HOME/.claude/hooks/DocIntegrity.hook.ts"
-          },
-          {
-            "type": "command",
             "command": "$HOME/.claude/hooks/ISARenderOnStop.hook.ts"
           },
           {
             "type": "command",
-            "command": "$HOME/.claude/hooks/OutputFormatGate.hook.ts"
-          },
-          {
-            "type": "command",
-            "command": "$HOME/.claude/hooks/SuccessClaimGate.hook.ts"
+            "command": "$HOME/.claude/hooks/StopGates.hook.ts"
           },
           {
             "type": "command",
             "command": "$HOME/.claude/hooks/MemoryReviewFire.hook.ts"
-          },
-          {
-            "type": "command",
-            "command": "$HOME/.claude/hooks/MemoryHealthGate.hook.ts"
           }
         ]
       }
@@ -402,17 +319,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$HOME/.claude/hooks/StopFailureHandler.hook.ts"
-          }
-        ]
-      }
-    ],
-    "InstructionsLoaded": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "$HOME/.claude/hooks/InstructionsLoadedHandler.hook.ts"
+            "command": "$HOME/.claude/hooks/EventLogger.hook.ts"
           }
         ]
       }

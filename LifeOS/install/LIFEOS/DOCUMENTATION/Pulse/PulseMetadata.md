@@ -1,7 +1,8 @@
 ---
-last_updated: 2026-06-13
-last_updated_by: <da-name>
+last_updated: 2026-07-11
+last_updated_by: kai
 convention: pai-freshness-v1
+version: 1.0.22
 ---
 
 # Pulse Metadata Surface — Badges, Strips, Panels
@@ -19,7 +20,7 @@ Every LifeOS primitive is **current state → ideal state, articulated as ISCs, 
 - **Where are we?** (current state, current phase, progress)
 - **Where are we going?** (ideal state, goal anchor, ISCs)
 - **How did we get here?** (mode chosen, capabilities invoked, iterations completed)
-- **What confidence do we have?** (Cato verdict, divergence risk, density score)
+- **What confidence do we have?** (Forge audit verdict, divergence risk, density score)
 
 The components below surface those four questions across the Pulse UI.
 
@@ -39,7 +40,7 @@ Compact pills/chips that fit in session rows and headers. One badge = one piece 
 | **GoalBadge** | presence of `principal_stated_goal:` (v6.4.0) | NOT YET BUILT | planned next-ISA |
 | **DensityBadge** | `density_score:` + `divergence_risk:` (v6.5.0) | NOT YET BUILT | planned next-ISA |
 | **IterationBadge** | `iteration:` (current iteration number for loop mode) | NOT YET BUILT | paired with LoopRunner.ts |
-| **CatoBadge** | Cato verdict (pass/concerns/fail) recorded in `## Verification` | NOT YET BUILT | planned next-ISA |
+| **ForgeAuditBadge** | Forge audit verdict (pass/concerns/fail) recorded in `## Verification` | NOT YET BUILT | planned next-ISA |
 
 ### Badge color conventions
 
@@ -97,7 +98,7 @@ Multi-line expandable detail views shown on session click.
 | **GoalPanel** | `principal_stated_goal:` + signal type + locked timestamp | NOT YET BUILT | planned next-ISA |
 | **DecisionsPanel** | `## Decisions` section | NOT YET BUILT | planned next-ISA |
 | **ChangelogPanel** | `## Changelog` section (Deutsch format entries) | NOT YET BUILT | planned next-ISA |
-| **VerificationPanel** | `## Verification` section + Cato/Advisor results | NOT YET BUILT | planned next-ISA |
+| **VerificationPanel** | `## Verification` section + Forge/Grok audit results | NOT YET BUILT | planned next-ISA |
 | **IterationHistoryPanel** | `## Iteration History` section (Loop mode) | NOT YET BUILT | paired with LoopRunner.ts |
 
 ---
@@ -111,7 +112,6 @@ Multi-line expandable detail views shown on session click.
 | **Ideate** | `NoveltyDashboard` (`/novelty`) | ideate sessions, candidate gallery, EVOLVE / META-LEARN deltas |
 | **Loop** | `LoopDashboard` | loop sessions, iteration counter, halt conditions, asymptote detection |
 | **Native** | `NativeDashboard` | NATIVE-mode sessions, quick-task chatter, no-ISA work |
-| **Ladder** | `LadderPage` (`/ladder`) | external Ladder project pipeline (not a LifeOS mode) |
 
 ---
 
@@ -122,7 +122,7 @@ Multi-line expandable detail views shown on session click.
 | **ISA frontmatter** | `MEMORY/WORK/{slug}/ISA.md` or `<project>/ISA.md` | core fields (task, effort, phase, mode, progress, started, updated) + v6.4.0 goal fields + v6.5.0 density fields + v2.10 response/journey fields |
 | **session metadata** | `MEMORY/STATE/work.json` | session registry, used for NATIVE sessions without ISAs |
 | **ISA body sections** | same ISA file, body | `## Decisions`, `## Changelog`, `## Verification`, `## Iteration History` (Loop only) |
-| **TheRouter additionalContext** | `TheRouter.hook.ts` output | response mode, tier, goal signal, density gate eligibility — set per-prompt |
+| **TheRouter additionalContext** _(RETIRED 2026-07-11)_ | `TheRouter.hook.ts` (deleted) | Historical: response mode, tier, goal signal, density gate eligibility — set per-prompt. Mode/tier classification was abolished 2026-07-11; no successor emits this. |
 | **work.json phase history** | `hooks/lib/isa-utils.ts::appendPhase()` | phase transitions with timing — drives PhaseProgressStrip |
 
 ---
@@ -145,4 +145,4 @@ Multi-line expandable detail views shown on session click.
 - Pulse System overview: `LIFEOS/DOCUMENTATION/Pulse/PulseSystem.md`
 - DA subsystem (design): `LIFEOS/DOCUMENTATION/Pulse/DaSubsystem.md`
 - Terminal tabs (kitty integration): `LIFEOS/DOCUMENTATION/Pulse/TerminalTabs.md`
-- Current Algorithm doctrine: `LIFEOS/ALGORITHM/v6.19.0.md`
+- Current Algorithm doctrine: `LIFEOS/ALGORITHM/v8.4.0.md`

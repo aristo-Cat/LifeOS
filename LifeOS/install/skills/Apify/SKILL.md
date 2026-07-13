@@ -1,6 +1,7 @@
 ---
 name: Apify
-description: "Scrape social platforms, business data, and e-commerce via Apify actors — Instagram, LinkedIn, TikTok, YouTube, Facebook, Google Maps business search with contact/review extraction, Amazon products/reviews/pricing, and multi-page web crawling with custom pageFunction extraction. File-based TypeScript wrappers filter data in code before it reaches model context (95-99% token savings vs MCP); parallel multi-platform queries; Google Maps -> LinkedIn lead enrichment. USE WHEN scrape Instagram, scrape LinkedIn, scrape TikTok, scrape YouTube, scrape Facebook, Google Maps leads, Amazon reviews, business intelligence, multi-platform social listening, competitive analysis, lead generation, social monitoring, Apify actors, web crawl, extract contacts. NOT FOR X/Twitter operations (use _X), 4-tier progressive scraping with proxy escalation (use BrightData), parallel headless automation with auth profiles (use Browser), or real-Chrome bot bypass and computer use (use Interceptor)."
+version: 1.1.18
+description: "Scrapes social platforms, business data, and e-commerce via Apify actors — Instagram, LinkedIn, TikTok, YouTube, Facebook, Google Maps, Amazon, and web crawls — filtering in code. USE WHEN scrape Instagram, scrape LinkedIn, scrape TikTok, scrape YouTube, scrape Facebook, Google Maps leads, Amazon reviews, business intelligence, multi-platform social listening, competitive analysis, lead generation, social monitoring, Apify actors, web crawl, extract contacts. NOT FOR X/Twitter operations (use _X), 4-tier progressive scraping with proxy escalation (use BrightData), or real-Chrome bot bypass and computer use (use Interceptor)."
 effort: medium
 ---
 

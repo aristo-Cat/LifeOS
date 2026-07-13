@@ -1,7 +1,7 @@
 const IDEATION_PRESETS: Record<string, { bg: string; border: string; text: string }> = {
   dream:              { bg: "bg-violet-500/15", border: "border-violet-500/30", text: "text-violet-400" },
   explore:            { bg: "bg-blue-500/15",   border: "border-blue-500/30",   text: "text-blue-400" },
-  balanced:           { bg: "bg-zinc-500/15",   border: "border-zinc-500/30",   text: "text-zinc-400" },
+  balanced:           { bg: "bg-[rgba(168,165,200,0.15)]",   border: "border-[rgba(168,165,200,0.3)]",   text: "text-ink-2" },
   directed:           { bg: "bg-amber-500/15",  border: "border-amber-500/30",  text: "text-amber-400" },
   surgical:           { bg: "bg-red-500/15",    border: "border-red-500/30",    text: "text-red-400" },
   "wild-but-picky":   { bg: "bg-fuchsia-500/15", border: "border-fuchsia-500/30", text: "text-fuchsia-400" },
@@ -10,11 +10,11 @@ const IDEATION_PRESETS: Record<string, { bg: string; border: string; text: strin
 
 const OPTIMIZE_PRESETS: Record<string, { bg: string; border: string; text: string }> = {
   cautious:            { bg: "bg-emerald-500/15", border: "border-emerald-500/30", text: "text-emerald-400" },
-  "standard-optimize": { bg: "bg-zinc-500/15",   border: "border-zinc-500/30",   text: "text-zinc-400" },
+  "standard-optimize": { bg: "bg-[rgba(168,165,200,0.15)]",   border: "border-[rgba(168,165,200,0.3)]",   text: "text-ink-2" },
   aggressive:          { bg: "bg-orange-500/15",  border: "border-orange-500/30",  text: "text-orange-400" },
 };
 
-const CUSTOM_STYLE = { bg: "bg-zinc-500/10", border: "border-zinc-500/20", text: "text-zinc-500" };
+const CUSTOM_STYLE = { bg: "bg-[rgba(168,165,200,0.1)]", border: "border-[rgba(168,165,200,0.2)]", text: "text-ink-3" };
 
 interface PresetBadgeProps {
   preset: string | null;

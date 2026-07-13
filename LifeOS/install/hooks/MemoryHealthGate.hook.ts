@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 /**
+ * @version 1.1.0
  * MemoryHealthGate.hook.ts — Stop-chain hook that runs the autonomic-memory
  * health check on every turn end.
  *

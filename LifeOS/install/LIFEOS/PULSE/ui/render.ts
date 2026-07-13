@@ -106,7 +106,7 @@ export function renderShell(opts: {
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>${escape(pageTitle)} · Pulse v2</title>
+<title>Pulse | ${escape(pageTitle)}</title>
 <style>${baseStyles(mode)}</style>
 </head>
 <body>

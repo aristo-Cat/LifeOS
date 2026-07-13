@@ -40,113 +40,19 @@ This workflow is invoked:
 
 ## Execution
 
-### Step 1: Name the Event Clearly
+A done analysis fills the output block below. Walk each layer down, then walk back up with an intervention at each. The layer probes and tests:
 
-Write one sentence stating the specific event that triggered the analysis.
+**Layer 1 — Event.** One sentence, specific with date/time/scope. "A 14-minute outage of the payments service on 2026-04-12 at 23:51 UTC" beats "reliability issues."
 
-```
-EVENT: [Specific thing that happened, with date/time/scope]
-```
+**Layer 2 — Pattern.** Has this shape happened before — over what window, under what conditions, frequency rising/flat/falling, similar in adjacent systems? No pattern means this is a single incident, not an iceberg; hand to RootCauseAnalysis/Postmortem. Pattern shapes: recurring (same shape, intermittent), escalating (worse each time), shifting (symptom moved, rhythm identical), seasonal/triggered (tied to a schedule, release, or team event).
 
-Avoid generalization at this stage. "A 14-minute outage of the payments service on 2026-04-12 at 23:51 UTC" is better than "reliability issues."
+**Layer 3 — Structure.** What rules, incentives, flows, or feedback loops generate the pattern? Name at least three candidates across: feedback loops, incentives, information/resource/authority flows, delays (the action→feedback gap, often the hidden cause), thresholds, ownership boundaries and their gaps, codified rules, resource allocation. **The test: remove the symptom and leave the structure intact — would a new symptom of the same shape appear elsewhere? If yes, that structure is the generator.**
 
-### Step 2: Find the Pattern (Layer 2)
+**Layer 4 — Mental model.** What belief makes the structure feel natural? These are invisible to the people holding them — they feel like "how things are," not "what we believe." Probe: what would we have to believe for this structure to make sense; what does it treat as scarce vs. abundant; whom does it trust; whose voice does it amplify; what time horizon does it optimize? Common shapes: "we don't have time for X," "quality is QA's job," "moving fast beats moving carefully," "prevention isn't visible; fixing is."
 
-Ask: "Has this kind of thing happened before?"
+**Intervention.** Walk back up with a candidate at each layer. Mental-model shift is highest leverage and hardest (what belief must change, who must see it differently, what evidence would shift it); structural fix changes the generator (flip a loop's polarity, tighten a delay, re-cut incentives or boundaries); event patch is fastest and lowest — legitimate only when the structural fix it defers is named and on the roadmap. Never ship an event patch that silently consents to recurrence.
 
-```
-PATTERNS:
-- Over what time window has this recurred?
-- Under what conditions does it appear?
-- Is the frequency changing (up, flat, down)?
-- Are there similar patterns in adjacent systems/teams?
-```
-
-If no pattern exists — this was a one-time event. Iceberg is not the right tool; go to Postmortem (RootCauseAnalysis) for a single-incident analysis. If a pattern exists, continue down.
-
-Common pattern shapes:
-- **Recurring** — same thing, same shape, intermittent frequency
-- **Escalating** — same thing, worse each time
-- **Shifting** — symptom moved but the underlying rhythm is identical
-- **Seasonal / triggered** — tied to a schedule, a release, a team event
-
-### Step 3: Find the Structure (Layer 3)
-
-Ask: "What rules, incentives, flows, or feedback loops generate this pattern?"
-
-This is where most analyses stop too early. Push for at least 3 candidate structures. Categories to consider:
-
-```
-STRUCTURES:
-- Feedback loops — what reinforces or balances the pattern?
-- Incentives — what behavior does the system reward?
-- Flows — where do information, resources, authority travel?
-- Delays — gap between action and feedback, often the hidden cause
-- Thresholds — above/below what number does behavior change?
-- Boundaries — who owns what; what falls in the gaps?
-- Rules / policies — what has been codified, for whom?
-- Resource allocation — where does attention/time/money go?
-```
-
-**Key question:** If you removed the symptom and left the structure intact, would a new symptom of the same shape emerge somewhere else?
-
-If yes — the structure you named is the generator.
-
-### Step 4: Find the Mental Model (Layer 4)
-
-Ask: "What beliefs, assumptions, or worldviews make the structure feel natural or correct?"
-
-Mental models are the hardest to surface because they are *invisible to the people holding them*. They feel like "how things are," not "what we believe."
-
-```
-MENTAL MODELS — probe with these questions:
-- What does this structure imply about what we value?
-- What would we have to believe for this structure to make sense?
-- What does the structure say about who is trusted, who is not?
-- What does the structure treat as scarce vs. abundant?
-- What time horizon does the structure optimize for?
-- Whose voice is amplified by the structure? Whose is quiet?
-```
-
-Common mental-model archetypes:
-- "We don't have time for X" (structure under-invests in X; may be wrong)
-- "Quality is the QA team's job" (generates buck-passing structure)
-- "Moving fast is more valuable than moving carefully" (generates brittle systems)
-- "People need to be managed closely" (generates layered oversight + slow decisions)
-- "Prevention isn't visible; fixing is" (rewards fire-fighting over fire-prevention)
-
-### Step 5: Locate Intervention Points
-
-Once you've walked down, walk back up with intervention candidates at each layer:
-
-```
-INTERVENTIONS BY LAYER:
-
-Layer 4 (Mental Models) — highest leverage, hardest
-- What belief would need to change?
-- Who needs to see the structure differently?
-- What evidence would shift the belief?
-
-Layer 3 (Structures) — high leverage, actionable
-- Change the feedback loop (tighten delays, flip polarity)
-- Change incentives (reward what you want, stop rewarding what you don't)
-- Change boundaries (merge responsibilities, split them)
-- Change flows (information, resources, authority)
-
-Layer 2 (Patterns) — medium leverage
-- Instrument the pattern so it's visible
-- Set thresholds that force response
-- Change the rhythm (ship cadence, review cadence, staffing cycle)
-
-Layer 1 (Events) — lowest leverage, fastest
-- Patch the specific failure
-- Useful only if structural fixes are already committed
-- Otherwise: treating symptoms, problem returns
-```
-
-**Rule:** Never ship an event-layer fix without naming the structural fix it defers. The structural fix may not happen today, but it must be on the roadmap — otherwise the team is consenting to recurrence.
-
-### Step 6: Output
+## Output
 
 ```
 🧊 ICEBERG ANALYSIS: [topic]

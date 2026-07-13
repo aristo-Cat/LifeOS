@@ -169,15 +169,15 @@ export default function SessionNameWordcloud() {
 
   if (isLoading) {
     return (
-      <div className="rounded-lg border border-white/[0.06] bg-zinc-900 p-4">
-        <h3 className="text-xs font-medium text-zinc-400 uppercase tracking-wider mb-3">
+      <div className="rounded-lg border border-white/[0.06] bg-surface-1 p-4">
+        <h3 className="text-xs font-medium text-ink-2 uppercase tracking-wider mb-3">
           Session Names
         </h3>
         <div className="flex flex-wrap items-center justify-center gap-3 py-8">
           {Array.from({ length: 8 }).map((_, i) => (
             <div
               key={i}
-              className="h-5 rounded bg-zinc-800 animate-pulse"
+              className="h-5 rounded bg-surface-2 animate-pulse"
               style={{ width: 40 + Math.random() * 60 }}
             />
           ))}
@@ -188,8 +188,8 @@ export default function SessionNameWordcloud() {
 
   if (error) {
     return (
-      <div className="rounded-lg border border-white/[0.06] bg-zinc-900 p-4">
-        <h3 className="text-xs font-medium text-zinc-400 uppercase tracking-wider mb-3">
+      <div className="rounded-lg border border-white/[0.06] bg-surface-1 p-4">
+        <h3 className="text-xs font-medium text-ink-2 uppercase tracking-wider mb-3">
           Session Names
         </h3>
         <p className="text-xs text-rose-400">Failed to load: {error}</p>
@@ -199,11 +199,11 @@ export default function SessionNameWordcloud() {
 
   if (!processed || processed.entries.length === 0) {
     return (
-      <div className="rounded-lg border border-white/[0.06] bg-zinc-900 p-4">
-        <h3 className="text-xs font-medium text-zinc-400 uppercase tracking-wider mb-3">
+      <div className="rounded-lg border border-white/[0.06] bg-surface-1 p-4">
+        <h3 className="text-xs font-medium text-ink-2 uppercase tracking-wider mb-3">
           Session Names
         </h3>
-        <p className="text-xs text-zinc-600">No session name data available</p>
+        <p className="text-xs text-ink-3">No session name data available</p>
       </div>
     );
   }
@@ -211,11 +211,11 @@ export default function SessionNameWordcloud() {
   // Sparse data: show simple list instead of cloud
   if (processed.entries.length < MIN_WORDS_FOR_CLOUD) {
     return (
-      <div className="rounded-lg border border-white/[0.06] bg-zinc-900 p-4">
-        <h3 className="text-xs font-medium text-zinc-400 uppercase tracking-wider mb-3">
+      <div className="rounded-lg border border-white/[0.06] bg-surface-1 p-4">
+        <h3 className="text-xs font-medium text-ink-2 uppercase tracking-wider mb-3">
           Session Names
         </h3>
-        <p className="text-[14px] text-zinc-500 mb-3">
+        <p className="text-[14px] text-ink-3 mb-3">
           Top words from {processed.totalSessions} session{processed.totalSessions !== 1 ? "s" : ""}
         </p>
         <div className="space-y-1.5">
@@ -225,8 +225,8 @@ export default function SessionNameWordcloud() {
                 className="w-2 h-2 rounded-full shrink-0"
                 style={{ backgroundColor: entry.color }}
               />
-              <span className="text-sm text-zinc-300">{entry.word}</span>
-              <span className="text-xs text-zinc-600 font-mono tabular-nums">
+              <span className="text-sm text-ink-1">{entry.word}</span>
+              <span className="text-xs text-ink-3 font-mono tabular-nums">
                 {entry.count}
               </span>
             </div>
@@ -237,12 +237,12 @@ export default function SessionNameWordcloud() {
   }
 
   return (
-    <div className="rounded-lg border border-white/[0.06] bg-zinc-900 p-4">
+    <div className="rounded-lg border border-white/[0.06] bg-surface-1 p-4">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-xs font-medium text-zinc-400 uppercase tracking-wider">
+        <h3 className="text-xs font-medium text-ink-2 uppercase tracking-wider">
           Session Names
         </h3>
-        <span className="text-[14px] text-zinc-500 font-mono tabular-nums">
+        <span className="text-[14px] text-ink-3 font-mono tabular-nums">
           Top words from {processed.totalSessions} session{processed.totalSessions !== 1 ? "s" : ""}
         </span>
       </div>
@@ -281,14 +281,14 @@ export default function SessionNameWordcloud() {
         {/* Tooltip */}
         {hoveredWord && hoveredEntry && (
           <div
-            className="absolute z-50 px-2.5 py-2 rounded-md bg-zinc-800 border border-white/[0.08] shadow-lg pointer-events-none max-w-[240px]"
+            className="absolute z-50 px-2.5 py-2 rounded-md bg-surface-2 border border-white/[0.08] shadow-lg pointer-events-none max-w-[240px]"
             style={{
               left: tooltipPos.x,
               top: tooltipPos.y - 8,
               transform: "translate(-50%, -100%)",
             }}
           >
-            <p className="text-xs text-zinc-200 font-medium">
+            <p className="text-xs text-ink-1 font-medium">
               {hoveredEntry.word}:{" "}
               <span className="font-mono tabular-nums">
                 {hoveredEntry.count}
@@ -300,7 +300,7 @@ export default function SessionNameWordcloud() {
                 {hoveredSessions.map((name, i) => (
                   <p
                     key={i}
-                    className="text-[13px] text-zinc-500 truncate"
+                    className="text-[13px] text-ink-3 truncate"
                   >
                     {name}
                   </p>

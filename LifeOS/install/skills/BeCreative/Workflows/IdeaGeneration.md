@@ -13,52 +13,28 @@ Running **IdeaGeneration** in **BeCreative**...
 
 ---
 
-**When to use:** Brainstorming, problem-solving, innovation
+**When to use:** Brainstorming, problem-solving, innovation.
 
----
+## Instruction
 
-## Template
+Inside extended thinking, generate 5 diverse solution approaches (p<0.10 each) via Verbalized Sampling — pull from different industries, inverted framings, and hidden constraints — then present the strongest with a short reason it's the breakthrough. Prepend the problem to:
 
 ```markdown
-## Instructions
-
-IDEA GENERATION - DEEP THINKING + VERBALIZED SAMPLING
-
-In your thinking, generate 5 diverse solution approaches with probabilities (p<0.10 each).
-
-For each idea, explore:
-- What assumptions underlie conventional solutions?
-- What would solutions from completely different industries look like?
-- What if we inverted the problem?
-- What counterintuitive approaches might work?
-- What connections can we make across unrelated domains?
-- What are the hidden constraints and opportunities?
-
-Then select and present the most breakthrough solution.
+IDEA GENERATION — DEEP THINKING + VERBALIZED SAMPLING
+Generate 5 diverse solution approaches with probabilities (p<0.10 each), then present the most breakthrough one with reasoning.
 
 ## Problem
-
 [Problem or challenge description]
 ```
 
----
+## Done when
+
+- The 5 approaches rest on different underlying assumptions, not one approach at five scales.
+- At least one draws from a domain unrelated to the problem's home field.
+- The presented solution says why it beats the conventional answer.
 
 ## Best For
 
-- Strategic planning
-- Business innovation
-- Technical problem-solving
-- Product development
+- Strategic planning, business innovation
+- Technical problem-solving, product development
 - Process improvement
-
----
-
-## Process
-
-1. **Receive problem/challenge** from user
-2. **Apply idea generation template**
-3. **Generate 5 diverse solutions** in thinking blocks
-4. **Question assumptions** underlying each approach
-5. **Cross-pollinate** ideas from different industries
-6. **Select breakthrough solution** with highest potential
-7. **Present with reasoning** about why it's innovative

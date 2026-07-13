@@ -20,6 +20,42 @@ description: Prompt engineering standards based on Anthropic's Claude 4.x best p
 
 ---
 
+# Ideal-State Prompting — THE Default Standard
+
+**Every prompt this library generates articulates the ideal state, not the procedure.** This is the top-level standard; all the specific principles below are servants of it. A prompt states WHAT done looks like (as testable outcomes), the CONSTRAINTS that bound the solution space, and the high-quality TOOLS available — then trusts a capable model to find HOW. Dictating execution methodology or reasoning choreography ("first analyze X, then consider Y, then form a hypothesis, then decide") is BPE-violating scaffolding that caps the model and rots as models improve.
+
+**The test for every procedural line (the BPE core question):** *would a smarter model make this rule unnecessary?* Yes → it's scaffolding, cut it. No → keep it. This is the same epistemology as the ISA: the ideal-state criteria ARE the prompt, and they say only what done means.
+
+**Ideal-state prompting is MORE precise, not vaguer.** The specificity moves to the outcome. Compare:
+
+❌ **HOW (procedural, rots):**
+```
+To threat-model this: 1. First enumerate the components. 2. Then think about
+trust boundaries. 3. Consider each STRIDE category carefully. 4. For each,
+brainstorm attacks. 5. Finally, write up your findings.
+```
+
+✅ **WHAT (ideal-state, survives model upgrades):**
+```
+Produce a threat model that names every trust boundary in the system and,
+for each, a concrete attack that crosses it and the control that stops it.
+Tools: [STRIDE reference], [the architecture doc]. Done = no boundary
+unlisted, every listed boundary has ≥1 attack+control pair.
+```
+
+**Four keep-classes are legitimate HOW — a smarter model does NOT make them unnecessary, so keep them:**
+
+| Keep-class | What it is | Why it survives |
+|-----------|-----------|-----------------|
+| **Safety-gate** | Confirmation, destructive-op guard, approval boundary | About authority/consequence, not competence |
+| **Verified-gotcha** | A documented non-obvious failure the model would otherwise hit — **needs provenance** (a dated incident, failing test, or reproduction); no provenance → it's methodology, cut it | Empirical world-fact, not a reasoning crutch |
+| **Tool-contract** | Exact CLI syntax, API params, file paths, invocation recipe | The precise WHAT of a tool call; can't be guessed |
+| **Output-format-contract** | The required shape/schema/template the deliverable must match | Model free on HOW, bound on final form |
+
+Deterministic Tools (`*.ts`) are exempt entirely — they do one fixed thing by design. Everything else that reads as procedure is a candidate to cut. When generating or optimizing any prompt: state the ideal state, state the constraints, supply the tools, keep the four keep-classes, delete the choreography. Full epistemic grounding: `LIFEOS/RULES/Philosophy.md` § Ideal-State Prompting.
+
+---
+
 # Claude 4.x Behavioral Characteristics
 
 **Critical Understanding:** Claude 4.x models have distinct behavioral patterns that affect prompting strategy.
@@ -41,7 +77,7 @@ description: Prompt engineering standards based on Anthropic's Claude 4.x best p
 - **Opus 4.5–4.8 may overtrigger tools:** Dial back aggressive language
 - **Change:** "CRITICAL: You MUST use this tool" → "Use this tool when..."
 - **Softer framing:** Reduces excessive tool invocation
-- **Opus 4.8 favors reasoning over tool calls:** if you want *more* tool use, raise `effort` to `high`/`xhigh` or describe when/how to use the tool — don't shout
+- **Opus 4.8 favors reasoning over tool calls:** if you want *more* tool use, run at `high` effort (the LifeOS ceiling) or describe when/how to use the tool — don't shout
 
 ## Literal Instruction Following (Opus 4.8)
 

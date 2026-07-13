@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 /**
+ * @version 1.1.2
  * ISARenderOnStop.hook.ts — Re-render edited ISAs at end-of-turn.
  *
  * TRIGGER: Stop event (assistant's turn ends).

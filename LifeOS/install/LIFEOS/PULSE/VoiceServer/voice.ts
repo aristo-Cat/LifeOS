@@ -15,7 +15,7 @@
 
 import { spawn } from "child_process"
 import { join } from "path"
-import { existsSync, readFileSync } from "fs"
+import { existsSync, readFileSync, rmSync } from "fs"
 import { log } from "../lib"
 import { disambiguateHomographs } from "../lib/homographs"
 
@@ -347,25 +347,79 @@ async function generateSpeech(
 
 // ── Audio Playback ──
 
-async function playAudio(audioBuffer: ArrayBuffer, volume: number = FALLBACK_VOLUME): Promise<void> {
-  const tempFile = `/tmp/voice-${Date.now()}.mp3`
+// Platform-aware audio player resolution. macOS ships afplay; Linux has no
+// single standard, so try the common CLI players in order. ffplay/mpg123 handle
+// the MP3 that ElevenLabs returns; paplay/aplay are last-resort fallbacks.
+// Resolved once and cached. #1412 — hardcoding afplay ENOENT'd on Linux.
+interface AudioPlayer {
+  path: string
+  buildArgs: (file: string, volume: number) => string[]
+}
 
+let resolvedPlayer: AudioPlayer | null | undefined = undefined
+
+function resolveAudioPlayer(): AudioPlayer | null {
+  if (resolvedPlayer !== undefined) return resolvedPlayer
+
+  const candidates: Array<{ cmd: string; buildArgs: (file: string, volume: number) => string[] }> =
+    process.platform === "darwin"
+      ? [{ cmd: "afplay", buildArgs: (file, volume) => ["-v", volume.toString(), file] }]
+      : [
+          { cmd: "ffplay", buildArgs: (file) => ["-nodisp", "-autoexit", "-loglevel", "quiet", file] },
+          { cmd: "mpg123", buildArgs: (file) => ["-q", file] },
+          { cmd: "paplay", buildArgs: (file) => [file] },
+          { cmd: "aplay", buildArgs: (file) => ["-q", file] },
+        ]
+
+  for (const c of candidates) {
+    const path = Bun.which(c.cmd)
+    if (path) {
+      resolvedPlayer = { path, buildArgs: c.buildArgs }
+      return resolvedPlayer
+    }
+  }
+
+  resolvedPlayer = null
+  return resolvedPlayer
+}
+
+// Serialize playback so concurrent /notify calls don't overlap on the speaker.
+// TTS generation still runs in parallel; only the playback step is queued via a
+// single promise chain. A failed task can't poison the queue. #1361.
+let playbackQueue: Promise<void> = Promise.resolve()
+
+function enqueuePlayback(task: () => Promise<void>): Promise<void> {
+  const next = playbackQueue.then(task, task)
+  playbackQueue = next.catch(() => {})
+  return next
+}
+
+async function playAudio(audioBuffer: ArrayBuffer, volume: number = FALLBACK_VOLUME): Promise<void> {
+  const player = resolveAudioPlayer()
+  if (!player) {
+    const tried = process.platform === "darwin" ? "afplay" : "ffplay/mpg123/paplay/aplay"
+    log("warn", `Voice: no audio player found (tried ${tried}) on ${process.platform} — skipping playback`)
+    return
+  }
+
+  const tempFile = `/tmp/voice-${Date.now()}.mp3`
   await Bun.write(tempFile, audioBuffer)
 
   return new Promise((resolve, reject) => {
-    const proc = spawn("/usr/bin/afplay", ["-v", volume.toString(), tempFile])
+    const proc = spawn(player.path, player.buildArgs(tempFile, volume))
 
     proc.on("error", (error) => {
       log("error", "Voice: error playing audio", { error: String(error) })
+      try { rmSync(tempFile, { force: true }) } catch {}
       reject(error)
     })
 
     proc.on("exit", (code) => {
-      spawn("/bin/rm", [tempFile])
+      try { rmSync(tempFile, { force: true }) } catch {}
       if (code === 0) {
         resolve()
       } else {
-        reject(new Error(`afplay exited with code ${code}`))
+        reject(new Error(`audio player exited with code ${code}`))
       }
     })
   })
@@ -477,7 +531,7 @@ async function sendNotification(
       })
 
       const audioBuffer = await generateSpeech(safeMessage, voice, resolvedSettings)
-      await playAudio(audioBuffer, resolvedVolume)
+      await enqueuePlayback(() => playAudio(audioBuffer, resolvedVolume))
       voicePlayed = true
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : String(error)
@@ -532,8 +586,11 @@ export function startVoice(config: VoiceConfig): void {
   // Load voice config from settings.json
   voiceConfig = loadVoiceConfigFromSettings()
 
-  // Resolve default voice ID: config override → settings.json → hardcoded fallback
-  defaultVoiceId = config.default_voice_id || voiceConfig.defaultVoiceId || "s3TPKV1kjDlVtZbl4Ksh"
+  // Resolve default voice ID: config override → settings.json → hardcoded fallback.
+  // The fallback must stay an ElevenLabs PREMADE voice ("Rachel") — it is the
+  // last resort on unconfigured fresh installs, and account-library or famous
+  // voices 401 there (famous_voice_not_permitted, LifeOS#1461 bug 5).
+  defaultVoiceId = config.default_voice_id || voiceConfig.defaultVoiceId || "21m00Tcm4TlvDq8ikWAM"
 
   initialized = true
   log("info", "Voice module: initialized", {

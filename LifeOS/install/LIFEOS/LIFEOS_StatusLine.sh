@@ -11,7 +11,31 @@ set -o pipefail
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────────────
 
+# Hook/statusline spawn contexts can arrive with $HOME unset (LifeOS#1463).
+# Resolve the real home before any path is built; never trust a bare $HOME.
+if [ -z "$HOME" ]; then
+    HOME="$(getent passwd "$(id -un)" 2>/dev/null | cut -d: -f6)"
+    [ -z "$HOME" ] && HOME="$(eval echo "~$(id -un)" 2>/dev/null)"
+fi
+
 LIFEOS_DIR="${LIFEOS_DIR:-$HOME/.claude/LIFEOS}"
+# Claude Code injects settings.json env values without shell expansion (LifeOS#1404):
+# a shipped value of "$HOME/.claude/LIFEOS" arrives literal. Expand it here.
+LIFEOS_DIR="${LIFEOS_DIR/#\$HOME/$HOME}"
+LIFEOS_DIR="${LIFEOS_DIR/#\$\{HOME\}/$HOME}"
+LIFEOS_DIR="${LIFEOS_DIR/#\~\//$HOME/}"
+
+# Fail closed (LifeOS#1463): a non-absolute or still-unexpanded LIFEOS_DIR would
+# make every cache write land relative to CWD (a literal '$HOME/' dir polluting
+# whatever repo the session runs in). Refuse to run rather than write garbage.
+case "$LIFEOS_DIR" in
+    /*) ;;
+    *)  echo "LifeOS"; exit 0 ;;
+esac
+case "$LIFEOS_DIR" in
+    *'$HOME'*|*'${HOME}'*|*'~'*) echo "LifeOS"; exit 0 ;;
+esac
+
 CLAUDE_HOME="$HOME/.claude"
 SETTINGS_FILE="$CLAUDE_HOME/settings.json"
 RATINGS_FILE="$LIFEOS_DIR/MEMORY/LEARNING/SIGNALS/ratings.jsonl"
@@ -20,6 +44,7 @@ QUOTES_FILE="$LIFEOS_DIR/USER/PRINCIPAL/Quotes.txt"
 LOCATION_CACHE="$LIFEOS_DIR/MEMORY/STATE/location-cache.json"
 WEATHER_CACHE="$LIFEOS_DIR/MEMORY/STATE/weather-cache.json"
 USAGE_CACHE="/tmp/pai-usage-${USER:-anon}.json"
+USAGE_LOCK="/tmp/pai-usage-${USER:-anon}.lock"   # P4: single-fetcher mutex (atomic mkdir; portable, no flock(1))
 LEARNING_CACHE="$LIFEOS_DIR/MEMORY/STATE/learning-cache.sh"
 
 # Config reads from settings.json. NO counts here — counts are computed live
@@ -27,7 +52,12 @@ LEARNING_CACHE="$LIFEOS_DIR/MEMORY/STATE/learning-cache.sh"
 eval "$(jq -r '
   "TEMP_UNIT=" + (.preferences.temperatureUnit // "fahrenheit" | @sh) + "\n" +
   "DA_NAME=" + (.daidentity.name // .daidentity.displayName // .env.DA // "Assistant" | @sh) + "\n" +
-  "USER_TZ=" + (.principal.timezone // "" | @sh)
+  "USER_TZ=" + (.principal.timezone // "" | @sh) + "\n" +
+  "LOC_CITY=" + (.location.city? // "" | @sh) + "\n" +
+  "LOC_REGION=" + (.location.regionName? // "" | @sh) + "\n" +
+  "LOC_LAT=" + (.location.lat? // "" | tostring | @sh) + "\n" +
+  "LOC_LON=" + (.location.lon? // "" | tostring | @sh) + "\n" +
+  "LOC_CC=" + (.location.countryCode? // "" | @sh)
 ' "$SETTINGS_FILE" 2>/dev/null)"
 TEMP_UNIT="${TEMP_UNIT:-fahrenheit}"
 [ "$TEMP_UNIT" != "celsius" ] && TEMP_UNIT="fahrenheit"
@@ -79,18 +109,6 @@ for _algo_path in \
         [ -n "$ALGO_VERSION" ] && break
     fi
 done
-# Diagnostic log so we can see WHAT is happening in claude-code spawn context
-{
-    printf '[%s] ALGO_VERSION=%q HOME=%q LIFEOS_DIR=%q USER=%q paths_tried:' \
-        "$(date '+%H:%M:%S')" "$ALGO_VERSION" "${HOME:-UNSET}" "${LIFEOS_DIR:-UNSET}" "${USER:-UNSET}"
-    for _algo_path in \
-        "$LIFEOS_DIR/ALGORITHM/LATEST" \
-        "$HOME/.claude/LIFEOS/ALGORITHM/LATEST" \
-        "/Users/$(id -un 2>/dev/null)/.claude/LIFEOS/ALGORITHM/LATEST"; do
-        printf ' %s=%s' "$_algo_path" "$([ -f "$_algo_path" ] && echo OK || echo MISS)"
-    done
-    printf '\n'
-} >> /tmp/pai-statusline-debug.log 2>/dev/null
 ALGO_VERSION="${ALGO_VERSION:-—}"
 
 # Cache TTL in seconds — rationale documented for each
@@ -110,6 +128,8 @@ ALGO_VERSION="${ALGO_VERSION:-—}"
 LOCATION_CACHE_TTL=3600
 WEATHER_CACHE_TTL=900
 USAGE_CACHE_TTL=900      # 15 min: /api/oauth/usage has aggressive per-token rate limits (~5 req before 429)
+USAGE_HARD_EXPIRY=21600  # P5: 6h. Show last-known-good (dimmed + stale badge) until here, then hide —
+                         # replaces the old 1800s cliff that deleted the cache and vanished the counters.
 
 # Source .env for API keys. Canonical location is $HOME/.claude/.env (which is
 # typically a symlink to $HOME/.config/LIFEOS/.env). The historical $HOME/.claude/LIFEOS/.env
@@ -201,8 +221,6 @@ reset_time_str() {
 # ─────────────────────────────────────────────────────────────────────────────
 
 input=$(cat)
-# [TEMP-DEBUG] capture real stdin payload to inspect effort/output_style fields
-printf '%s' "$input" > "$LIFEOS_DIR/MEMORY/STATE/statusline-stdin-debug.json" 2>/dev/null
 
 # Get DA name from settings (single source of truth)
 DA_NAME="${DA_NAME:-Assistant}"
@@ -230,6 +248,8 @@ eval "$(jq -r '
   "context_pct=" + (.context_window.used_percentage // 0 | tostring) + "\n" +
   "total_input=" + (.context_window.total_input_tokens // 0 | tostring) + "\n" +
   "has_native_rate_limits=" + ((.rate_limits != null) | tostring) + "\n" +
+  "native_usage_5h_present=" + ((.rate_limits.five_hour.used_percentage // .rate_limits.five_hour.utilization) != null | tostring) + "\n" +
+  "native_usage_7d_present=" + ((.rate_limits.seven_day.used_percentage // .rate_limits.seven_day.utilization) != null | tostring) + "\n" +
   "native_usage_5h=" + (.rate_limits.five_hour.used_percentage // .rate_limits.five_hour.utilization // 0 | tostring) + "\n" +
   "native_usage_5h_reset=" + (.rate_limits.five_hour.resets_at // "" | @sh) + "\n" +
   "native_usage_7d=" + (.rate_limits.seven_day.used_percentage // .rate_limits.seven_day.utilization // 0 | tostring) + "\n" +
@@ -246,6 +266,8 @@ context_pct=${context_pct:-0}
 context_max=${context_max:-200000}
 total_input=${total_input:-0}
 has_native_rate_limits="${has_native_rate_limits:-false}"
+native_usage_5h_present="${native_usage_5h_present:-false}"
+native_usage_7d_present="${native_usage_7d_present:-false}"
 
 # Claude Code reserves ~16.5% of context for compaction overhead.
 # Usable context = 83.5% of window. Scale displayed % so it matches reality.
@@ -635,7 +657,20 @@ if [ "$_loc_age" -gt "$LOCATION_CACHE_TTL" ] || [ "$_wx_age" -gt "$WEATHER_CACHE
         trap 'rmdir "$_lock_dir" 2>/dev/null' EXIT
 
         # Refresh location if stale
-        if [ "$_loc_age" -gt "$LOCATION_CACHE_TTL" ]; then
+        if [ -n "${LOC_CITY:-}" ]; then
+            # User-configured location (settings.json .location) is authoritative.
+            # Skip ip-api.com entirely — correct for VPN/proxy/corporate-network
+            # users whose exit node is in a different city, AND one fewer third-party
+            # request exposing the user's IP. IP geolocation stays the fallback when
+            # .location is unset. (upstream PR #1309)
+            jq -n --arg city "$LOC_CITY" --arg region "${LOC_REGION:-}" \
+                  --arg cc "${LOC_CC:-}" \
+                  --arg lat "${LOC_LAT:-}" --arg lon "${LOC_LON:-}" \
+                  '{city:$city, regionName:$region, countryCode:$cc,
+                    lat:($lat | if . == "" then null else tonumber end),
+                    lon:($lon | if . == "" then null else tonumber end)}' \
+                  > "$LOCATION_CACHE" 2>/dev/null
+        elif [ "$_loc_age" -gt "$LOCATION_CACHE_TTL" ]; then
             _loc_data=$(curl -s --max-time 3 "http://ip-api.com/json/?fields=city,region,regionName,country,countryCode,lat,lon" 2>/dev/null)
             if [ -n "$_loc_data" ] && echo "$_loc_data" | jq -e '.city' >/dev/null 2>&1; then
                 echo "$_loc_data" > "$LOCATION_CACHE"
@@ -723,9 +758,120 @@ if [ "$MODE" = "normal" ]; then
     #    TTL: 900s (15 min). On failure, use cache if <30min old, else show "—".
     _usage_now=$NOW_EPOCH
 
+    # Refresh the OAuth usage cache (15-min TTL, single-fetcher lock). Used by
+    # BOTH paths below: as the full data source when native rate_limits are
+    # absent, and as extra_usage enrichment when they're present — Claude Code's
+    # native payload carries five_hour/seven_day but NO extra_usage object
+    # (verified against real stdin 2026-07-08), so EXT/credits data can only
+    # come from /api/oauth/usage. Sets _data_age (age of last-known-good).
+    _refresh_usage_cache() {
+        # Data age is computed from the in-data fetched_at stamp (P6) when present,
+        # else the file mtime — so rsync/backup/touch can't fake freshness or staleness.
+        _data_age=999999
+        if [ -f "$USAGE_CACHE" ]; then
+            _fetched_at=$(jq -r '.fetched_at // empty' "$USAGE_CACHE" 2>/dev/null)
+            if [[ "$_fetched_at" =~ ^[0-9]+$ ]]; then
+                _data_age=$((_usage_now - _fetched_at))
+            else
+                _data_age=$((_usage_now - $(get_mtime "$USAGE_CACHE")))
+            fi
+        fi
+
+        if [ "$_data_age" -gt "$USAGE_CACHE_TTL" ]; then
+            # Single-fetcher coordination (P4): only ONE of N concurrent statuslines
+            # fetches per TTL window. mkdir is an atomic, portable mutex — macOS has
+            # no flock(1). Acquisition is NON-BLOCKING: a loser never waits on the
+            # slow 429-prone endpoint, it falls straight through to last-known-good.
+            #
+            # Reap only a lock whose owner PROCESS IS DEAD (crash) — a liveness check
+            # (kill -0), not a bare timeout, so a slow-but-alive winner is never reaped
+            # out from under itself. Invariant: curl --max-time (3s total, incl.
+            # connect) ≪ the 15s reap floor, so a live winner can't be misclassified.
+            if [ -d "$USAGE_LOCK" ]; then
+                _owner=$(cat "$USAGE_LOCK/pid" 2>/dev/null)
+                _lock_age=$((_usage_now - $(get_mtime "$USAGE_LOCK")))
+                if [ "$_lock_age" -gt 15 ] && { [ -z "$_owner" ] || ! kill -0 "$_owner" 2>/dev/null; }; then
+                    rm -f "$USAGE_LOCK/pid" 2>/dev/null; rmdir "$USAGE_LOCK" 2>/dev/null
+                fi
+            fi
+            if mkdir "$USAGE_LOCK" 2>/dev/null; then
+                echo "$$" > "$USAGE_LOCK/pid" 2>/dev/null   # ownership token (verified on release)
+                # Extract OAuth token — macOS Keychain or Linux credentials file
+                if [ "$(uname -s)" = "Darwin" ]; then
+                    cred_json=$(security find-generic-password -s "Claude Code-credentials" -w 2>/dev/null)
+                else
+                    cred_json=$(cat "${HOME}/.claude/.credentials.json" 2>/dev/null)
+                fi
+                token=$(echo "$cred_json" | jq -r '.claudeAiOauth.accessToken // empty' 2>/dev/null)
+
+                if [ -n "$token" ]; then
+                    usage_json=$(curl -s --max-time 3 \
+                        -H "Authorization: Bearer $token" \
+                        -H "Content-Type: application/json" \
+                        -H "anthropic-beta: oauth-2025-04-20" \
+                        "https://api.anthropic.com/api/oauth/usage" 2>/dev/null)
+
+                    # Fail CLOSED: install a new cache ONLY when the body is real JSON
+                    # with a five_hour field. A 429/5xx/HTML body fails this probe, so
+                    # last-known-good is never atomically overwritten with garbage (P5).
+                    if [ -n "$usage_json" ] && echo "$usage_json" | jq -e '.five_hour' >/dev/null 2>&1; then
+                        # Atomic write (P4): temp in the SAME dir (same fs => rename is
+                        # atomic), 0600, and never mv onto a followed symlink (the path
+                        # is predictable in a world-writable dir). Stamp fetched_at (P6).
+                        # mv ONLY if the temp is non-empty (defends jq-exit-0-empty).
+                        _tmp_cache="${USAGE_CACHE}.tmp.$$"
+                        if echo "$usage_json" | jq --argjson now "$_usage_now" '. + {fetched_at:$now}' > "$_tmp_cache" 2>/dev/null && [ -s "$_tmp_cache" ]; then
+                            chmod 600 "$_tmp_cache" 2>/dev/null
+                            [ -L "$USAGE_CACHE" ] && rm -f "$USAGE_CACHE" 2>/dev/null
+                            mv -f "$_tmp_cache" "$USAGE_CACHE" 2>/dev/null && _data_age=0
+                        fi
+                        rm -f "$_tmp_cache" 2>/dev/null
+                    fi
+                fi
+                # Release ONLY if we still own the lock — never nuke another holder's.
+                if [ "$(cat "$USAGE_LOCK/pid" 2>/dev/null)" = "$$" ]; then
+                    rm -f "$USAGE_LOCK/pid" 2>/dev/null; rmdir "$USAGE_LOCK" 2>/dev/null
+                fi
+            fi
+            # Losers (mkdir failed): no fetch, no wait — fall through to last-known-good.
+        fi
+    }
+
+    # Emit fields that exist ONLY in the OAuth payload — never in Claude Code's
+    # native rate_limits (verified against real stdin 2026-07-12): the limits[]
+    # array (scoped per-model window e.g. Fable, plus per-window is_active
+    # flags) and the spend object (usage-credits pool, incl. disabled state).
+    # Appended after the base usage.sh so these lines win when sourced.
+    _emit_cache_enrichment() {
+        [ -f "$USAGE_CACHE" ] || return 0
+        jq -r '
+            ([.limits[]? | select(.scope.model? != null)] | first) as $sc |
+            "usage_scoped_present=" + (($sc != null) | tostring) + "\n" +
+            "usage_scoped_name=" + (($sc.scope.model.display_name // "") | ascii_upcase | @sh) + "\n" +
+            "usage_scoped_pct=" + ($sc.percent // 0 | tostring) + "\n" +
+            "usage_scoped_reset=" + ($sc.resets_at // "" | @sh) + "\n" +
+            "usage_scoped_active=" + ($sc.is_active // false | tostring) + "\n" +
+            "usage_5h_active=" + (([.limits[]? | select(.kind == "session") | .is_active] | first // false) | tostring) + "\n" +
+            "usage_7d_active=" + (([.limits[]? | select(.kind == "weekly_all") | .is_active] | first // false) | tostring) + "\n" +
+            "usage_spend_used_cents=" + (.spend.used.amount_minor // 0 | tostring) + "\n" +
+            "usage_spend_limit_cents=" + (.spend.limit.amount_minor // 0 | tostring) + "\n" +
+            "usage_spend_enabled=" + (.spend.enabled // false | tostring)
+        ' "$USAGE_CACHE" 2>/dev/null
+    }
+
     if [ "$has_native_rate_limits" = "true" ]; then
-        # Native rate_limits available — use directly, skip OAuth API entirely
+        # Native rate_limits available — use directly, skip OAuth API entirely.
+        # Presence is tri-state and per-source (P1): a present 0% is real data
+        # (state=fresh); an absent rate_limits window is NOT (state=absent).
+        # "field absent" must never be conflated with "value 0".
+        if [ "$native_usage_5h_present" = "true" ] || [ "$native_usage_7d_present" = "true" ]; then
+            _native_state=fresh
+        else
+            _native_state=absent
+        fi
         cat > "$_parallel_tmp/usage.sh" << USAGEEOF
+usage_source=native
+usage_state=$_native_state
 usage_5h=${native_usage_5h:-0}
 usage_5h_reset=${native_usage_5h_reset:-''}
 usage_7d=${native_usage_7d:-0}
@@ -737,39 +883,34 @@ usage_extra_limit=${native_usage_extra_limit:-0}
 usage_extra_used=${native_usage_extra_used:-0}
 usage_ws_cost_cents=0
 USAGEEOF
+        # Native payload has no extra_usage, limits[], or spend — enrich from
+        # the OAuth cache so the EXT indicator, credits readout, scoped-model
+        # (Fable) window, and active-window flags can render. Appended lines
+        # win over the native false/0 defaults when usage.sh is sourced.
+        _refresh_usage_cache
+        if [ "$_data_age" -lt "$USAGE_HARD_EXPIRY" ]; then
+            if [ "${native_usage_extra_enabled:-false}" != "true" ] && jq -e '.extra_usage.is_enabled == true' "$USAGE_CACHE" >/dev/null 2>&1; then
+                jq -r '
+                    "usage_extra_enabled=true\n" +
+                    "usage_extra_limit=" + (.extra_usage.monthly_limit // 0 | tostring) + "\n" +
+                    "usage_extra_used=" + (.extra_usage.used_credits // 0 | tostring)
+                ' "$USAGE_CACHE" >> "$_parallel_tmp/usage.sh" 2>/dev/null
+            fi
+            _emit_cache_enrichment >> "$_parallel_tmp/usage.sh"
+        fi
     else
         # Fallback: fetch from OAuth API (pre-v2.1.80 or non-Claude.ai auth)
-        cache_age=999999
-        [ -f "$USAGE_CACHE" ] && cache_age=$((_usage_now - $(get_mtime "$USAGE_CACHE")))
+        _refresh_usage_cache
 
-        if [ "$cache_age" -gt "$USAGE_CACHE_TTL" ]; then
-            # Extract OAuth token — macOS Keychain or Linux credentials file
-            if [ "$(uname -s)" = "Darwin" ]; then
-                cred_json=$(security find-generic-password -s "Claude Code-credentials" -w 2>/dev/null)
-            else
-                cred_json=$(cat "${HOME}/.claude/.credentials.json" 2>/dev/null)
-            fi
-            token=$(echo "$cred_json" | jq -r '.claudeAiOauth.accessToken // empty' 2>/dev/null)
-
-            if [ -n "$token" ]; then
-                usage_json=$(curl -s --max-time 3 \
-                    -H "Authorization: Bearer $token" \
-                    -H "Content-Type: application/json" \
-                    -H "anthropic-beta: oauth-2025-04-20" \
-                    "https://api.anthropic.com/api/oauth/usage" 2>/dev/null)
-
-                if [ -n "$usage_json" ] && echo "$usage_json" | jq -e '.five_hour' >/dev/null 2>&1; then
-                    echo "$usage_json" | jq '.' > "$USAGE_CACHE" 2>/dev/null
-                fi
-            fi
-        fi
-
-        # Read cache if it exists and is <30min old. Otherwise no data.
-        _usage_age=999999
-        [ -f "$USAGE_CACHE" ] && _usage_age=$((_usage_now - $(get_mtime "$USAGE_CACHE")))
-
-        if [ -f "$USAGE_CACHE" ] && [ "$_usage_age" -lt 1800 ]; then
+        # Read last-known-good (P5): show cached data — dimmed with a stale badge by
+        # the render block — until USAGE_HARD_EXPIRY, instead of the old 30-min cliff
+        # that rm'd the cache and vanished the counters. Hide only when the cache is
+        # missing/unparseable or past hard expiry. Never delete the cache: a future
+        # successful fetch resumes from it.
+        if [ -f "$USAGE_CACHE" ] && [ "$_data_age" -lt "$USAGE_HARD_EXPIRY" ] && jq -e '.five_hour' "$USAGE_CACHE" >/dev/null 2>&1; then
             jq -r '
+                "usage_source=oauth\n" +
+                "usage_state=fresh\n" +
                 "usage_5h=" + (.five_hour.utilization // 0 | tostring) + "\n" +
                 "usage_5h_reset=" + (.five_hour.resets_at // "" | @sh) + "\n" +
                 "usage_7d=" + (.seven_day.utilization // 0 | tostring) + "\n" +
@@ -781,9 +922,10 @@ USAGEEOF
                 "usage_extra_used=" + (.extra_usage.used_credits // 0 | tostring) + "\n" +
                 "usage_ws_cost_cents=0"
             ' "$USAGE_CACHE" > "$_parallel_tmp/usage.sh" 2>/dev/null
+            echo "usage_data_age=$_data_age" >> "$_parallel_tmp/usage.sh"
+            _emit_cache_enrichment >> "$_parallel_tmp/usage.sh"
         else
-            rm -f "$USAGE_CACHE" 2>/dev/null
-            echo -e "usage_5h=0\nusage_7d=0\nusage_extra_enabled=false\nusage_ws_cost_cents=0\nusage_no_data=true" > "$_parallel_tmp/usage.sh"
+            echo -e "usage_source=oauth\nusage_state=absent\nusage_5h=0\nusage_7d=0\nusage_extra_enabled=false\nusage_ws_cost_cents=0\nusage_no_data=true" > "$_parallel_tmp/usage.sh"
         fi
     fi
 } &
@@ -881,6 +1023,7 @@ USAGE_PRIMARY='\033[38;2;194;139;62m'
 USAGE_LABEL='\033[38;2;168;113;50m'
 USAGE_RESET='\033[38;2;148;163;184m'
 USAGE_EXTRA='\033[38;2;140;90;60m'
+USAGE_EXTRA_ACTIVE='\033[38;2;251;146;60m'   # Bright orange — extra credits burning NOW
 USAGE_STALE='\033[38;2;120;113;108m'   # Warm gray for stale labels (not values)
 
 # Quote (gold)
@@ -1261,78 +1404,12 @@ done
 printf "\n"
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# MODE — current session's LifeOS mode + four-level intelligence level.
-# Renders directly below STATE, above MEMORY. Sources (read-only, every tick):
-#   1. work.json .sessions[] row matching this session_id (sessionUUID equality,
-#      latest updatedAt wins) → currentMode (minimal|native|algorithm) + effort (E1-E5)
-#   2. effort-router.jsonl (classifier telemetry) → tier fallback for the window
-#      between classification and the ISA scaffold writing `effort`
-# Level is ROUTING-derived per the Four-Level Model (OPERATIONAL_RULES.md):
-#   ALGORITHM E4/E5 → MAX; ALGORITHM E1–E3, NATIVE, MINIMAL → HIGH.
-# (Not main-loop-model-derived — the MODEL line already shows the literal model.)
-# No row / no data → "NA" with level "—".
+# EFFORT — live reasoning effort scale. Renders below STATE, above MEMORY.
+# Mode/tier enumeration (N/A NATIVE ALGORITHM 1-5) removed 2026-07-11 per
+# principal directive — modes/tiers are no longer surfaced.
 # ═══════════════════════════════════════════════════════════════════════════════
 
-_pm_work_json="$LIFEOS_DIR/MEMORY/STATE/work.json"
-_pm_router_log="$LIFEOS_DIR/MEMORY/OBSERVABILITY/effort-router.jsonl"
-_pai_mode="NA"; _pai_tier=""; _pai_level="—"
-
-if [ -n "$session_id" ] && [ -f "$_pm_work_json" ]; then
-    # updatedAt arrives in two formats — UTC "...Z" (most writers) and local
-    # "...-07:00" (legacy SessionCleanup stamps). Raw string sort across the
-    # two picks stale rows (a Z-format algorithm row lexically beats a newer
-    # offset-format native row), lighting ALGORITHM during NATIVE sessions.
-    # Parse to epoch before sorting, and prefer live (non-complete) rows.
-    IFS=$'\t' read -r _pm_mode _pm_effort <<< "$(jq -r --arg sid "$session_id" '
-        def toepoch:
-          if . == null or . == "" then 0
-          else
-            (capture("(?<d>\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2})(\\.\\d+)?(?<tz>Z|[+-]\\d{2}:\\d{2})?") // null) as $m
-            | if $m == null then 0
-              else
-                ($m.d + "Z" | fromdateiso8601) as $base
-                | (if ($m.tz // "Z") == "Z" then 0
-                   else
-                     ($m.tz[0:3] | tonumber) as $h
-                     | ($m.tz[4:6] | tonumber) as $mm
-                     | ($h * 3600) + ((if $m.tz[0:1] == "-" then -1 else 1 end) * $mm * 60)
-                   end) as $off
-                | $base - $off
-              end
-          end;
-        .sessions // {} | to_entries | map(.value)
-        | map(select(.sessionUUID == $sid))
-        | (map(select((.phase // "") != "complete"))) as $live
-        | (if ($live | length) > 0 then $live else . end)
-        | sort_by(.updatedAt // "" | toepoch) | last
-        | if . == null then "" else [(.currentMode // ""), (.effort // "")] | @tsv end
-    ' "$_pm_work_json" 2>/dev/null)"
-    case "${_pm_mode:-}" in
-        algorithm)
-            _pai_mode="ALGORITHM"
-            case "${_pm_effort:-}" in
-                E[1-5]) _pai_tier="$_pm_effort" ;;
-                *)
-                    # Tier not yet in work.json (pre-ISA window) — fall back to the
-                    # classifier's last telemetry entry for this session.
-                    if [ -f "$_pm_router_log" ]; then
-                        _pm_rt=$(tail -200 "$_pm_router_log" 2>/dev/null | \
-                            jq -r --arg sid "$session_id" 'select(.session_id == $sid) | .tier // empty' 2>/dev/null | tail -1)
-                        case "${_pm_rt:-}" in
-                            [1-5]) _pai_tier="E${_pm_rt}" ;;
-                        esac
-                    fi
-                    ;;
-            esac
-            ;;
-        native)  _pai_mode="NATIVE" ;;
-        minimal) _pai_mode="MINIMAL" ;;
-    esac
-fi
-
-# MINIMAL maps to NA — the principal's enumeration is NA/Native/Algorithm;
-# minimal turns have no ideal state in play, so no mode is "active".
-[ "$_pai_mode" = "MINIMAL" ] && _pai_mode="NA"
+_pai_level=""
 
 # LEVEL reflects the harness's LIVE reasoning effort, straight from the
 # statusline stdin `effort.level` field (low|medium|high|xhigh|max) — it tracks
@@ -1347,17 +1424,8 @@ case "$(printf '%s' "${effort_level:-}" | tr '[:upper:]' '[:lower:]')" in
     xhigh)  _pai_level="XHIGH" ;;
     max)    _pai_level="MAX" ;;
     *)
-        # No live effort value — derive from LifeOS mode (legacy behavior).
-        case "$_pai_mode" in
-            ALGORITHM)
-                case "$_pai_tier" in
-                    E4|E5) _pai_level="MAX" ;;
-                    *)     _pai_level="HIGH" ;;
-                esac
-                ;;
-            NATIVE) _pai_level="HIGH" ;;
-            *)      _pai_level="" ;;
-        esac
+        # No live effort value — LifeOS runs uniformly at high (2026-07-06 directive).
+        _pai_level="HIGH"
         ;;
 esac
 # Ultracode promotion: reports as xhigh in effort.level, but the active output
@@ -1367,22 +1435,7 @@ case "$(printf '%s' "${output_style:-}" | tr '[:upper:]' '[:lower:]')" in
 esac
 
 # Active colors per token; inactive tokens render in muted SLATE_600.
-# Tier digits and levels use intensity ramps within one family —
-# brighter = higher tier / higher level.
 _pm_dim="$SLATE_600"
-_pm_na_c="$SLATE_400"                       # N/A active — grey
-_pm_native_c="$EMERALD"                     # NATIVE active — emerald (distinct from algorithm violet)
-_pm_algo_c="$LEARN_PRIMARY"                 # ALGORITHM word active — violet
-# Algorithm tier digit ramp: violet-600 → violet-200 (1 dimmest, 5 brightest)
-_pm_tier_c() {
-    case "$1" in
-        1) printf '\033[38;2;124;58;237m' ;;
-        2) printf '\033[38;2;139;92;246m' ;;
-        3) printf '\033[38;2;167;139;250m' ;;
-        4) printf '\033[38;2;196;181;253m' ;;
-        5) printf '\033[38;2;221;214;254m' ;;
-    esac
-}
 # Intelligence level ramp: heat scale — green → yellow → orange → red, then
 # purple apex for ULTRA (LOW coolest; XHIGH sits between HIGH and MAX; ULTRA the apex)
 _pm_level_c() {
@@ -1399,85 +1452,37 @@ _pm_level_c() {
 # Dotted divider between STATE and MODE.
 printf "${SLATE_600}%s${RESET}\n" "$SEP_DOT"
 
-# Build the enumerated line: every option listed, only the active one colored.
-# Icon-only label: ⚙️ leads the work/mode/level line (principal directive
-# 2026-06-11 — the previous 🎛️ rendered as a grid fallback glyph in his font).
-_pm_line="⚙️  "
-if [ "$_pai_mode" = "NA" ]; then _pm_line+="${_pm_na_c}N/A${RESET}"; else _pm_line+="${_pm_dim}N/A${RESET}"; fi
-_pm_line+=" "
-if [ "$_pai_mode" = "NATIVE" ]; then _pm_line+="${_pm_native_c}NATIVE${RESET}"; else _pm_line+="${_pm_dim}NATIVE${RESET}"; fi
-_pm_line+=" "
-if [ "$_pai_mode" = "ALGORITHM" ]; then _pm_line+="${_pm_algo_c}ALGORITHM${RESET}"; else _pm_line+="${_pm_dim}ALGORITHM${RESET}"; fi
-for _pm_d in 1 2 3 4 5; do
-    _pm_line+=" "
-    if [ "$_pai_mode" = "ALGORITHM" ] && [ "$_pai_tier" = "E${_pm_d}" ]; then
-        _pm_line+="$(_pm_tier_c "$_pm_d")${_pm_d}${RESET}"
-    else
-        _pm_line+="${_pm_dim}${_pm_d}${RESET}"
-    fi
-done
-# ⚙️ gear on the work-level segment (principal directive — 🎚️ renders as a
-# fallback box in his terminal font; the brain icon belongs to MEMORY below).
-_pm_line+=" ${SLATE_600}│${RESET} ⚡ ${RESET}"
-# Resolve the active level → model name via EFFORT_MODEL in models.ts
-# (single source of truth for the level→model lineup; lineup edits show up
-# here automatically). Rendered as a ·suffix on the lit token: HIGH·OPUS.
-_pm_level_model=""
-_pm_models_ts="$LIFEOS_DIR/TOOLS/models.ts"
-if [ -n "$_pai_level" ] && [ -f "$_pm_models_ts" ]; then
-    _pm_lvl_lc=$(printf '%s' "$_pai_level" | tr '[:upper:]' '[:lower:]')
-    _pm_level_model=$(sed -n '/export const EFFORT_MODEL/,/^}/p' "$_pm_models_ts" 2>/dev/null | \
-        sed -n "s/^[[:space:]]*${_pm_lvl_lc}:[[:space:]]*\"\([a-z0-9-]*\)\".*/\1/p" | head -1 | tr '[:lower:]' '[:upper:]')
-fi
-# ── Effort↔tier nudge target (2026-06-29; in-place 2026-06-30) ─────────────────
-# Claude Code forbids hooks from SETTING reasoning effort (it's /effort, settings
-# effortLevel, --effort, or CLAUDE_CODE_EFFORT_LEVEL only). So the Algorithm tier
-# can't auto-apply its target effort — instead make the gap VISIBLE. When the live
-# main-loop effort is below the tier's target, mark the target level token IN PLACE
-# with an amber ↑ prefix. We do NOT append a second token after the scale: that
-# duplicated a label already in the list (e.g. a 2nd XHIGH after ULTRA) and read as
-# two active levels at once. Fixed 2026-06-30, principal. Main-loop target map:
-# E1 low · E2 medium · E3 high · E4 xhigh · E5 xhigh (xhigh not max — the nudge
-# points only at a PERSISTABLE level; `max` is interactive-only). Gated on a real
-# stdin effort.level + ALGORITHM mode; ULTRA/MAX are ceiling (no nudge when all-out).
-_effort_rank() {
-    case "$1" in
-        LOW) echo 1 ;; MEDIUM) echo 2 ;; HIGH) echo 3 ;;
-        XHIGH) echo 4 ;; MAX) echo 5 ;; ULTRA) echo 5 ;; *) echo 0 ;;
-    esac
-}
-_tgt_level=""
-if [ -n "${effort_level:-}" ] && [ "$_pai_mode" = "ALGORITHM" ]; then
-    case "$_pai_tier" in
-        E1) _tgt_level="LOW" ;;
-        E2) _tgt_level="MEDIUM" ;;
-        E3) _tgt_level="HIGH" ;;
-        E4) _tgt_level="XHIGH" ;;
-        E5) _tgt_level="XHIGH" ;;
-    esac
-    if [ -n "$_tgt_level" ]; then
-        _live_rank=$(_effort_rank "$_pai_level")
-        _tgt_rank=$(_effort_rank "$_tgt_level")
-        # Only a genuine under-power gap lights the target; otherwise clear it so
-        # the scale shows exactly one active token (the current level).
-        if ! { [ "$_live_rank" -gt 0 ] && [ "$_tgt_rank" -gt "$_live_rank" ]; }; then
-            _tgt_level=""
-        fi
-    fi
-fi
-_pm_nudge_c=$(printf '\033[38;2;251;191;36m')   # amber-400 — "under-powered, bump up"
+# Effort line only — mode enumeration removed 2026-07-11 (no more modes/tiers).
+_pm_line="⚡ ${RESET}"
+# ── Effort scale (display only) ───────────────────────────────────────────────
+# LifeOS runs uniformly at `high` (principal directive 2026-07-06: only high — no
+# low/medium/xhigh/max) and no longer targets or nudges effort — the old
+# effort↔tier nudge was removed. The full effort scale stays VISIBLE as a
+# reference (principal: "keep the full list in the statusline"); the live level is
+# highlighted, with no target/nudge token. A human /effort still moves it.
 for _pm_l in LOW MEDIUM HIGH XHIGH MAX ULTRA; do
     _pm_line+=" "
     if [ "$_pai_level" = "$_pm_l" ]; then
         _pm_line+="$(_pm_level_c "$_pm_l")${_pm_l}${RESET}"        # current effort — solid heat color
-    elif [ -n "$_tgt_level" ] && [ "$_tgt_level" = "$_pm_l" ]; then
-        _pm_line+="${_pm_nudge_c}↑${_pm_l}${RESET}"               # tier target to type — amber arrow, in place
     else
         _pm_line+="${_pm_dim}${_pm_l}${RESET}"
     fi
 done
 
 printf "%b\n" "$_pm_line"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# DOCTOR — delta-only capability line (#1461 v2 design). Renders ONLY when a
+# capability newly regressed since the last `Doctor.ts ack`; healthy = silent.
+# Content precomputed by LIFEOS/TOOLS/Doctor.ts into a sidecar — bare cat here.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+_doctor_sidecar="$LIFEOS_DIR/MEMORY/STATE/capabilities-statusline.txt"
+if [ "$MODE" = "normal" ] && [ -s "$_doctor_sidecar" ]; then
+    # Color via %b (escape codes), file content via %s so a tampered sidecar
+    # can't inject terminal escape sequences through the status line.
+    printf "%b%s%b\n" "${YELLOW:-}" "$(cat "$_doctor_sidecar")" "${RESET:-}"
+fi
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # MEMORY — one line directly under STATE: autonomic-loop health + hot-layer fill.
@@ -1595,50 +1600,81 @@ if [ -n "$harness_version" ] && [ "$harness_version" != "unknown" ]; then
 elif [ -n "$cc_version" ] && [ "$cc_version" != "unknown" ]; then
     _har_display="${_har_display} ${cc_version}"
 fi
-# MODEL shows the ACTIVE model — the one the session's intelligence level
-# resolves to via EFFORT_MODEL (computed in the MODE/LEVEL block above:
-# HIGH→Opus, MAX→Opus, ...). Falls back to the harness main-loop model
-# name when no level is active (N/A session) or models.ts is unreadable.
+# DEF MODEL is the session's DEFAULT main-loop model — the harness-reported
+# current model, which tracks /model directly (/model fable → FABLE). This is
+# deliberately NOT the level-routed EFFORT_MODEL pick (that lineup is the 🤖
+# mode line below); DEF answers "what does my /model say right now?".
 _model_display="${model_name// context/}"
-if [ -n "${_pm_level_model:-}" ]; then
-    _model_display="$(printf '%s' "$_pm_level_model" | cut -c1)$(printf '%s' "$_pm_level_model" | cut -c2- | tr '[:upper:]' '[:lower:]')"
-fi
-printf "${SLATE_400}HARN:${RESET} ${LIFEOS_A}${_har_display}${RESET} ${SLATE_600}│${RESET} ${SLATE_400}MODEL:${RESET} ${LIFEOS_A}${_model_display}${RESET} ${SLATE_600}│${RESET} ${SLATE_400}LIFEOS:${RESET} ${LIFEOS_A}${LIFEOS_VERSION}${RESET} ${SLATE_600}│${RESET} ${SLATE_400}ALGO:${RESET} ${LIFEOS_A}${ALGO_VERSION}${RESET}\n"
+# Model names render ALL CAPS to match the mode line below (principal 2026-07-06).
+_model_display=$(printf '%s' "$_model_display" | tr '[:lower:]' '[:upper:]')
+printf "${SLATE_400}HARN:${RESET} ${LIFEOS_A}${_har_display}${RESET} ${SLATE_600}│${RESET} ${SLATE_400}DEF MODEL:${RESET} ${LIFEOS_A}${_model_display}${RESET} ${SLATE_600}│${RESET} ${SLATE_400}LIFEOS:${RESET} ${LIFEOS_A}${LIFEOS_VERSION}${RESET} ${SLATE_600}│${RESET} ${SLATE_400}ALGO:${RESET} ${LIFEOS_A}${ALGO_VERSION}${RESET}\n"
 
-# ── AGENTS roster — which model the ROUTER assigns delegated agents at the current
-# mode/tier (persistent; "not only the default model, but the models the agents run
-# on"). This is the BASE routing posture; the ▸ LIVE line below is the corrector for
-# actual dispatches (incl. Core-System Override, which forces max at any tier).
-# Distinct from MODEL above (the main-loop orchestrator).
+# ── AGENTS roster — LIVE readout of dispatched-agent models. Source of truth is
+# agent-starts.json, written by AgentInvocation.hook.ts (v1.3.1, observe-only).
+# Router/modes/tiers retired 2026-07-11: there is NO assigned posture to show —
+# a rung lights BOLD only while work resolved to it is actually running (same
+# 300s cutoff as ▸ LIVE; the file accumulates orphans from killed agents, so
+# 5 min = "actually in flight"). Idle = every rung dim ("grayed out",
+# principal 2026-07-12). Distinct from DEF MODEL above (the main-loop model).
 #
-# Model LABELS are READ from EFFORT_MODEL/CROSS_VENDOR in models.ts (single source of
-# truth) — a lineup flip (e.g. max→opus) re-labels the roster automatically, no edit
-# here. Only the tier→level POLICY lives in-script (Algorithm doctrine, not lineup):
-# NATIVE/E1–E3 → high; E4/E5 → max; SONNET/HAIKU are the medium/low utility rungs at
-# any tier; Forge (cross-vendor) binds at E3+. Keyed off _pai_mode/_pai_tier.
+# Model LABELS are READ from EFFORT_MODEL/CROSS_VENDOR in models.ts (single
+# source of truth) — a lineup flip re-labels the roster automatically.
 #
-# _pm_roster_states: pure, unit-testable. Echoes 5 rung states in fixed rung order
-#   "max high medium low forge"  —  2 = primary here   1 = utility rung   0 = off
+# Rung sources (all within the 300s window):
+#   low/medium/high — live Agent dispatches by resolved model. "inherited" maps
+#     through the session model. Fable-labeled/-inherited dispatches map to the
+#     FABLE rung only when models.ts DISPATCH_EXECUTES_FABLE is true (probed
+#     2026-07-12: dispatches now execute faithfully; CarrierProbe.ts keeps the
+#     fact fresh) — false maps them to OPUS, the old downgrade reality.
+#   max (FABLE)     — a live fable dispatch (per the constant above), OR a
+#     model-verification.jsonl entry whose EXECUTED model is fable
+#     (Inference.ts post-hoc proof; a downgraded run has executed=opus
+#     and correctly does not light this rung).
+#   GPT-5.6 / GROK  — live cross-vendor dispatch (forge/codexResearcher → OpenAI,
+#     grokResearcher → xAI), matched on the resolved model string.
+#
+# _pm_roster_states: pure, unit-testable. Args: $1 session model, $2 space-joined
+# live dispatch models, $3 fable-verified flag (0/1), $4 dispatch-executes-fable
+# (true/false). Echoes 6 states in fixed rung order "max high medium low forge
+# grok" — 2 = live now, 0 = idle (dim). Several rungs can be live at once.
 _pm_roster_states() {
-    local mode="$1" tier="$2"
-    local maxs=0 highs=0 meds=1 lows=1 forge=0
-    case "$mode" in
-        ALGORITHM)
-            case "$tier" in
-                E4|E5) maxs=2;  forge=2 ;;
-                E3)    highs=2; forge=2 ;;
-                *)     highs=2 ;;                # E1/E2 (or pre-ISA unknown tier)
-            esac ;;
-        NATIVE) highs=2 ;;
-        *)      : ;;                             # NA / MINIMAL — utility rungs only
+    local _session="$1" _live="$2" _fable="$3" _df="$4"
+    local s_max=0 s_high=0 s_med=0 s_low=0 s_forge=0 s_grok=0 m
+    [ "$_fable" = "1" ] && s_max=2
+    # The session (main-loop) model is ALWAYS active — light its rung whether or
+    # not any agent is dispatched. This is what "ACTIVE" answers: the model you're
+    # talking to right now, plus any live dispatches layered on top.
+    case "$_session" in
+        *[Hh]aiku*)  s_low=2 ;;
+        *[Ss]onnet*) s_med=2 ;;
+        *[Ff]able*)  s_max=2 ;;
+        *[Oo]pus*)   s_high=2 ;;
     esac
-    printf '%s %s %s %s %s' "$maxs" "$highs" "$meds" "$lows" "$forge"
+    for m in $_live; do
+        case "$m" in
+            *grok*)         s_grok=2 ;;
+            *gpt-*)         s_forge=2 ;;
+            *haiku*)        s_low=2 ;;
+            *sonnet*)       s_med=2 ;;
+            *fable*)        if [ "$_df" = "true" ]; then s_max=2; else s_high=2; fi ;;
+            *opus*)         s_high=2 ;;
+            inherited)
+                case "$_session" in
+                    *[Hh]aiku*)  s_low=2 ;;
+                    *[Ss]onnet*) s_med=2 ;;
+                    *[Ff]able*)  if [ "$_df" = "true" ]; then s_max=2; else s_high=2; fi ;;
+                    *)           s_high=2 ;;  # opus, unknown
+                esac ;;
+            *)              s_high=2 ;;
+        esac
+    done
+    printf '%s %s %s %s %s %s' "$s_max" "$s_high" "$s_med" "$s_low" "$s_forge" "$s_grok"
 }
 
 if [ "$MODE" = "normal" ]; then
-    # Resolve rung → model NAME from models.ts (same source the MODEL line + the
-    # AgentInvocation hook read). Fallbacks keep the line honest if models.ts is
-    # unreadable in a hook-spawn context.
+    # Resolve rung → model NAME from models.ts (same source the AgentInvocation
+    # hook reads). Fallbacks keep the line honest if models.ts is unreadable in
+    # a hook-spawn context.
     _pm_models_ts="$LIFEOS_DIR/TOOLS/models.ts"
     _em_block=$(sed -n '/export const EFFORT_MODEL/,/^}/p' "$_pm_models_ts" 2>/dev/null)
     _em_lookup() { printf '%s' "$_em_block" | sed -n "s/^[[:space:]]*$1:[[:space:]]*\"\([a-z0-9-]*\)\".*/\1/p" | head -1 | tr '[:lower:]' '[:upper:]'; }
@@ -1646,52 +1682,94 @@ if [ "$MODE" = "normal" ]; then
     _lbl_high=$(_em_lookup high);  _lbl_high="${_lbl_high:-OPUS}"
     _lbl_med=$(_em_lookup medium); _lbl_med="${_lbl_med:-SONNET}"
     _lbl_low=$(_em_lookup low);    _lbl_low="${_lbl_low:-HAIKU}"
-    _lbl_forge=$(sed -n '/export const CROSS_VENDOR/,/^}/p' "$_pm_models_ts" 2>/dev/null | sed -n 's/^[[:space:]]*forge:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1 | tr '[:lower:]' '[:upper:]')
-    _lbl_forge="${_lbl_forge:-GPT-5.5}"
+    # Cross-vendor labels: model string minus the "-sol" codename suffix
+    # (display "GPT-5.6", not "GPT-5.6-SOL"), uppercased.
+    _cv_block=$(sed -n '/export const CROSS_VENDOR/,/^}/p' "$_pm_models_ts" 2>/dev/null)
+    _cv_lookup() { printf '%s' "$_cv_block" | sed -n "s/^[[:space:]]*$1:[[:space:]]*\"\([^\"]*\)\".*/\1/p" | head -1 | sed 's/-sol$//' | tr '[:lower:]' '[:upper:]'; }
+    _lbl_forge=$(_cv_lookup forge);         _lbl_forge="${_lbl_forge:-GPT-5.6}"
+    _lbl_grok=$(_cv_lookup grokResearcher); _lbl_grok="${_lbl_grok:-GROK}"
+    # Carrier fact from models.ts (CarrierProbe.ts-maintained): decides whether
+    # fable-labeled/-inherited dispatches light FABLE or OPUS. Unreadable → false
+    # (conservative: never claim Fable ran without the fact in hand).
+    _dispatch_fable=$(sed -n 's/^export const DISPATCH_EXECUTES_FABLE = \([a-z]*\).*/\1/p' "$_pm_models_ts" 2>/dev/null)
+    _dispatch_fable="${_dispatch_fable:-false}"
 
-    read -r _rs_max _rs_high _rs_med _rs_low _rs_forge \
-        <<< "$(_pm_roster_states "$_pai_mode" "$_pai_tier")"
-    # Colors denote the RUNG (max=violet apex, high=blue, med/low=utility grey,
-    # forge=cyan cross-vendor); the label under each is what models.ts binds there.
-    _arc_max=$(printf '\033[38;2;192;132;252m')     # violet — apex rung (max)
-    _arc_high=$(printf '\033[38;2;59;130;246m')     # blue — high / default rung
-    _arc_forge=$(printf '\033[38;2;103;232;249m')   # cyan — cross-vendor (Forge)
-    _ar_util="$SLATE_500"                           # muted-legible — utility rungs
-    _ar_off="$SLATE_600"                            # dim — not dispatched here
-    _ar_tok() {  # $1=state $2=active-color $3=label
-        case "$1" in
-            2) printf "%b%s${RESET}" "$2" "$3" ;;
-            1) printf "%b%s${RESET}" "$_ar_util" "$3" ;;
-            *) printf "%b%s${RESET}" "$_ar_off" "$3" ;;
+    # Live dispatch models in the 300s window (unique resolved-model strings;
+    # pre-v1.3.1 entries lack .model → treated as inherited).
+    _agent_starts="$LIFEOS_DIR/MEMORY/OBSERVABILITY/agent-starts.json"
+    _live_models=""
+    if [ -f "$_agent_starts" ]; then
+        _live_models=$(jq -r --argjson cutoff "$(( (NOW_EPOCH - 300) * 1000 ))" '
+            [to_entries[] | .value | select(.epoch > $cutoff)
+             | (.model // "inherited")] | unique | join(" ")
+        ' "$_agent_starts" 2>/dev/null)
+    fi
+    # FABLE rung: a verified-executed Fable inference in the window. ISO-8601
+    # UTC timestamps compare lexicographically, so string > is a time compare.
+    _mv_file="$LIFEOS_DIR/MEMORY/OBSERVABILITY/model-verification.jsonl"
+    _fable_recent=0
+    if [ -f "$_mv_file" ]; then
+        _mv_cut=$(date -u -r $(( NOW_EPOCH - 300 )) +%Y-%m-%dT%H:%M:%S 2>/dev/null)
+        _mv_hits=$(tail -20 "$_mv_file" 2>/dev/null | jq -s -r --arg cut "$_mv_cut" '
+            [.[] | select((.ts // "") > $cut) | select(.executed // "" | test("fable"))] | length
+        ' 2>/dev/null)
+        [ "${_mv_hits:-0}" -gt 0 ] 2>/dev/null && _fable_recent=1
+    fi
+
+    read -r _rs_max _rs_high _rs_med _rs_low _rs_forge _rs_grok \
+        <<< "$(_pm_roster_states "$model_name" "$_live_models" "$_fable_recent" "$_dispatch_fable")"
+
+    # Escalating rung ladder (principal directive 2026-07-06): EVERY rung renders
+    # DIM unless LIVE. The escalation lives in the hue — HAIKU green → SONNET
+    # blue → OPUS red → FABLE purple — with cross-vendor GPT-5.6 (cyan) and
+    # GROK (silver) behind the divider. Inactive rungs show only a faint, dark
+    # tint; live rungs pop in full BOLD color. No strong colors on inactive
+    # rungs, ever.
+    _ar_rung_c() {  # $1=rung(low|medium|high|max|forge|grok) $2=state(2 live | anything else dim)
+        case "$1:$2" in
+            low:2)    printf '\033[1;38;2;74;222;128m'  ;;  # LIVE: bold green-400
+            low:*)    printf '\033[2;38;2;86;164;110m'   ;;  # dim: muted green tint
+            medium:2) printf '\033[1;38;2;59;130;246m'  ;;  # LIVE: bold blue-500
+            medium:*) printf '\033[2;38;2;90;130;185m'   ;;  # dim: muted blue tint
+            high:2)   printf '\033[1;38;2;239;68;68m'   ;;  # LIVE: bold red-500
+            high:*)   printf '\033[2;38;2;180;95;95m'    ;;  # dim: muted red tint
+            max:2)    printf '\033[1;38;2;168;85;247m'  ;;  # LIVE: bold purple-500 — apex
+            max:*)    printf '\033[2;38;2;150;110;195m'  ;;  # dim: muted purple tint
+            forge:2)  printf '\033[1;38;2;103;232;249m' ;;  # LIVE: bold cyan — OpenAI cross-vendor
+            forge:*)  printf '\033[2;38;2;85;160;175m'   ;;  # dim: muted cyan tint
+            grok:2)   printf '\033[1;38;2;226;232;240m' ;;  # LIVE: bold silver — xAI cross-vendor
+            grok:*)   printf '\033[2;38;2;125;135;148m'  ;;  # dim: muted gray tint
         esac
     }
-    _ar_line="${SLATE_400}🤖 AGENTS:${RESET} "
-    _ar_line+="$(_ar_tok "$_rs_max"   "$_arc_max"   "$_lbl_max") "
-    _ar_line+="$(_ar_tok "$_rs_high"  "$_arc_high"  "$_lbl_high") "
-    _ar_line+="$(_ar_tok "$_rs_med"   "$_ar_util"   "$_lbl_med") "
-    _ar_line+="$(_ar_tok "$_rs_low"   "$_ar_util"   "$_lbl_low")"
-    # Divider: the Claude rungs above are ONE mutually-exclusive ladder (exactly one
-    # lit). GPT-5.5 (Forge) is a separate VENDOR running alongside, not a rung — so it
-    # sits behind a divider as a "+cross-vendor" add-on, lit only when Forge binds (E3+).
+    _ar_tok() {  # $1=state $2=rung $3=label
+        printf "%b%s${RESET}" "$(_ar_rung_c "$2" "$1")" "$3"
+    }
+    _ar_line="${SLATE_400}ACTIVE:${RESET} "
+    _ar_line+="$(_ar_tok "$_rs_low"   low    "$_lbl_low") "
+    _ar_line+="$(_ar_tok "$_rs_med"   medium "$_lbl_med") "
+    _ar_line+="$(_ar_tok "$_rs_high"  high   "$_lbl_high") "
+    _ar_line+="$(_ar_tok "$_rs_max"   max    "$_lbl_max")"
+    # Divider: the Claude rungs above are ONE family. Cross-vendor ENGINES
+    # (OpenAI, xAI) run alongside, not as rungs — each sits behind the divider
+    # as a "+engine" add-on, lit only while a dispatch resolved to it is live.
     _ar_line+=" ${SLATE_600}│${RESET} "
-    _ar_line+="$(_ar_tok "$_rs_forge" "$_arc_forge" "+$_lbl_forge")"
+    _ar_line+="$(_ar_tok "$_rs_forge" forge "+$_lbl_forge") "
+    _ar_line+="$(_ar_tok "$_rs_grok"  grok  "+$_lbl_grok")"
     printf "%b\n" "$_ar_line"
 fi
 
-# Live IN-FLIGHT dispatches — written by AgentInvocation.hook.ts at PreToolUse:Agent
-# (level + model resolved through EFFORT_MODEL / CROSS_VENDOR / frontmatter pin),
-# removed at PostToolUse. Entries older than 2h are orphans from killed agents — hidden.
-# Renders only while at least one agent is in flight; label kept distinct from the
-# persistent 🤖 AGENTS roster above (which is the router assignment, never a live claim).
+# Live IN-FLIGHT dispatches — written by AgentInvocation.hook.ts at PreToolUse:Agent,
+# removed at PostToolUse. Collapsed to a single quiet count (2026-07-06, "too noisy"):
+# just how many agents are running, not the full model roster (that's the 🤖 AGENTS
+# line above). 5-min cutoff so killed-agent orphans fade fast instead of lingering 2h.
 _AGENT_STARTS="$LIFEOS_DIR/MEMORY/OBSERVABILITY/agent-starts.json"
 if [ -f "$_AGENT_STARTS" ]; then
-    _agents_line=$(jq -r --argjson cutoff "$(( (NOW_EPOCH - 7200) * 1000 ))" '
-        [to_entries[] | .value | select(.epoch > $cutoff)
-         | .subagent_type + ":" + (.level // "?") + "→" + (.model // "inherited")]
-        | unique | join("  ")
+    _live_count=$(jq -r --argjson cutoff "$(( (NOW_EPOCH - 300) * 1000 ))" '
+        [to_entries[] | .value | select(.epoch > $cutoff)] | length
     ' "$_AGENT_STARTS" 2>/dev/null)
-    if [ -n "$_agents_line" ] && [ "$_agents_line" != "null" ]; then
-        printf "${SLATE_400}▸ LIVE:${RESET} ${WIELD_ACCENT}%s${RESET}\n" "$_agents_line"
+    if [ "${_live_count:-0}" -gt 0 ] 2>/dev/null; then
+        _live_noun="agent"; [ "$_live_count" -gt 1 ] && _live_noun="agents"
+        printf "${SLATE_400}▸ LIVE:${RESET} ${WIELD_ACCENT}%s %s${RESET}\n" "$_live_count" "$_live_noun"
     fi
 fi
 sep
@@ -1719,6 +1797,7 @@ bar_width=$(( content_width - 11 - _ctx_suffix_len ))
 [ "$bar_width" -lt 16 ] && bar_width=16
 
 bar=$(render_context_bar $bar_width $display_pct)
+
 printf "${CTX_SECONDARY}CONTEXT:${RESET} ${bar} ${pct_color}${display_pct}%%${RESET}\n"
 
 # Thin separator between context bar and files
@@ -1778,6 +1857,25 @@ if [ "${#_ctx_data[@]}" -gt 0 ]; then
     done < <(printf '%s\n' "${_ctx_data[@]}" | sort -rn -t$'\t' -k1,1)
 fi
 
+# Per-file SIZE-CAP pressure: a file nearing/over its byte ceiling (context-budgets.json)
+# turns orange/red right here in the FILES list — the always-on re-bloat indicator, inline.
+# Portable parallel arrays (macOS bash 3.2 has no associative arrays).
+_CAP_NAMES=(); _CAP_MAX=()
+_cap_json="$LIFEOS_DIR/TOOLS/context-budgets.json"
+if [ -f "$_cap_json" ] && command -v jq >/dev/null 2>&1; then
+    while IFS=$'\t' read -r _cn _cm; do
+        [ -n "$_cn" ] && { _CAP_NAMES+=("$_cn"); _CAP_MAX+=("$_cm"); }
+    done < <(jq -r '.budgets[] | "\(.path | split("/") | last)\t\(.maxBytes)"' "$_cap_json" 2>/dev/null)
+fi
+_cap_for() {  # echo maxBytes for basename $1, or 0 if no cap defined
+    local _i=0
+    while [ "$_i" -lt "${#_CAP_NAMES[@]}" ]; do
+        [ "${_CAP_NAMES[$_i]}" = "$1" ] && { echo "${_CAP_MAX[$_i]}"; return; }
+        _i=$((_i + 1))
+    done
+    echo 0
+}
+
 # Format each entry with one-decimal percentage of context window, colored by size.
 # Track total bytes so we can append a combined-total cell at the end of the line.
 _ctx_total_bytes=0
@@ -1797,8 +1895,25 @@ for _entry in "${_sorted_ctx_data[@]}"; do
     _pct_f=$((_pct_x10 % 10))
     _pct_str=$(printf '%d.%d%%' "$_pct_w" "$_pct_f")
     _pct_clr=$(_size_pct_color "$_pct_x10")
-    _ctx_files+=("${_name}(${_pct_str})")
-    _ctx_files_color+=("${CTX_SECONDARY}${_name}(${RESET}${_pct_clr}${_pct_str}${RESET}${CTX_SECONDARY})${RESET}")
+    # TWO DISTINCT numbers, never conflated:
+    #   (1) the %(above) is SIZE — this file's share of the context window, colored by that.
+    #   (2) capNN% (suffix below) is OVERFLOW pressure — this file's share of its OWN byte
+    #       budget. Shown only when a file nears/exceeds its cap; orange ≥90%, red ≥100%.
+    # The suffix is added to the plain array too so the line-wrap width math stays correct.
+    _cap_plain=""; _cap_color=""
+    _cap=$(_cap_for "$_name")
+    if [ "${_cap:-0}" -gt 0 ] 2>/dev/null; then
+        _cap_pct=$(( _b * 100 / _cap ))
+        if [ "$_cap_pct" -ge 90 ] 2>/dev/null; then
+            # ≥90% full → RED ({{PRINCIPAL_NAME}}: anything over 90% is red). The number + FULL + red is
+            # the signal; the action is `/trim <file>` (Trim skill walks the reduction).
+            _capclr='\033[38;2;180;40;40m'
+            _cap_plain=" ${_cap_pct}% FULL"
+            _cap_color=" ${_capclr}${_cap_pct}% FULL${RESET}"
+        fi
+    fi
+    _ctx_files+=("${_name}(${_pct_str})${_cap_plain}")
+    _ctx_files_color+=("${CTX_SECONDARY}${_name}(${RESET}${_pct_clr}${_pct_str}${RESET}${CTX_SECONDARY})${RESET}${_cap_color}")
 done
 
 # Skills description budget — sum of injected skill description sizes vs the
@@ -1869,6 +1984,15 @@ _ctx_total_f=$((_ctx_total_x10 % 10))
 _ctx_total_str=$(printf '%d.%d%%' "$_ctx_total_w" "$_ctx_total_f")
 _ctx_total_clr=$(_size_pct_color "$_ctx_total_x10")
 
+# Human-readable token count for the total cell — the startup-load number to drive down.
+if [ "$_ctx_total_tokens" -ge 1000 ]; then
+    _ctx_tok_w=$((_ctx_total_tokens / 1000))
+    _ctx_tok_f=$(((_ctx_total_tokens % 1000) / 100))
+    _ctx_tok_str=$(printf '%d.%dK TOK' "$_ctx_tok_w" "$_ctx_tok_f")
+else
+    _ctx_tok_str="${_ctx_total_tokens} TOK"
+fi
+
 _ctx_count=${#_ctx_files[@]}
 if [ "$_ctx_count" -gt 0 ]; then
     # No "FILES(N):" label — entries lead directly; their position under the
@@ -1910,8 +2034,8 @@ if [ "$_ctx_count" -gt 0 ]; then
     done
 
     # Append total cell: " | (X.X%)" — wrap to next line if it would overflow.
-    _total_plain=" | (${_ctx_total_str})"
-    _total_color=" ${SLATE_600}|${RESET} ${CTX_SECONDARY}(${RESET}${_ctx_total_clr}${_ctx_total_str}${RESET}${CTX_SECONDARY})${RESET}"
+    _total_plain=" | STARTUP LOAD: ${_ctx_total_str} ≈ ${_ctx_tok_str}"
+    _total_color=" ${SLATE_600}|${RESET} ${CTX_SECONDARY}STARTUP LOAD:${RESET} ${_ctx_total_clr}${_ctx_total_str}${RESET} ${SLATE_600}≈${RESET} ${_ctx_total_clr}${_ctx_tok_str}${RESET}"
     _total_len=${#_total_plain}
     if [ $((_line_len + _total_len)) -gt "$content_width" ]; then
         _output="${_output}\n${_indent}"
@@ -1933,8 +2057,12 @@ usage_7d_int=${usage_7d%%.*}
 [ -z "$usage_5h_int" ] && usage_5h_int=0
 [ -z "$usage_7d_int" ] && usage_7d_int=0
 
-# Only show usage line if we have data (token was valid, cache fresh)
-if [ "${usage_no_data:-false}" != "true" ] && { [ "$usage_5h_int" -gt 0 ] || [ "$usage_7d_int" -gt 0 ] || [ -f "$USAGE_CACHE" ]; }; then
+# Show the usage line iff we actually have data, decided per-source BEFORE any
+# file lookup (P3). Native presence comes from the in-process rate_limits object
+# (reflected in usage_state); OAuth presence comes from its cache (also reflected
+# in usage_state by the producer). Never use cache-file existence as a data proxy
+# — that hid genuine native 0% (Failure 2) and is independent of the live data.
+if [ "${usage_state:-absent}" != "absent" ]; then
     usage_5h_color=$(get_usage_color "$usage_5h_int")
     usage_7d_color=$(get_usage_color "$usage_7d_int")
 
@@ -1960,6 +2088,7 @@ if [ "${usage_no_data:-false}" != "true" ] && { [ "$usage_5h_int" -gt 0 ] || [ "
 
     # Extra usage display (Max plan overage credits — values in cents)
     extra_display=""
+    credits_off_display=""
     if [ "${usage_extra_enabled:-false}" = "true" ]; then
         extra_limit_dollars=$((${usage_extra_limit:-0} / 100))
         extra_used_dollars=$((${usage_extra_used%%.*} / 100))
@@ -1968,21 +2097,37 @@ if [ "${usage_no_data:-false}" != "true" ] && { [ "$usage_5h_int" -gt 0 ] || [ "
         else
             extra_limit_fmt="\$${extra_limit_dollars}"
         fi
-        extra_display="E:\$${extra_used_dollars:-0}/${extra_limit_fmt}"
+        extra_display="\$${extra_used_dollars:-0}/${extra_limit_fmt}"
+    elif [ "${usage_spend_enabled:-}" = "false" ]; then
+        # Credits pool exists but is switched OFF (e.g. out_of_credits) — show
+        # the dim balance so missing overflow coverage is visible at a glance.
+        _sp_used_c=${usage_spend_used_cents:-0}
+        _sp_limit_c=${usage_spend_limit_cents:-0}
+        _sp_used=$(( ${_sp_used_c%%.*} / 100 ))
+        _sp_limit=$(( ${_sp_limit_c%%.*} / 100 ))
+        [ "$_sp_limit" -gt 0 ] && credits_off_display="CR:\$${_sp_used}/\$${_sp_limit}·OFF"
     fi
 
-    # Staleness indicator: dim labels/timestamps only, NEVER dim data values
+    # Staleness indicator: dim labels/timestamps only, NEVER dim data values.
+    # Applies ONLY to the OAuth path (P2). Native rate_limits arrive fresh on
+    # stdin every tick, so they must never inherit the /tmp OAuth cache's mtime —
+    # that was the long-session bug where live native data showed a false "(Nh)".
     _usage_cache_age=0
-    [ -f "$USAGE_CACHE" ] && _usage_cache_age=$(( NOW_EPOCH - $(get_mtime "$USAGE_CACHE") ))
     _usage_is_stale=false
     stale_suffix=""
-    if [ "$_usage_cache_age" -gt 600 ]; then
-        _usage_is_stale=true
-        stale_min=$((_usage_cache_age / 60))
-        if [ "$stale_min" -ge 60 ]; then
-            stale_suffix=" ${USAGE_STALE}($((stale_min / 60))h)${RESET}"
-        else
-            stale_suffix=" ${USAGE_STALE}(${stale_min}m)${RESET}"
+    if [ "${usage_source:-oauth}" != "native" ]; then
+        # P6: staleness from the data's own age (usage_data_age, derived from the
+        # in-data fetched_at stamp by the producer), NOT the file mtime — so
+        # rsync/backup/touch can neither fake freshness nor fake staleness.
+        _usage_cache_age=${usage_data_age:-0}
+        if [ "$_usage_cache_age" -gt 600 ]; then
+            _usage_is_stale=true
+            stale_min=$((_usage_cache_age / 60))
+            if [ "$stale_min" -ge 60 ]; then
+                stale_suffix=" ${USAGE_STALE}($((stale_min / 60))h)${RESET}"
+            else
+                stale_suffix=" ${USAGE_STALE}(${stale_min}m)${RESET}"
+            fi
         fi
     fi
 
@@ -1997,7 +2142,10 @@ if [ "${usage_no_data:-false}" != "true" ] && { [ "$usage_5h_int" -gt 0 ] || [ "
     fi
     _fmt_reset() {
         local day="$1" time="$2"
-        if [ -n "$time" ]; then
+        if [ "$day" = "TODAY" ] && [ -n "$time" ]; then
+            # Bare time implies today — drop the redundant day (line-width budget)
+            printf "${_label_color}${time}${RESET}"
+        elif [ -n "$time" ]; then
             printf "${_label_color}${day}${RESET}${SLATE_600}@${RESET}${_label_color}${time}${RESET}"
         else
             printf "${_label_color}${day}${RESET}"
@@ -2005,16 +2153,72 @@ if [ "${usage_no_data:-false}" != "true" ] && { [ "$usage_5h_int" -gt 0 ] || [ "
     }
     _reset_5h_fmt=$(_fmt_reset "$reset_5h_day" "$reset_5h_time")
     _reset_7d_fmt=$(_fmt_reset "$reset_7d_day" "$reset_7d_time")
-    # Billing mode indicator — colored = active, slate-dim = inactive.
-    # This block only renders when subscription OAuth usage data is present,
-    # so SUB is always active here. API colored only if no usage data (pure API mode).
-    if [ "${usage_no_data:-false}" = "true" ]; then
-        _sub_color="$SLATE_600"; _api_color="$USAGE_PRIMARY"
-    else
-        _sub_color="$USAGE_PRIMARY"; _api_color="$SLATE_600"
+
+    # Active-window highlight: brighten the label of whichever window is the
+    # currently binding constraint (limits[].is_active from the OAuth payload).
+    # Skipped when stale — a dimmed line must not carry a bright label.
+    _5h_label_color="$_reset_color"
+    _7d_label_color="$_reset_color"
+    if [ "$_usage_is_stale" != true ]; then
+        [ "${usage_5h_active:-false}" = "true" ] && _5h_label_color="$USAGE_PRIMARY"
+        [ "${usage_7d_active:-false}" = "true" ] && _7d_label_color="$USAGE_PRIMARY"
     fi
-    printf "${_label_color}USE:${RESET} ${_reset_color}5HR:${RESET} ${usage_5h_color}${usage_5h_int}%%${RESET} ${_reset_color}↻${RESET}${_reset_5h_fmt} ${SLATE_600}│${RESET} ${_reset_color}WEEK:${RESET} ${usage_7d_color}${usage_7d_int}%%${RESET} ${_reset_color}↻${RESET}${_reset_7d_fmt} ${SLATE_600}(${RESET}${_sub_color}SUB${RESET}${SLATE_600}/${RESET}${_api_color}API${RESET}${SLATE_600})${RESET}"
-    [ -n "$extra_display" ] && printf " ${SLATE_600}│${RESET} ${USAGE_EXTRA}${extra_display}${RESET}"
+
+    # Scoped per-model weekly window (e.g. FABLE) from the OAuth limits[] array.
+    # Reset time is dropped when it matches WEEK's — same boundary, redundant.
+    scoped_fmt=""
+    if [ "${usage_scoped_present:-false}" = "true" ] && [ -n "${usage_scoped_name:-}" ]; then
+        usage_scoped_int=${usage_scoped_pct%%.*}
+        [ -z "$usage_scoped_int" ] && usage_scoped_int=0
+        # Abbreviate long model names for line width (FABLE → FB)
+        [ "$usage_scoped_name" = "FABLE" ] && usage_scoped_name="FB"
+        usage_scoped_color=$(get_usage_color "$usage_scoped_int")
+        _rsc_fmt=""
+        if [ -n "${usage_scoped_reset:-}" ]; then
+            _rsc_epoch=$(parse_iso_epoch "$usage_scoped_reset")
+            if [ "$_rsc_epoch" -gt 0 ] 2>/dev/null; then
+                _rsc_str=$(reset_time_str "$_rsc_epoch")
+                if [ "$_rsc_str" != "${_r7d_str:-}" ]; then
+                    _rsc_fmt=" ${_reset_color}↻${RESET}$(_fmt_reset "${_rsc_str%%@*}" "${_rsc_str#*@}")"
+                fi
+            fi
+        fi
+        _scoped_label_color="$_reset_color"
+        if [ "$_usage_is_stale" != true ] && [ "${usage_scoped_active:-false}" = "true" ]; then
+            _scoped_label_color="$USAGE_PRIMARY"
+        fi
+        scoped_fmt=" ${_scoped_label_color}${usage_scoped_name}${RESET} ${usage_scoped_color}${usage_scoped_int}%%${RESET}${_rsc_fmt}"
+    fi
+    # Billing source indicator — colored = actively billing, slate-dim = inactive.
+    # Three-way: SUB (subscription), EXT (Anthropic extra usage credits), API
+    # (API-key billing). EXT segment renders only when extra usage is enabled
+    # on the account. Anthropic flips to extra credits the moment any rate-limit
+    # window is exhausted (>=100%) — that is the "actively burning credits" state.
+    _extra_active=false
+    if [ "${usage_extra_enabled:-false}" = "true" ]; then
+        for _win in "$usage_5h_int" "$usage_7d_int" "${usage_opus:-null}" "${usage_sonnet:-null}"; do
+            _win_int=${_win%%.*}
+            case "$_win_int" in ''|null) continue;; esac
+            [ "$_win_int" -ge 100 ] 2>/dev/null && _extra_active=true && break
+        done
+    fi
+    # Billing display — only the ACTIVE source renders as the token: SUB
+    # (subscription), ⚡$used/$limit (extra credits burning — the bright merged
+    # readout IS the indicator), API (API-key billing). When extra usage is
+    # enabled but NOT burning, the monthly credits balance still shows, dimmed,
+    # after the SUB token.
+    if [ "${usage_no_data:-false}" = "true" ]; then
+        _billing_fmt="${USAGE_PRIMARY}API${RESET}"
+    elif [ "$_extra_active" = true ] && [ -n "$extra_display" ]; then
+        _billing_fmt="${USAGE_EXTRA_ACTIVE}⚡${extra_display}${RESET}"
+    elif [ "$_extra_active" = true ]; then
+        _billing_fmt="${USAGE_EXTRA_ACTIVE}⚡EXT${RESET}"
+    else
+        _billing_fmt="${USAGE_PRIMARY}SUB${RESET}"
+        [ -n "$extra_display" ] && _billing_fmt="${_billing_fmt} ${USAGE_EXTRA}${extra_display}${RESET}"
+        [ -n "$credits_off_display" ] && _billing_fmt="${_billing_fmt} ${USAGE_EXTRA}${credits_off_display}${RESET}"
+    fi
+    printf "📊 ${_5h_label_color}5HR${RESET} ${usage_5h_color}${usage_5h_int}%%${RESET} ${_reset_color}↻${RESET}${_reset_5h_fmt} ${_7d_label_color}WK${RESET} ${usage_7d_color}${usage_7d_int}%%${RESET} ${_reset_color}↻${RESET}${_reset_7d_fmt}${scoped_fmt} ${_billing_fmt}"
     [ -n "$stale_suffix" ] && printf "${stale_suffix}"
     printf "\n"
     sep

@@ -1,4 +1,5 @@
 ---
+provenance: template
 dimension: health
 kind: metric
 classification: private

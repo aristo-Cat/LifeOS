@@ -1,3 +1,7 @@
+---
+version: 1.2.14
+---
+
 # The Notification System
 
 > Voice is the Life OS speaking. Notifications close the loop's feedback edge: when the system advances the hill-climb (`LIFEOS/DOCUMENTATION/LifeOs/LifeOsThesis.md`), the principal hears it without having to look.
@@ -114,9 +118,9 @@ curl -s -X POST http://localhost:31337/notify \
 | Agent | Voice ID | Notes |
 |-------|----------|-------|
 | **{DA_IDENTITY.NAME}** (default) | `{DA_IDENTITY.VOICEID}` | Use for most workflows |
-| **Priya** (Artist) | `ZF6FPAbjXT4488VcRRnw` | Art skill workflows |
+| **Priya** (Artist) | `21m00Tcm4TlvDq8ikWAM` | Art skill workflows |
 
-**Full voice registry:** `~/.claude/skills/Agents/SKILL.md` (see Named Agents) and `~/.claude/settings.json` (daidentity.voices.main.voiceId)
+**Full voice registry:** `LIFEOS/DOCUMENTATION/Agents/AgentSystem.md` (see Named Agents) and `~/.claude/settings.json` (daidentity.voices.main.voiceId)
 
 ---
 

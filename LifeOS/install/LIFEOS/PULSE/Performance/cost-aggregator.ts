@@ -19,29 +19,40 @@ const PROJECTS_DIR = join(HOME, ".claude", "projects")
 const OUTPUT_FILE = join(LIFEOS_DIR, "MEMORY", "OBSERVABILITY", "session-costs.jsonl")
 const STATE_FILE = join(LIFEOS_DIR, "PULSE", "Performance", "aggregator-state.json")
 
-// Model pricing per million tokens (as of 2026-04)
+// Model pricing per million tokens (verified 2026-07-06 against the claude-api
+// reference). Current models first; historical IDs retained so older transcripts
+// still price correctly. cacheWrite = 1.25x input, cacheRead = 0.1x input.
 const MODEL_PRICING: Record<string, { input: number; output: number; cacheWrite: number; cacheRead: number }> = {
-  // Opus 4 / 4.6
+  // Fable 5 (current max tier)
+  "claude-fable-5": { input: 10, output: 50, cacheWrite: 12.50, cacheRead: 1.00 },
+  "claude-mythos-5": { input: 10, output: 50, cacheWrite: 12.50, cacheRead: 1.00 },
+  // Opus 4.8 / 4.7 (current) — $5/$25, NOT the old Opus-4 $15/$75
+  "claude-opus-4-8": { input: 5, output: 25, cacheWrite: 6.25, cacheRead: 0.50 },
+  "claude-opus-4-7": { input: 5, output: 25, cacheWrite: 6.25, cacheRead: 0.50 },
+  // Sonnet 5 (current)
+  "claude-sonnet-5": { input: 3, output: 15, cacheWrite: 3.75, cacheRead: 0.30 },
+  // Haiku 4.5 (current) — $1/$5
+  "claude-haiku-4-5": { input: 1, output: 5, cacheWrite: 1.25, cacheRead: 0.10 },
+  "claude-haiku-4-5-20251001": { input: 1, output: 5, cacheWrite: 1.25, cacheRead: 0.10 },
+  // Historical (retained for older transcripts)
   "claude-opus-4-20250514": { input: 15, output: 75, cacheWrite: 18.75, cacheRead: 1.50 },
   "claude-opus-4-6": { input: 15, output: 75, cacheWrite: 18.75, cacheRead: 1.50 },
-  // Sonnet 4 / 4.5 / 4.6
   "claude-sonnet-4-20250514": { input: 3, output: 15, cacheWrite: 3.75, cacheRead: 0.30 },
   "claude-sonnet-4-6": { input: 3, output: 15, cacheWrite: 3.75, cacheRead: 0.30 },
   "claude-sonnet-4-5-20250514": { input: 3, output: 15, cacheWrite: 3.75, cacheRead: 0.30 },
-  // Haiku 4.5
-  "claude-haiku-4-5-20251001": { input: 0.80, output: 4, cacheWrite: 1.00, cacheRead: 0.08 },
 }
 
 function getPricing(model: string): { input: number; output: number; cacheWrite: number; cacheRead: number } {
   // Exact match
   if (MODEL_PRICING[model]) return MODEL_PRICING[model]
-  // Fuzzy match: opus, sonnet, haiku
+  // Fuzzy match falls back to the CURRENT model in each family
   const lower = model.toLowerCase()
-  if (lower.includes("opus")) return MODEL_PRICING["claude-opus-4-6"]
-  if (lower.includes("haiku")) return MODEL_PRICING["claude-haiku-4-5-20251001"]
-  if (lower.includes("sonnet")) return MODEL_PRICING["claude-sonnet-4-6"]
+  if (lower.includes("fable") || lower.includes("mythos")) return MODEL_PRICING["claude-fable-5"]
+  if (lower.includes("opus")) return MODEL_PRICING["claude-opus-4-8"]
+  if (lower.includes("haiku")) return MODEL_PRICING["claude-haiku-4-5"]
+  if (lower.includes("sonnet")) return MODEL_PRICING["claude-sonnet-5"]
   // Default to Sonnet pricing for unknown models
-  return MODEL_PRICING["claude-sonnet-4-6"]
+  return MODEL_PRICING["claude-sonnet-5"]
 }
 
 interface SessionCost {

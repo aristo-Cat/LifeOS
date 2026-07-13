@@ -118,14 +118,14 @@ export default function PhaseDetailPanel({ state }: { state: AlgorithmState }) {
               <span className="text-sm font-semibold" style={{ color: phaseMeta?.color ?? "#666" }}>
                 {state.currentPhase}
               </span>
-              <span className={`px-2 py-0.5 rounded text-[14px] font-medium border ${EFFORT_COLORS[state.effortLevel || state.sla] ?? "bg-zinc-700 text-zinc-400 border-zinc-600/30"}`}>
+              <span className={`px-2 py-0.5 rounded text-[14px] font-medium border ${EFFORT_COLORS[state.effortLevel || state.sla] ?? "bg-surface-3 text-ink-2 border-[rgba(46,62,110,0.3)]"}`}>
                 {EFFORT_E_LEVEL[state.effortLevel || state.sla] && (
                   <span className="opacity-60 mr-1 font-semibold">{EFFORT_E_LEVEL[state.effortLevel || state.sla]}</span>
                 )}
                 {state.effortLevel || state.sla}
               </span>
             </div>
-            <p className="text-[15px] text-zinc-400 leading-relaxed">
+            <p className="text-[15px] text-ink-2 leading-relaxed">
               {narrativeText}
             </p>
           </div>
@@ -133,18 +133,18 @@ export default function PhaseDetailPanel({ state }: { state: AlgorithmState }) {
 
         {/* Metrics */}
         <div className="flex items-center gap-4 shrink-0 text-[15px]">
-          <div className="flex items-center gap-1.5 text-zinc-400">
-            <Clock className="w-3.5 h-3.5 text-zinc-500" />
+          <div className="flex items-center gap-1.5 text-ink-2">
+            <Clock className="w-3.5 h-3.5 text-ink-3" />
             <span className="font-mono">{formatElapsed(phaseElapsed)}</span>
-            <span className="text-zinc-600">/</span>
-            <span className="font-mono text-zinc-500">{formatElapsed(totalElapsed)}</span>
+            <span className="text-ink-3">/</span>
+            <span className="font-mono text-ink-3">{formatElapsed(totalElapsed)}</span>
           </div>
           <div className="h-4 w-px bg-white/[0.06]" />
           <div className="flex items-center gap-1.5">
             <span className="text-emerald-400 font-medium">{completedCount}</span>
-            <span className="text-zinc-600">/</span>
-            <span className="text-zinc-300 font-medium">{state.criteria.length}</span>
-            <span className="text-zinc-500">criteria</span>
+            <span className="text-ink-3">/</span>
+            <span className="text-ink-1 font-medium">{state.criteria.length}</span>
+            <span className="text-ink-3">criteria</span>
             {failedCount > 0 && (
               <span className="text-red-400 text-[14px]">({failedCount} failed)</span>
             )}
@@ -157,16 +157,16 @@ export default function PhaseDetailPanel({ state }: { state: AlgorithmState }) {
         {/* Active Agents */}
         {state.agents.length > 0 && (
           <div className="flex items-center gap-2 shrink-0">
-            <Users className="w-3.5 h-3.5 text-zinc-500" />
+            <Users className="w-3.5 h-3.5 text-ink-3" />
             <div className="flex items-center gap-1.5">
               {state.agents.map((agent) => {
-                const agentColor = AGENT_TYPE_COLORS[agent.agentType] ?? "bg-zinc-700/50 text-zinc-400 border-zinc-600/30";
+                const agentColor = AGENT_TYPE_COLORS[agent.agentType] ?? "bg-[rgba(26,36,68,0.5)] text-ink-2 border-[rgba(46,62,110,0.3)]";
                 const statusDot =
                   agent.status === "active"
                     ? "bg-emerald-500 animate-pulse"
                     : agent.status === "idle"
                     ? "bg-amber-500"
-                    : "bg-zinc-500";
+                    : "bg-ink-3";
 
                 return (
                   <span
@@ -187,10 +187,10 @@ export default function PhaseDetailPanel({ state }: { state: AlgorithmState }) {
         {/* Capabilities */}
         {state.capabilities.length > 0 && (
           <div className="flex items-center gap-2 shrink-0">
-            <Layers className="w-3.5 h-3.5 text-zinc-500" />
+            <Layers className="w-3.5 h-3.5 text-ink-3" />
             <div className="flex items-center gap-1">
               {state.capabilities.map((cap) => (
-                <span key={cap} className="px-2 py-0.5 rounded bg-white/[0.04] text-zinc-400 text-[14px] border border-white/[0.04]">
+                <span key={cap} className="px-2 py-0.5 rounded bg-white/[0.04] text-ink-2 text-[14px] border border-white/[0.04]">
                   {cap}
                 </span>
               ))}
@@ -233,7 +233,7 @@ export default function PhaseDetailPanel({ state }: { state: AlgorithmState }) {
               </div>
             );
           })}
-          <span className="text-zinc-500 ml-2 font-mono text-[14px]">{formatElapsed(totalElapsed)}</span>
+          <span className="text-ink-3 ml-2 font-mono text-[14px]">{formatElapsed(totalElapsed)}</span>
         </div>
       </div>
     </div>

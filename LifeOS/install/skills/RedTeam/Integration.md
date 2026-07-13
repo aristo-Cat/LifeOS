@@ -7,7 +7,7 @@
 
 **Use DURING RedTeam:**
 - `storyexplanation` - Decomposition methodology
-- Custom Agents (via Agents skill) - Parallel assault
+- Custom agents (inline briefs launched with `general-purpose`) - Parallel assault
 
 **Use AFTER RedTeam:**
 - `extractalpha` - Highest-signal critiques

@@ -34,8 +34,6 @@ Phases run **sequentially within a cycle** (each phase consumes the previous pha
 - Extract atomic ideas (one concept per item); tag each with source domain, confidence, surprise factor
 - Diversity requirement: span at least 3 of: direct domain, adjacent domain, distant domain, historical, contrarian
 
-**Agent:** The Glutton — voracious, omnivorous. Trait composition: `enthusiastic + research + thorough`
-
 ### Phase 2: DREAM (Perturb at noise=0.9)
 
 **Input:** Raw Input Pool from CONSUME
@@ -43,12 +41,9 @@ Phases run **sequentially within a cycle** (each phase consumes the previous pha
 **How:**
 - Invoke `Skill("BeCreative")` MaximumCreativity workflow
 - Each agent receives a random subset of the Input Pool (default N/3) selected by Fisher-Yates shuffle with cryptographic seed (NOT LLM-selected — structural randomness)
-- Instruction: "Forget the problem. Just combine these inputs freely. What connections do you see that nobody has made?"
 - 3 agents × 3-5 fragments = 9-15 dream fragments per cycle
 
-**Distinguishing feature:** DREAM has NO awareness of the problem. Pure free-association on random input subsets.
-
-**Agent:** The Dreamer — wild, poetic. Trait composition: `creative + visionary + unconventional`
+**Constraint:** NO problem-awareness. Pure free-association on the random input subset — surface connections nobody has made.
 
 ### Phase 3: DAYDREAM (Perturb at noise=0.5)
 
@@ -56,12 +51,9 @@ Phases run **sequentially within a cycle** (each phase consumes the previous pha
 
 **How:**
 - Agents receive accumulated material PLUS a gentle reminder of the problem
-- Instruction: "The problem exists in the background. You're not trying to solve it. You're wandering. What catches your eye?"
 - 2-3 agents × 3-5 tangential insights each
 
-**Distinguishing feature:** DAYDREAM knows about the problem but isn't trying to solve it. The constraint relaxation IS the mechanism.
-
-**Agent:** The Wanderer — curious, easily distracted. Trait composition: `curious + exploratory + playful`
+**Constraint:** problem held loosely in the background, NOT being solved. The constraint relaxation is the mechanism — wander, follow what catches attention.
 
 ### Phase 4: CONTEMPLATE (Perturb at noise=0.1) — MANDATORY
 
@@ -71,14 +63,13 @@ Phases run **sequentially within a cycle** (each phase consumes the previous pha
 
 **How:**
 - Invoke `Skill("IterativeDepth")` with 4 lenses: Literal, Failure, Analogical, Constraint Inversion
-- Instruction: "Given everything you've seen — now think seriously. What patterns emerge? What would a structured approach look like?"
 - 2-4 agents × 2-4 structured analyses each
+
+**Constraint:** problem front-and-center. Structured analysis of the accumulated material — what patterns emerge, what a rigorous approach looks like.
 
 **Mid-Cycle Checkpoint A:**
 - Gate: "Do at least 30% of structured analyses reference the original problem statement?"
 - If FAIL: re-run CONTEMPLATE with problem statement injected more prominently
-
-**Agent:** The Sage — deep, methodical. Trait composition: `analytical + systematic + precise`
 
 ### Phase 5: STEAL (Cross-Pollinate)
 
@@ -90,8 +81,6 @@ Phases run **sequentially within a cycle** (each phase consumes the previous pha
 - For each foreign domain, find 2-3 patterns/solutions/approaches that solve analogous problems
 - Map each foreign pattern onto the problem: "In [foreign domain], they solve [analogous problem] by [technique]. Applied to our problem: [mapping]."
 - 3-5 agents × different foreign domain each
-
-**Agent:** The Thief — street-smart, no respect for domain boundaries. Trait composition: `resourceful + cross-domain + opportunistic`
 
 ### Phase 6: MATE (Genetic Recombination)
 
@@ -106,8 +95,6 @@ Phases run **sequentially within a cycle** (each phase consumes the previous pha
   - **Cloning with drift:** copy one parent with small random modifications
 - Each agent produces 3-5 offspring; minimum 10 offspring per cycle (prevents premature convergence)
 - Explicitly instruct agents to produce BAD ideas too — selection happens in TEST
-
-**Agent:** The Matchmaker — sees compatibility where others don't. Trait composition: `creative + combinatorial + bold`
 
 ### Phase 7: TEST (Select)
 
@@ -126,8 +113,6 @@ Phases run **sequentially within a cycle** (each phase consumes the previous pha
 - Gate: "Is this cycle's avg composite score >= previous cycle's avg − 5 points?"
 - If FAIL: increment `stagnation_counter` in Loop Controller. If counter ≥ 2, Meta-Learner is triggered to propose strategy pivot before EVOLVE.
 
-**Agent:** The Judge — harsh, fair. Trait composition: `critical + analytical + skeptical`
-
 ### Phase 8: EVOLVE (Iterate)
 
 **Input:** Scored Candidates from TEST
@@ -140,8 +125,6 @@ Phases run **sequentially within a cycle** (each phase consumes the previous pha
 - **Diversity injection:** Add 2-3 completely new random ideas (immigrants) to prevent gene pool collapse
 - **Output report:** ideas in, ideas out, average fitness, diversity index, top 3 candidates
 - **Feed forward:** Survivors + full scoring data passed to META-LEARN
-
-**Agent:** The Curator — cold, efficient. Trait composition: `strategic + decisive + unsentimental`
 
 ### Phase 9: META-LEARN (Lamarckian Learning)
 
@@ -164,8 +147,6 @@ Phases run **sequentially within a cycle** (each phase consumes the previous pha
    ```
 
 3. **Question generation:** synthesizes 3-5 specific research questions based on what this cycle revealed; these seed the next cycle's CONSUME phase
-
-**Agent:** The Scientist — meta-analytical. Trait composition: `meta-analytical + strategic + adaptive`
 
 ## Loop Controller Decision
 
@@ -199,8 +180,6 @@ Runs once after the Loop Controller issues STOP. Analyzes the entire evolutionar
 - Fitness Landscape (peaks, valleys, unexplored regions)
 - Problem Understanding (what the process revealed about the problem itself)
 - Recommendations for Further Exploration
-
-**Agent:** The Historian — retrospective, sees the forest. Trait composition: `archival + synthesizing + retrospective`
 
 ## State Persistence
 

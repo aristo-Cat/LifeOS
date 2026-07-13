@@ -1,3 +1,7 @@
+---
+provenance: template
+---
+
 # Contacts
 
 > People the DA should know about — short entries, relational context.

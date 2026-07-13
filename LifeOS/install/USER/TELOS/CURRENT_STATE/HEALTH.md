@@ -1,4 +1,5 @@
 ---
+provenance: template
 dimension: health
 classification: private
 auto_populated: partial

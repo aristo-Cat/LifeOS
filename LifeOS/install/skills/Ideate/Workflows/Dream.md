@@ -25,8 +25,7 @@ curl -s -X POST http://localhost:31337/notify \
 
 2. **Spawn `agent_count` Dreamer agents in parallel** via Task tool. Each receives:
    - Its random subset
-   - The instruction: *"Forget any problem context. Just combine these inputs freely. What connections do you see that nobody has made? What if X was Y? What if you turned Z inside out?"*
-   - Trait composition: `creative + visionary + unconventional`
+   - Constraint: NO problem-awareness. Free-associate on the subset — surface connections nobody has made.
    - Invoke `Skill("BeCreative")` MaximumCreativity workflow inside each agent
 
 3. **Each agent produces 3-5 dream fragments**. Output is markdown with:

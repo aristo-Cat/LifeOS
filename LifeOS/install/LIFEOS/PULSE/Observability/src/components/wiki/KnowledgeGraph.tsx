@@ -32,7 +32,8 @@ const CATEGORY_COLORS: Record<string, string> = {
   person: "#38bdf8",
   company: "#fbbf24",
   idea: "#a78bfa",
-  bookmark: "#f87171",
+  blog: "#f472b6",
+  book: "#f87171",
 };
 
 export default function KnowledgeGraph({ nodes, edges, onNodeClick, hiddenCategories, searchQuery, colorMap }: KnowledgeGraphProps) {
@@ -97,7 +98,7 @@ export default function KnowledgeGraph({ nodes, edges, onNodeClick, hiddenCatego
         person: { x: width * 0.75, y: height * 0.3 },
         company: { x: width * 0.25, y: height * 0.7 },
         idea: { x: width * 0.75, y: height * 0.7 },
-        bookmark: { x: width * 0.5, y: height * 0.5 },
+        book: { x: width * 0.5, y: height * 0.5 },
       };
     }
 
@@ -464,7 +465,7 @@ export default function KnowledgeGraph({ nodes, edges, onNodeClick, hiddenCatego
   }, [draw]);
 
   return (
-    <div ref={containerRef} className="relative w-full h-full bg-slate-950">
+    <div ref={containerRef} className="relative w-full h-full bg-ground">
       <canvas ref={canvasRef} className="w-full h-full" />
     </div>
   );

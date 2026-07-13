@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 /**
+ * @version 1.0.1
  * UpdateCounts.hook.ts - System Counts Update (SessionEnd)
  *
  * PURPOSE:

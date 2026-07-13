@@ -1,3 +1,7 @@
+---
+provenance: template
+---
+
 # SAMPLE_COMPANY
 
 > 🏢 SAMPLE TEMPLATE — Rename this directory to your actual company name (e.g. `MY_COMPANY/`, `ACME_INC/`) and populate it via /interview or by editing these files.

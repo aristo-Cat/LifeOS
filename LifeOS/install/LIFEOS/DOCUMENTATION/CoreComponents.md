@@ -1,9 +1,10 @@
 ---
-last_updated: 2026-07-03
+last_updated: 2026-07-05
 last_updated_by: kai
-last_reviewed: 2026-07-03
+last_reviewed: 2026-07-05
 last_reviewed_by: kai
 convention: pai-freshness-v1
+version: 1.0.4
 ---
 
 # LifeOS Core Components
@@ -18,7 +19,7 @@ This doc is the canonical map. Each component links to its full reference.
 
 ## The Unique Features
 
-The eleven things that make LifeOS LifeOS.
+The twelve things that make LifeOS LifeOS.
 
 ### 1. Current State → Ideal State
 
@@ -32,41 +33,41 @@ The loop under everything. Your ideal state is the top of the hill, broken into 
 
 → `LifeOs/LifeOsThesis.md`
 
-### 3. TELOS
+### 3. Euphoric Surprise
+
+The metric the whole climb aims at: a response so good you say it out loud, "OMG, this is brilliant," rated a 9 or 10. Naming Euphoric Surprise as the target keeps the bar higher than merely good enough, and it holds across everything you do, code, writing, a decision, a design, because every task climbs toward an ideal state, and this is what reaching it feels like.
+
+→ `LifeOs/LifeOsThesis.md`
+
+### 4. TELOS
 
 Where you write down who you are and what you're trying to do: your mission, goals, problems, strategies, beliefs, and challenges. You don't start from a blank file — LifeOS interviews you to draw it out, asking what you're building, who matters to you, and where you want to go, then writes it down for you. From then on every recommendation is framed against it, so the system works toward your actual life, not a generic answer.
 
 → `LifeOs/LifeOsThesis.md`
 
-### 4. The Algorithm
+### 5. The Algorithm
 
-The centerpiece. A seven-phase engine — Observe, Think, Plan, Build, Execute, Verify, Learn — that takes a vague request, turns it into a hard-to-vary spec, and climbs toward it with verified iteration. It scales its own effort to the work: a fast lane for simple asks, full depth for hard ones. This is where current-state-to-ideal-state actually happens.
+The centerpiece. The unified thinking system that takes a vague request, turns it into a hard-to-vary spec (the ISA), and climbs toward it with verified iteration, closing each claim only on real evidence. It scales its own effort to the work — a fast lane for simple asks, full depth for hard ones — discovered from the task rather than a fixed set of phases. This is where current-state-to-ideal-state actually happens.
 
 → `Algorithm/AlgorithmSystem.md`
 
-### 5. The ISA
+### 6. The ISA
 
 The Ideal State Artifact — one document that captures what "done" looks like as verifiable criteria. It works like a product spec, but general, for any task from code to art to strategy. It breaks the ideal state into discrete Ideal State Criteria (ISCs) that double as the test harness, so every Algorithm run reads, extends, and checks against one living document.
 
 → `ISA/IsaSystem.md`
 
-### 6. The Skill System
+### 7. The Skill System
 
 Self-activating, composable units of domain expertise. A skill is deterministic code wrapped in a natural-language trigger, so the right capability fires the moment you describe the task — no menu, no command to remember. There are over a hundred of them, and they compose.
 
 → `Skills/SkillSystem.md`
 
-### 7. The Hook System
+### 8. The Hook System
 
 Deterministic lifecycle interception. Hooks run at fixed points across a session — before a tool call, after output, at session start and stop — and enforce the rules a model can't be trusted to remember every time. This is how the system stays honest: the guardrails are code, not good intentions.
 
 → `Hooks/HookSystem.md`
-
-### 8. The Router System
-
-Every prompt gets classified and routed. The router decides how much effort a request deserves and which model should handle it, so a quick lookup stays cheap and fast while a hard design problem gets the full engine and the strongest model. You never pick a mode — it picks for you.
-
-→ `Router/RouterSystem.md`
 
 ### 9. Pulse
 
@@ -126,4 +127,4 @@ Privacy and safety are enforced, not assumed. Deterministic gates keep private d
 
 ## How they fit together
 
-Current-state-to-ideal-state is the **why**. The Algorithm is the **engine** that runs it. Skills, hooks, and the router are the **machinery** that make each run capable, safe, and correctly-scoped. Pulse, spinner verbs, and tooltips are how you **see and feel** it. Memory, agents, voice, learning, and security are the **foundation** underneath. Together they're the whole of what makes LifeOS work.
+Current-state-to-ideal-state is the **why**, and Euphoric Surprise is the **bar** it aims for. The Algorithm is the **engine** that runs it. Skills, hooks, and the router are the **machinery** that make each run capable, safe, and correctly-scoped. Pulse, spinner verbs, and tooltips are how you **see and feel** it. Memory, agents, voice, learning, and security are the **foundation** underneath. Together they're the whole of what makes LifeOS work.

@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 /**
+ * @version 1.0.8
  * MemoryDeltaSurface — UserPromptSubmit hook that makes the autonomic memory
  * loop VISIBLE in every response, Hermes-style.
  *
@@ -167,9 +168,10 @@ function criticalHealthLine(): string | null {
   }
 }
 
-function main(): void {
+/** Returns the <pai-memory-health>? + <pai-memory-delta> blocks, or null. Pure — no exit. */
+export function run(): string | null {
+  let out = "";
   try {
-    if (isSubagent()) process.exit(0);
     touchHeartbeat(); // liveness guard: MemoryHealthCheck flags a dead surface
 
     const cursor = readCursor();
@@ -207,12 +209,11 @@ function main(): void {
 
     const healthLine = criticalHealthLine();
     if (healthLine) {
-      process.stdout.write(
+      out +=
         `<pai-memory-health>\n` +
         `Memory subsystem health is CRITICAL. Surface this line VERBATIM in your response so it cannot be ignored:\n` +
         `${healthLine}\n` +
-        `</pai-memory-health>\n`,
-      );
+        `</pai-memory-health>\n`;
     }
 
     // ── Compose the always-on line ──
@@ -246,16 +247,22 @@ function main(): void {
 
     if (line.length > LINE_HARD_CAP) line = line.slice(0, LINE_HARD_CAP - 1) + "…";
 
-    process.stdout.write(
+    out +=
       `<pai-memory-delta>\n` +
       `Memory status from the autonomic loop (computed deterministically by MemoryDeltaSurface.hook.ts). Render this line VERBATIM in your response as the 🧠 MEMORY line of the output format, exactly once. Do not recompute or rephrase it:\n` +
       `${line}\n` +
-      `</pai-memory-delta>\n`,
-    );
+      `</pai-memory-delta>\n`;
+    return out;
   } catch (e) {
     process.stderr.write(`MemoryDeltaSurface error: ${(e as Error)?.message || String(e)}\n`);
+    return out || null;
+  }
+}
+
+if (import.meta.main) {
+  if (!isSubagent()) {
+    const out = run();
+    if (out) process.stdout.write(out);
   }
   process.exit(0);
 }
-
-main();

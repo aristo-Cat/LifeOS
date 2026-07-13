@@ -1,3 +1,7 @@
+---
+provenance: template
+---
+
 # Basic Info
 
 > Bootstrap default — functional before interview. Run `/interview` to personalize.

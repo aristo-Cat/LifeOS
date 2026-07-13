@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 /**
+ * @version 1.3.1
  * AgentInvocation.hook.ts — Agent (Task) subagent lifecycle tracker.
  *
  * Claude Code's built-in SubagentStart/SubagentStop payloads do NOT include
@@ -7,6 +8,16 @@
  * "unknown" for 5844 of 5846 historical events. This hook captures the data
  * at PreToolUse:Agent / PostToolUse:Agent where tool_input and tool_response
  * are present, and writes proper events to subagent-events.jsonl.
+ *
+ * MODEL INJECTOR REMOVED (v1.3.0, 2026-07-11, principal directive): the
+ * v1.2.0 injector rewrote any no-model Agent dispatch to a routing-curve rung
+ * (E4/E5 → fable, else opus). Its tier signal died with the 2026-07-11 tier
+ * retirement, silently flattening every dispatch to opus. Baseline now: model
+ * selection is {{DA_NAME}}'s per-dispatch judgment; an unspecified model inherits the
+ * session model (harness behavior). This hook OBSERVES only — it resolves and
+ * logs which model a dispatch carries (cross-vendor > explicit param >
+ * frontmatter pin > inherited) and never mutates tool input. Historical
+ * injections remain in MEMORY/OBSERVABILITY/model-injections.jsonl.
  *
  * Wired in settings.json under:
  *   PreToolUse  matcher=Agent → subagent_start  (with real subagent_type)
@@ -116,6 +127,7 @@ async function main() {
     if (!isPost) {
       const now = Date.now();
       const dispatch = resolveDispatch(subagentType, input.model);
+
       const starts = readStarts();
       starts[key] = {
         epoch: now,

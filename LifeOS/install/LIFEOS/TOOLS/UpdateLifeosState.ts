@@ -1,7 +1,14 @@
 #!/usr/bin/env bun
+// Normalize env path vars Claude Code may inject unexpanded — literal $HOME/${HOME}
+// in LIFEOS_DIR/LIFEOS_CONFIG_DIR/PROJECTS_DIR resolves to a shadow dir (#1404 / PR #1451, author jbmml).
+for (const __k of ["LIFEOS_DIR", "LIFEOS_CONFIG_DIR", "PROJECTS_DIR"]) {
+  const __v = process.env[__k];
+  if (__v && /^\$\{?HOME\}?(\/|$)/.test(__v)) process.env[__k] = __v.replace(/^\$\{?HOME\}?/, process.env.HOME ?? "~");
+}
+
 /**
  * UpdateLifeosState — Writes LIFEOS_STATE.json with per-dimension pct scores read by
- * the statusline (PAI/LIFEOS_StatusLine.sh) STATE strip and the Pulse TELOS
+ * the statusline (LIFEOS/LIFEOS_StatusLine.sh) STATE strip and the Pulse TELOS
  * dashboard rings.
  *
  * Pct semantics:
@@ -28,6 +35,13 @@
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
 import { join, dirname } from "path";
+
+// Normalize env path vars that Claude Code injects without shell expansion (LifeOS#1404)
+for (const k of ["LIFEOS_DIR", "LIFEOS_CONFIG_DIR", "PROJECTS_DIR"]) {
+  const v = process.env[k];
+  if (v && /^\$\{?HOME\}?(\/|$)/.test(v)) process.env[k] = v.replace(/^\$\{?HOME\}?/, process.env.HOME ?? "~");
+}
+
 
 const HOME = process.env.HOME || "";
 const LIFEOS_DIR = process.env.LIFEOS_DIR || join(HOME, ".claude", "LIFEOS");

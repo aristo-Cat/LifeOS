@@ -89,6 +89,7 @@ Follow this exact structure:
 ```yaml
 ---
 name: SkillName
+version: 1.0.0
 description: [What it does]. USE WHEN [intent triggers using OR]. NOT FOR [confusable alternatives]. [Additional capabilities].
 ---
 
@@ -319,6 +320,10 @@ After creating the skill, suggest to the user:
 If the user agrees, invoke `Workflows/TestSkill.md`.
 
 If the description needs tuning, suggest `Workflows/OptimizeDescription.md`.
+
+## Step 10: Version Awareness
+
+A new skill scaffolds with `version: 1.0.0` in its frontmatter (its own per-skill semver line) and is ALSO a **feature**-level OS change (see `## Versioning` in SKILL.md). Don't edit `LIFEOS/VERSION` here, and don't hand-bump the skill's `version:` — both bumps are applied at private-sync time by the `<your-release-skill>` `UpdateKaiRepo` ship flow (per-skill via `BumpSkillVersions.ts`, OS roll-up via the version-bump workflow).
 
 ## Done
 

@@ -31,81 +31,15 @@ This is about optimizing **function** (what you're trying to accomplish) rather 
 
 ---
 
-## Process
+## What a Done Reconstruction Shows
 
-### Step 1: State Only the Hard Constraints
+Build from only the hard constraints, designing as if you'd never seen the current solution. A done Reconstruction exhibits:
 
-From your Challenge analysis, list ONLY the hard constraints:
-- Laws of physics
-- Mathematical requirements
-- Verified empirical facts
-- True immutable requirements
-
-**Exclude**:
-- Soft constraints (choices that could change)
-- Assumptions (unvalidated beliefs)
-- "How it's always been done"
-- Industry conventions
-
-**Write**: "The only things that MUST be true: [list]"
-
-### Step 2: Define the Function
-
-What is the actual outcome you need?
-
-Not: "We need a database"
-But: "We need to persist and retrieve user data reliably"
-
-Not: "We need microservices"
-But: "We need to deploy and scale components independently"
-
-Not: "We need a mobile app"
-But: "Users need to accomplish X from anywhere"
-
-**Write**: "The function we're optimizing for: [outcome]"
-
-### Step 3: Blank Slate Design
-
-Pretend you've never seen the current solution. Ask:
-
-- If an alien with perfect engineering knowledge landed today, what would they build?
-- If we were starting a new company to solve just this problem, what would we do?
-- What would a physicist build to satisfy these constraints?
-
-**Generate 3+ approaches** without filtering for feasibility yet.
-
-### Step 4: Cross-Domain Synthesis
-
-Look for solutions in unrelated fields:
-
-- What industry has solved an analogous problem?
-- What technology from another domain could apply?
-- What would [different field] do with this problem?
-
-**The snowmobile insight**: Tank treads + Boat motor + Bicycle seat = New category
-
-**Write**: "Analogous solutions from other domains: [list]"
-
-### Step 5: Evaluate Against Function
-
-For each potential solution:
-
-| Solution | Satisfies Hard Constraints? | Achieves Function? | Simpler Than Current? |
-|----------|----------------------------|--------------------|-----------------------|
-| [A] | Yes/No | Yes/No | Yes/No |
-| [B] | Yes/No | Yes/No | Yes/No |
-| [C] | Yes/No | Yes/No | Yes/No |
-
-**Best solution**: Satisfies constraints, achieves function, maximizes simplicity
-
-### Step 6: Identify What Changes
-
-Compare reconstructed solution to current approach:
-
-- What gets eliminated? (Complexity that wasn't fundamental)
-- What gets simplified? (Over-engineering based on soft constraints)
-- What's new? (Approaches that weren't considered)
-- What's the same? (Fundamentals that were actually correct)
+- **Only the hard constraints stated** (physics, math, verified facts, true immutable requirements) — soft constraints, assumptions, and "how it's always been done" excluded.
+- **Function defined as outcome, not method** — "persist and retrieve user data reliably," not "we need a database"; "deploy and scale components independently," not "we need microservices."
+- **3+ blank-slate approaches** generated without filtering for feasibility, each checked against: satisfies the hard constraints, achieves the function, simpler than current. The best one maximizes simplicity.
+- **Cross-domain synthesis** — an analogous problem solved in an unrelated field, applied here. (The snowmobile: tank treads + boat motor + bicycle seat = a new category.)
+- **An explicit delta** vs the current approach: what gets eliminated (complexity that wasn't fundamental), what's new, what was actually correct all along.
 
 ---
 

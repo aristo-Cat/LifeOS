@@ -1,4 +1,10 @@
+---
+version: 1.2.10
+---
+
 # The Feed System
+
+> **Private infrastructure — not included in the public LifeOS release.** This document describes a feed pipeline the maintainer runs privately on Arbol (also private). No Feed implementation ships with the OSS release; it's reference documentation for how the architecture works, and a blueprint if you want to build your own.
 
 > The Feed is the LifeOS's sensor layer in thesis terms (`LifeOs/LifeOsThesis.md`): it keeps the OS's current-state picture fed with the outside world, and it routes by what *your* ideal state cares about — a TELOS-relevant signal alerts immediately, noise archives silently.
 

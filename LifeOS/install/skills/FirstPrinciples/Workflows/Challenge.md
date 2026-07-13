@@ -34,24 +34,9 @@ If it's a choice, it can be changed.
 
 ---
 
-## Process
+## Classify Every Constraint
 
-### Step 1: List All Stated Constraints
-
-Gather everything that's been presented as a constraint:
-- Requirements documents
-- "We have to..." statements
-- Industry best practices
-- Historical decisions
-- Budget/timeline limits
-- Technical limitations
-- Policy requirements
-
-**Write**: List every constraint without filtering
-
-### Step 2: Classify Each Constraint
-
-For each constraint, determine its type:
+Gather everything presented as a constraint — requirements, "we have to..." statements, best practices, budget/timeline limits, policy — then classify each:
 
 | Type | Definition | Test | Examples |
 |------|------------|------|----------|
@@ -59,36 +44,11 @@ For each constraint, determine its type:
 | **SOFT** | Policy/choice/convention | Could a decision-maker change this? | "We use AWS", "REST APIs only", budget limits |
 | **ASSUMPTION** | Unvalidated belief | Has this been tested? What's the evidence? | "Users won't accept that", "Too expensive" |
 
-### Step 3: Challenge Each Non-Hard Constraint
+A done Challenge exhibits three properties:
 
-For SOFT constraints, ask:
-- Who made this decision and why?
-- What would happen if we violated it?
-- What's the cost of keeping vs. removing it?
-- Is the original reason still valid?
-
-For ASSUMPTIONS, ask:
-- What evidence supports this?
-- Has anyone tested the opposite?
-- What would prove this wrong?
-- Are we confusing correlation with causation?
-
-### Step 4: The "Remove It" Test
-
-For each soft constraint and assumption:
-
-> "If we removed this constraint entirely, what would become possible?"
-
-If removing it unlocks significant value, it's worth challenging.
-
-### Step 5: Find the Hidden Assumptions
-
-Look for implicit constraints that weren't even stated:
-- "Of course we need a database" - Do we?
-- "Obviously this needs authentication" - Does it?
-- "Users expect a web interface" - Do they?
-
-The most dangerous constraints are the ones so assumed they're never stated.
+- Every SOFT constraint traced to who decided it, why, and whether the original reason still holds; every ASSUMPTION paired with its evidence and a test that could disprove it.
+- The **"remove it" test** applied to each non-hard constraint: if removing it unlocks significant value, it's worth challenging.
+- The **hidden constraints** surfaced — the implicit ones so assumed they were never stated ("of course we need a database," "obviously this needs auth"). Those are the most dangerous.
 
 ---
 
@@ -133,40 +93,6 @@ The most dangerous constraints are the ones so assumed they're never stated.
 - [ ] Challenge soft constraint: [Y] with [stakeholder]
 - [ ] Accept hard constraint: [Z] and design around it
 ```
-
----
-
-## Challenge Questions Library
-
-### For Technical Constraints
-- Is this a language/framework limitation or a fundamental limitation?
-- Could a different technology remove this constraint?
-- Is this "impossible" or just "hard with current approach"?
-- What would it take to make this possible?
-
-### For Business Constraints
-- Is this budget fixed or is it the budget for "the obvious solution"?
-- Would a 10x better solution justify a different budget?
-- Is this timeline real or arbitrary?
-- What's the actual cost of missing this deadline?
-
-### For Security Constraints
-- Is this control preventing a real attack or a theoretical one?
-- What's the actual threat model?
-- Is this security or security theater?
-- What would an attacker do if this control didn't exist?
-
-### For User Experience Constraints
-- Have we tested this with actual users?
-- Is "users won't accept this" based on data or assumption?
-- Are we confusing user needs with user habits?
-- What if users are wrong about what they want?
-
-### For Architectural Constraints
-- Is this pattern required or just familiar?
-- What would we build if we'd never seen the current solution?
-- Is this complexity necessary or accumulated?
-- Could a simpler solution work?
 
 ---
 

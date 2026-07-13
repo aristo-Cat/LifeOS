@@ -34,7 +34,7 @@ function getMood(avg: number): MoodTier {
 }
 
 function getTrend(pulses: RatingPulse[]): { arrow: string; label: string; color: string } {
-  if (pulses.length < 4) return { arrow: "–", label: "Too few", color: "text-zinc-500" };
+  if (pulses.length < 4) return { arrow: "–", label: "Too few", color: "text-ink-3" };
   const half = Math.floor(pulses.length / 2);
   const firstHalf = pulses.slice(0, half);
   const secondHalf = pulses.slice(half);
@@ -45,7 +45,7 @@ function getTrend(pulses: RatingPulse[]): { arrow: string; label: string; color:
   if (delta > 0.5) return { arrow: "↗", label: "Rising", color: "text-emerald-400/70" };
   if (delta < -1.5) return { arrow: "↓", label: "Declining", color: "text-rose-400" };
   if (delta < -0.5) return { arrow: "↘", label: "Dipping", color: "text-orange-400" };
-  return { arrow: "→", label: "Steady", color: "text-zinc-400" };
+  return { arrow: "→", label: "Steady", color: "text-ink-2" };
 }
 
 function barColor(value: number): string {
@@ -101,7 +101,7 @@ export default function QuickPulseStrip({ pulses }: QuickPulseStripProps) {
             <span className={`text-lg font-mono font-black leading-none ${mood.textColor}`}>
               {avg.toFixed(1)}
             </span>
-            <span className="text-[13px] text-zinc-600 font-mono">/10</span>
+            <span className="text-[13px] text-ink-3 font-mono">/10</span>
           </div>
           <div className="flex flex-col gap-0.5">
             <span className={`text-xs font-semibold leading-none ${mood.textColor}`}>
@@ -137,15 +137,15 @@ export default function QuickPulseStrip({ pulses }: QuickPulseStripProps) {
                   }}
                 />
                 {/* Hover tooltip */}
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2.5 py-1.5 rounded-md bg-zinc-800/95 border border-zinc-700 text-xs text-zinc-300 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20 min-w-[180px] max-w-[280px]">
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2.5 py-1.5 rounded-md bg-[rgba(20,28,56,0.95)] border border-line-2 text-xs text-ink-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20 min-w-[180px] max-w-[280px]">
                   <div className="flex items-center gap-2 mb-0.5">
                     <span className={`font-mono font-bold text-sm ${barTextColor(pulse.value)}`}>
                       {pulse.value}/10
                     </span>
-                    <span className="text-zinc-500 text-[13px]">{formatTime(pulse.timestamp)}</span>
+                    <span className="text-ink-3 text-[13px]">{formatTime(pulse.timestamp)}</span>
                   </div>
                   {pulse.message && (
-                    <div className="text-zinc-400 text-[14px] leading-snug line-clamp-2">
+                    <div className="text-ink-2 text-[14px] leading-snug line-clamp-2">
                       {pulse.message}
                     </div>
                   )}
@@ -161,16 +161,16 @@ export default function QuickPulseStrip({ pulses }: QuickPulseStripProps) {
         {/* Stats */}
         <div className="flex flex-col gap-0.5 shrink-0 text-right">
           <div className="flex items-center gap-2">
-            <span className="text-[13px] text-zinc-600">Range</span>
-            <span className="text-[13px] font-mono text-zinc-400">{lo}–{hi}</span>
+            <span className="text-[13px] text-ink-3">Range</span>
+            <span className="text-[13px] font-mono text-ink-2">{lo}–{hi}</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-[13px] text-zinc-600">Count</span>
-            <span className="text-[13px] font-mono text-zinc-400">{pulses.length}</span>
+            <span className="text-[13px] text-ink-3">Count</span>
+            <span className="text-[13px] font-mono text-ink-2">{pulses.length}</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-[13px] text-zinc-600">Span</span>
-            <span className="text-[13px] font-mono text-zinc-400">{timeRange}</span>
+            <span className="text-[13px] text-ink-3">Span</span>
+            <span className="text-[13px] font-mono text-ink-2">{timeRange}</span>
           </div>
         </div>
       </div>

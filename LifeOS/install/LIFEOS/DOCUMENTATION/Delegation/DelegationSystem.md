@@ -3,6 +3,7 @@ name: DelegationReference
 description: Comprehensive delegation and agent parallelization patterns. Reference material extracted from SKILL.md for on-demand loading.
 created: 2025-12-17
 extracted_from: SKILL.md lines 535-627
+version: 1.4.11
 ---
 
 # Delegation & Parallelization Reference
@@ -23,7 +24,7 @@ extracted_from: SKILL.md lines 535-627
 
 **Resuming agents:** To continue a previously spawned agent, use `SendMessage({to: agentId})`. This auto-resumes stopped background agents. Do NOT use `Agent(resume=...)` — the `resume` parameter no longer exists.
 
-Agents default to inheriting the parent model (often Opus). This is SLOW for simple tasks. Each inference with 30K+ context takes 5-15 seconds on Opus. A simple 10-tool-call task = 1-2+ minutes of pure thinking time.
+Agents that omit `model` inherit the session model (harness behavior — the AgentInvocation model injector was removed v1.3.0, 2026-07-11 baseline; the hook now only logs each dispatch's resolved model to subagent-events.jsonl). Model choice is per-dispatch judgment: pass `model` explicitly when a different rung fits the work — Sonnet/Haiku for utility or mechanical fan-outs, the strongest available for intelligence-hungry dispatches (note `model: fable` on Agent executed Opus at last probe, 2026-07-07 — genuine Fable off the main loop is the `Inference.ts --level max` subprocess). Each inference with 30K+ context takes 5-15 seconds on a frontier model; a simple 10-tool-call task = 1-2+ minutes of pure thinking time.
 
 **Model Selection Matrix:**
 
@@ -108,7 +109,7 @@ Use the Agents skill to compose task-specific agents with unique traits, voices,
 
 **For research specifically:** Use the Research skill, which has dedicated researcher agents (ClaudeResearcher, GeminiResearcher, etc.)
 
-**Reference:** Agents skill (`~/.claude/skills/Agents/SKILL.md`) | Managed Agents: https://www.anthropic.com/engineering/managed-agents
+**Reference:** agent routing (`LIFEOS/DOCUMENTATION/Agents/AgentSystem.md`) | Managed Agents: https://www.anthropic.com/engineering/managed-agents
 
 **Full Context Requirements:**
 When delegating, ALWAYS include:
@@ -210,4 +211,4 @@ Delegated agents can query the **Knowledge Archive** (`~/.claude/LIFEOS/MEMORY/K
 - SKILL.md > Delegation (Quick Reference) - Condensed trigger table
 - Workflows/Delegation.md - Operational delegation procedures
 - Workflows/BackgroundDelegation.md - Background agent patterns
-- skills/Agents/SKILL.md - Custom agent creation system
+- LIFEOS/DOCUMENTATION/Agents/AgentSystem.md - Agent routing and composition

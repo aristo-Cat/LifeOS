@@ -1,3 +1,7 @@
+---
+version: 1.0.0
+---
+
 # LifeOS Brand Assets
 
 Canonical logo naming for the whole LifeOS project. Use these names everywhere — docs, repos, site, release, design files.

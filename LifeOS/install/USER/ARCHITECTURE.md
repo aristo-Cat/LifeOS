@@ -1,3 +1,7 @@
+---
+provenance: template
+---
+
 # Personal Architecture — User
 
 > Bootstrap default. Run `/interview` to map your actual setup.

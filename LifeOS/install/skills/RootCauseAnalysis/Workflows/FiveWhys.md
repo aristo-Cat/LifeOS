@@ -13,85 +13,23 @@ Originated with Sakichi Toyoda in the 1930s and embedded in the Toyota Productio
 - Quick operational triage when time is short
 - As a sub-step inside Fishbone (each category bone gets a 5 Whys)
 
-## Canonical Procedure
+## Method
 
-### Step 1: Write the Problem Statement Precisely
+Ask "Why?" down the causal chain until you reach an actionable systemic cause. The `Output Format` below is the deliverable shape — WHY 1..N, branches, root cause(s), corrective actions, forward-read validation. Four rules govern where the chain starts, forks, and stops:
 
-A vague statement produces a vague chain.
+**Problem statement — specific, observable, measurable.** A vague statement produces a vague chain.
+- Bad: "Reliability is down."
+- Good: "The payments service returned HTTP 500 for 14 minutes starting 2026-04-12 23:51 UTC, affecting 3,412 user checkouts."
 
-```
-PROBLEM: [Specific, observable, measurable]
-```
+**Stop condition — actionable AND systemic, both required.** One without the other means keep going.
+- Actionable but not systemic ("patch this specific line") → stopped too shallow.
+- Systemic but not actionable ("humans make mistakes") → went too deep, back up one level.
 
-Bad: "Reliability is down."
-Good: "The payments service returned HTTP 500 for 14 minutes starting 2026-04-12 23:51 UTC, affecting 3,412 user checkouts."
+**Branch where the chain forks.** A perfectly linear 5 Whys is the most common failure mode — it usually means you took the most obvious answer and ignored the others. At each "Why?", check for multiple valid answers and record both branches. **Converging branches that share a common ancestor mark a high-leverage systemic cause: one fix closes multiple failure paths.**
 
-### Step 2: Ask "Why Did This Occur?"
+**Validate by reading forward.** Read bottom-to-top as "Because X, therefore Y, ..., therefore problem." If the forward read doesn't hold, there's a logical jump — fix it before concluding.
 
-Record the direct cause. Keep it concrete and mechanical.
-
-```
-WHY 1: [Direct mechanical cause]
-```
-
-### Step 3: Ask "Why Did That Occur?"
-
-Now ask why the previous answer is true. Again, mechanical.
-
-```
-WHY 2: [Cause of WHY 1]
-WHY 3: [Cause of WHY 2]
-WHY 4: [Cause of WHY 3]
-...
-```
-
-### Step 4: Stop When Actionable AND Systemic
-
-**Stop condition, both required:**
-- **Actionable** — you can define a concrete intervention that addresses this cause
-- **Systemic** — the intervention prevents a *class* of failure, not just this instance
-
-If you have one without the other, keep going.
-
-- Actionable but not systemic ("patch this specific line"): you stopped too shallow
-- Systemic but not actionable ("humans make mistakes"): you went too deep; back up one level
-
-### Step 5: Validate by Reading Forward
-
-Read the chain from bottom to top as "Because X, therefore Y, ..., therefore problem."
-
-If the forward read does not hold together, the chain has a logical jump. Fix it before concluding.
-
-### Step 6: Branch Where the Chain Forks
-
-A single-chain 5 Whys is the most common failure mode. At each "Why?" ask: are there *multiple* valid answers?
-
-When yes, record both branches:
-
-```
-WHY 3:
-  ├─ Branch A: [Cause A]
-  │    WHY 4A: [...]
-  │    WHY 5A: [...]
-  └─ Branch B: [Cause B]
-       WHY 4B: [...]
-       WHY 5B: [...]
-```
-
-**Converging branches** that share a common ancestor indicate a high-leverage systemic cause — one fix addresses multiple failure paths.
-
-### Step 7: Optional — Five Hows
-
-After identifying the root cause, apply "How do we prevent this?" five times to the solution:
-
-```
-HOW 1: [First intervention]
-HOW 2: [How do we make HOW 1 robust?]
-HOW 3: [How do we prevent HOW 1 from decaying?]
-...
-```
-
-Ensures the solution is as rigorous as the diagnosis.
+**Optional — Five Hows.** After the root cause, apply "How do we prevent this?" five times to the fix, so the solution is as rigorous as the diagnosis.
 
 ## Output Format
 

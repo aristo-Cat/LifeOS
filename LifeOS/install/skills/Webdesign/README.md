@@ -52,7 +52,6 @@ The skill routes your request to the right workflow automatically.
 - **`frontend-design` plugin** (Anthropic, auto-activates in Claude Code): the downstream code-generation engine when exporting bundles. Not invoked directly by this skill.
 - **Interceptor skill**: required, drives claude.ai/design.
 - **Art skill**: for illustrations, diagrams, header images — not overlapping scope.
-- **Browser skill**: not used; Interceptor is the only supported browser path for authenticated claude.ai work.
 
 ## License
 

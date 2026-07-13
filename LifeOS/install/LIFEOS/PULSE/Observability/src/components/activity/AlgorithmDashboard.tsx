@@ -72,8 +72,8 @@ function IdleContent() {
   return (
     <div className="flex flex-col flex-1 overflow-y-auto">
       <div className="px-6 py-5 border-b border-white/[0.04]">
-        <h2 className="text-base font-semibold text-zinc-300 mb-1">The LifeOS Algorithm</h2>
-        <p className="text-[16px] text-zinc-500 leading-relaxed max-w-2xl">
+        <h2 className="text-base font-semibold text-ink-1 mb-1">The LifeOS Algorithm</h2>
+        <p className="text-[16px] text-ink-3 leading-relaxed max-w-2xl">
           A 7-phase scientific loop that hill-climbs from current state to ideal state.
           Every task is decomposed into Ideal State Criteria (ISC) {"\u2014"} granular, binary, testable conditions
           that become the verification criteria. No ambiguity. No hand-waving. Just evidence.
@@ -94,7 +94,7 @@ function IdleContent() {
                     {phase.name}
                   </span>
                 </div>
-                <p className="text-[14px] text-zinc-600 leading-relaxed flex-1">
+                <p className="text-[14px] text-ink-3 leading-relaxed flex-1">
                   {phase.description}
                 </p>
               </div>
@@ -103,7 +103,7 @@ function IdleContent() {
         </div>
       </div>
       <div className="px-6 py-3 border-t border-white/[0.04] text-center">
-        <p className="text-[14px] text-zinc-600">
+        <p className="text-[14px] text-ink-3">
           Waiting for an algorithm run. When active, ISC criteria flow through the Kanban as live cards.
         </p>
       </div>
@@ -136,9 +136,9 @@ function AlgorithmRow({
       className="w-full px-4 py-3 flex items-center gap-3 border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors text-left"
     >
       {isExpanded ? (
-        <ChevronDown className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
+        <ChevronDown className="w-3.5 h-3.5 text-ink-3 shrink-0" />
       ) : (
-        <ChevronRight className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
+        <ChevronRight className="w-3.5 h-3.5 text-ink-3 shrink-0" />
       )}
 
       {isComplete ? (
@@ -149,7 +149,7 @@ function AlgorithmRow({
 
       <PhaseIcon className="w-3.5 h-3.5 shrink-0" style={{ color: phaseInfo.color }} />
 
-      <span className="text-[16px] font-medium text-zinc-200 truncate flex-1">
+      <span className="text-[16px] font-medium text-ink-1 truncate flex-1">
         {state.taskDescription || "Algorithm run"}
       </span>
 
@@ -157,11 +157,11 @@ function AlgorithmRow({
         {state.currentPhase}
       </span>
 
-      <span className="text-[14px] text-zinc-500 shrink-0 tabular-nums">
+      <span className="text-[14px] text-ink-3 shrink-0 tabular-nums">
         {completedCount}/{totalCount} ISC
       </span>
 
-      <span className="text-[14px] text-zinc-600 shrink-0 tabular-nums w-14 text-right">
+      <span className="text-[14px] text-ink-3 shrink-0 tabular-nums w-14 text-right">
         {elapsedStr}
       </span>
     </button>
@@ -189,7 +189,7 @@ export default function AlgorithmDashboard() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-full text-zinc-500">
+      <div className="flex items-center justify-center h-full text-ink-3">
         <Loader2 className="w-4 h-4 animate-spin mr-2" />
         <span className="text-sm">Loading algorithm state...</span>
       </div>
@@ -222,9 +222,9 @@ export default function AlgorithmDashboard() {
             ) : (
               <div className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse" />
             )}
-            <span className="text-[16px] font-medium text-zinc-200">{state.taskDescription}</span>
+            <span className="text-[16px] font-medium text-ink-1">{state.taskDescription}</span>
             {state.prdPath && (
-              <span className="text-[14px] text-zinc-600 font-mono ml-auto">{state.prdPath}</span>
+              <span className="text-[14px] text-ink-3 font-mono ml-auto">{state.prdPath}</span>
             )}
           </div>
         </div>
@@ -245,7 +245,7 @@ export default function AlgorithmDashboard() {
       {/* Header */}
       <div className="px-4 py-2.5 border-b border-white/[0.04] flex items-center gap-2">
         <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-        <span className="text-[16px] font-medium text-zinc-300">
+        <span className="text-[16px] font-medium text-ink-1">
           {algorithmStates.length} Active Algorithm{algorithmStates.length > 1 ? "s" : ""}
         </span>
       </div>

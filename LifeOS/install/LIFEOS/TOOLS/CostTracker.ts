@@ -156,7 +156,7 @@ const RISK_PATTERNS = [
   { pattern: "@anthropic-ai/sdk", reason: "Raw Anthropic SDK — bills API directly" },
   { pattern: "@ai-sdk/anthropic", reason: "Vercel AI SDK Anthropic provider — bills API directly" },
   { pattern: "claude.*--bare", reason: "`claude --bare` flag forces ANTHROPIC_API_KEY auth, skips OAuth/keychain" },
-  { pattern: "x-api-key.*anthropic\\|x-api-key.*sk-ant", reason: "Raw HTTP to Anthropic API with x-api-key header" },
+  { pattern: "x-api-key.*(anthropic|sk-ant)", reason: "Raw HTTP to Anthropic API with x-api-key header" },
   { pattern: "api\\.anthropic\\.com/v1/messages", reason: "Direct HTTP POST to Anthropic messages endpoint" },
 ];
 
@@ -186,10 +186,15 @@ function fileHasGuard(filePath: string): boolean {
   }
 }
 
-function classifyCallSite(file: string, reason: string): { classification: "bypass" | "legit" | "unknown"; note: string } {
+export function classifyCallSite(file: string, reason: string): { classification: "bypass" | "legit" | "unknown"; note: string } {
   // Documentation files (.md) never execute — just mention SDK/API in prose or examples
   if (file.endsWith(".md")) {
     return { classification: "legit", note: "markdown (docs/template) — no runtime billing risk" };
+  }
+  // JSON manifests (package.json deps, config) declare a package but can't carry the
+  // env-scrub guard — matching one is a false BYPASS, not a real call site (#1321).
+  if (file.endsWith(".json")) {
+    return { classification: "legit", note: "JSON manifest (dependency/config) — not an executable call site" };
   }
   for (const [hint, note] of Object.entries(LEGIT_HINTS)) {
     if (file.includes(hint)) return { classification: "legit", note };
@@ -203,6 +208,11 @@ function classifyCallSite(file: string, reason: string): { classification: "bypa
   }
   if (reason.includes("SDK")) {
     return { classification: "bypass", note: "SDK call without ANTHROPIC_API_KEY-delete guard — will bill API if key present in env" };
+  }
+  // Raw HTTP hits (x-api-key header / direct messages-endpoint POST) bill API directly.
+  // fileHasGuard() already returned legit above for guarded files (#1320).
+  if (reason.includes("Raw HTTP") || reason.includes("messages endpoint")) {
+    return { classification: "bypass", note: "raw HTTP call to Anthropic API without ANTHROPIC_API_KEY-delete guard — bills API directly" };
   }
   return { classification: "unknown", note: reason };
 }

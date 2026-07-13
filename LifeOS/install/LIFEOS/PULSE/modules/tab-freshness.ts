@@ -103,6 +103,10 @@ const REGISTRY: Record<string, SourceSpec[]> = {
   performance: [
     { name: "MEMORY/OBSERVABILITY/", path: join(LIFEOS_DIR, "MEMORY", "OBSERVABILITY"), expand: true },
   ],
+  amber: [
+    { name: "KNOWLEDGE/Ideas/", path: join(LIFEOS_DIR, "MEMORY", "KNOWLEDGE", "Ideas"), expand: true },
+    { name: "_X/State/", path: join(HOME, ".claude", "skills", "_X", "State") },
+  ],
   assistant: [
     { name: "DA_IDENTITY.md", path: join(USER_DIR, "DIGITAL_ASSISTANT", "DA_IDENTITY.md") },
     { name: "PRINCIPAL_IDENTITY.md", path: join(USER_DIR, "PRINCIPAL", "PRINCIPAL_IDENTITY.md") },

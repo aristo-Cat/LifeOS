@@ -1,11 +1,17 @@
+---
+provenance: template
+---
+
 # AI Writing Patterns — Avoid List
 
 > Bootstrap default. The DA references this when writing in your voice
 > to scrub AI-isms.
 
 Generated text has tells. This file is the running list of patterns to
-detect and remove. The `_WRITING` skill (rewrite + detect modes) reads
-this list as its rule source.
+detect and remove. It stands alone: your DA reads it directly whenever it
+drafts or audits prose in your voice, and you can grow the list as you
+catch new tells. If you build a writing skill of your own, point it here
+as the rule source.
 
 ## P0 — Credibility killers (always remove)
 

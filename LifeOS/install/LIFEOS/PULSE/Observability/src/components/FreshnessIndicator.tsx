@@ -27,10 +27,10 @@ function formatAge(daysOld: number | null): string {
 }
 
 const TIER_STYLE: Record<FreshnessData["tier"], { dot: string; text: string; border: string; bg: string; Icon: any; label: string }> = {
-  fresh:   { dot: "bg-emerald-400", text: "text-emerald-400", border: "border-emerald-500/25", bg: "bg-emerald-500/10", Icon: CheckCircle2,   label: "Fresh" },
-  aging:   { dot: "bg-amber-400",   text: "text-amber-400",   border: "border-amber-500/25",   bg: "bg-amber-500/10",   Icon: Clock,          label: "Aging" },
-  stale:   { dot: "bg-rose-400",    text: "text-rose-400",    border: "border-rose-500/25",    bg: "bg-rose-500/10",    Icon: AlertTriangle,  label: "Stale" },
-  unknown: { dot: "bg-slate-500",   text: "text-slate-400",   border: "border-slate-600/40",   bg: "bg-slate-800/40",   Icon: HelpCircle,     label: "Unknown" },
+  fresh:   { dot: "bg-ok",    text: "text-ok",    border: "border-[rgba(74,222,128,0.25)]",  bg: "bg-[rgba(74,222,128,0.1)]",  Icon: CheckCircle2,   label: "Fresh" },
+  aging:   { dot: "bg-warn",  text: "text-warn",  border: "border-[rgba(251,191,36,0.25)]",  bg: "bg-[rgba(251,191,36,0.1)]",  Icon: Clock,          label: "Aging" },
+  stale:   { dot: "bg-err",   text: "text-err",   border: "border-[rgba(248,113,113,0.25)]", bg: "bg-[rgba(248,113,113,0.1)]", Icon: AlertTriangle,  label: "Stale" },
+  unknown: { dot: "bg-ink-3", text: "text-ink-2", border: "border-line-2",                   bg: "bg-surface-3",               Icon: HelpCircle,     label: "Unknown" },
 };
 
 export function FreshnessIndicator({
@@ -47,7 +47,7 @@ export function FreshnessIndicator({
   const [hover, setHover] = useState(false);
   if (!freshness) {
     return (
-      <div className={`inline-flex items-center gap-1.5 text-xs text-slate-500 ${className}`}>
+      <div className={`inline-flex items-center gap-1.5 text-xs text-ink-3 ${className}`}>
         <HelpCircle className="w-3 h-3" /> No date info
       </div>
     );
@@ -76,25 +76,25 @@ export function FreshnessIndicator({
         </span>
         <span className={`text-[11px] ${style.text} opacity-80`}>· {formatAge(freshness.daysOld)}</span>
         {!compact && freshness.label && freshness.label !== "No date info" && (
-          <span className="text-[11px] text-slate-400">· {freshness.label}</span>
+          <span className="text-[11px] text-ink-2">· {freshness.label}</span>
         )}
       </div>
 
       {hover && dated.length > 0 && (
-        <div className="absolute right-0 top-full mt-2 z-50 w-72 rounded-lg border border-slate-700 bg-slate-900/95 backdrop-blur-sm shadow-xl p-3">
-          <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-2">
+        <div className="absolute right-0 top-full mt-2 z-50 w-72 rounded-lg border border-line-2 bg-surface-1 backdrop-blur-sm shadow-xl p-3">
+          <div className="text-[11px] font-semibold uppercase tracking-wider text-ink-2 mb-2">
             Data sources
           </div>
           <div className="flex flex-col gap-1">
             {top.map((f) => (
               <div key={f.name} className="flex items-center justify-between gap-2 text-xs">
-                <span className="text-slate-300 truncate">{f.name}</span>
-                <span className="text-slate-500 tabular-nums shrink-0">{f.date}</span>
+                <span className="text-ink-2 truncate">{f.name}</span>
+                <span className="text-ink-3 tabular-nums shrink-0">{f.date}</span>
               </div>
             ))}
           </div>
           {undated.length > 0 && (
-            <div className="mt-2 pt-2 border-t border-slate-800 text-[11px] text-slate-500">
+            <div className="mt-2 pt-2 border-t border-line-1 text-[11px] text-ink-3">
               {undated.length} file{undated.length === 1 ? "" : "s"} without a date
             </div>
           )}

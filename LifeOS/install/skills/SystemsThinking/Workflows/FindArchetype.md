@@ -222,43 +222,11 @@ This is the fastest, highest-leverage systems-thinking workflow when the pattern
 
 ---
 
-## Execution
+## Matching
 
-### Step 1: Describe the Behavior
+Describe the behavior in 2-4 sentences (what's happening, over what period, who's involved, what's been tried), then walk the archetype list matching on *mechanism*, not surface symptoms — two archetypes can show the same visible symptoms from different structures. A match yields the canonical intervention plus its adaptation to context; the point is the fix applied, never the label named and abandoned. No match → build a CLD from scratch (`CausalLoop.md`); the behavior may be a composite of two archetypes or genuinely novel.
 
-In 2-4 sentences, state the behavior you're trying to explain:
-- What's happening
-- Over what time period
-- Who is involved
-- What has been tried
-
-### Step 2: Check Against Each Archetype
-
-Walk the list above. For each archetype, ask: "Does this shape match?"
-
-For borderline cases, look at the *mechanism* — not just the surface symptoms. Two different archetypes can have similar visible symptoms but different structures.
-
-### Step 3: If a Match — Apply the Canonical Intervention
-
-```
-ARCHETYPE MATCH: [name]
-EVIDENCE: [why the structure matches]
-CANONICAL INTERVENTION: [from the archetype documentation]
-ADAPTATION: [how this applies to the specific situation]
-```
-
-### Step 4: If No Match — Fall Back to CausalLoop
-
-If no archetype matches, build a CLD from scratch (`CausalLoop.md`). The behavior may be a composite of two archetypes, or a novel structure.
-
-### Step 5: Confirm Fit — Negative Test
-
-Check that the intervention makes sense:
-- Does it address the underlying loop, not just a symptom?
-- Does it account for delays?
-- Have others tried it in similar situations?
-
-If you can't find any record of the canonical intervention helping similar situations, you may have misidentified the archetype.
+**Negative test:** does the intervention address the underlying loop (not a symptom) and account for the delays, and can you find any record of it helping similar situations? If not, you've probably misidentified the archetype.
 
 ## Output
 

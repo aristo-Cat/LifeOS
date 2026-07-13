@@ -1,4 +1,5 @@
 ---
+provenance: template
 dimension: snapshot
 classification: private
 auto_populated: partial

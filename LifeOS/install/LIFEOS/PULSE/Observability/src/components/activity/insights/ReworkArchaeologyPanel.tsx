@@ -73,7 +73,7 @@ export default function ReworkArchaeologyPanel() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-40 text-zinc-600 text-xs">
+      <div className="flex items-center justify-center h-40 text-ink-3 text-xs">
         Loading rework data...
       </div>
     );
@@ -89,7 +89,7 @@ export default function ReworkArchaeologyPanel() {
 
   if (reworkSessions.length === 0) {
     return (
-      <div className="flex items-center justify-center h-40 text-zinc-500 text-xs">
+      <div className="flex items-center justify-center h-40 text-ink-3 text-xs">
         No rework sessions — clean runs only!
       </div>
     );
@@ -106,7 +106,7 @@ export default function ReworkArchaeologyPanel() {
   return (
     <div className="space-y-3">
       {/* Summary */}
-      <div className="text-xs text-zinc-400">
+      <div className="text-xs text-ink-2">
         <span className="font-mono font-medium text-amber-400">
           {reworkSessions.length}
         </span>{" "}
@@ -153,13 +153,13 @@ function ReworkStack({ rework }: { rework: ReworkSession }) {
 
       {/* Top visible card */}
       <div
-        className="relative bg-zinc-800/60 rounded-lg border border-amber-500/20 p-3 space-y-2"
+        className="relative bg-[rgba(20,28,56,0.6)] rounded-lg border border-amber-500/20 p-3 space-y-2"
         style={{ zIndex: layerCount + 1 }}
       >
         <div className="flex items-start justify-between gap-3">
           {/* Left side: session info */}
           <div className="flex-1 min-w-0 space-y-1">
-            <p className="text-[16px] font-bold text-zinc-200 truncate">
+            <p className="text-[16px] font-bold text-ink-1 truncate">
               {session.taskDescription || session.sessionId}
             </p>
             <div className="flex items-center gap-2 flex-wrap">
@@ -168,7 +168,7 @@ function ReworkStack({ rework }: { rework: ReworkSession }) {
                 Attempt {reworkCount + 1}
               </span>
               {/* Criteria count */}
-              <span className="text-[13px] text-zinc-500 font-mono">
+              <span className="text-[13px] text-ink-3 font-mono">
                 {passedCriteria}/{totalCriteria} criteria
               </span>
             </div>
@@ -179,7 +179,7 @@ function ReworkStack({ rework }: { rework: ReworkSession }) {
             <span className="text-2xl font-mono font-bold text-amber-400 leading-none">
               {reworkCount}
             </span>
-            <span className="text-[13px] text-zinc-500 font-mono mt-1">
+            <span className="text-[13px] text-ink-3 font-mono mt-1">
               {formatDuration(totalElapsed)}
             </span>
           </div>
@@ -193,11 +193,11 @@ function ReworkStack({ rework }: { rework: ReworkSession }) {
               className="flex items-center gap-1.5 w-full text-left group"
             >
               <RefreshCw className="w-3 h-3 text-amber-500/60 shrink-0" />
-              <span className="text-[14px] text-zinc-400 group-hover:text-zinc-200 transition-colors">
+              <span className="text-[14px] text-ink-2 group-hover:text-ink-1 transition-colors">
                 Iteration history ({session.reworkHistory.length} cycles)
               </span>
               <ChevronDown
-                className={`w-3 h-3 text-zinc-600 ml-auto transition-transform ${expanded ? "rotate-180" : ""}`}
+                className={`w-3 h-3 text-ink-3 ml-auto transition-transform ${expanded ? "rotate-180" : ""}`}
               />
             </button>
             {expanded && (
@@ -223,14 +223,14 @@ function ReworkCycleRow({ cycle, index }: { cycle: ReworkCycle; index: number })
     <div className="flex items-center justify-between text-[13px] py-1 border-b border-white/[0.03] last:border-b-0">
       <div className="flex items-center gap-2">
         <span className="font-mono text-amber-400/80">#{index + 1}</span>
-        <span className="text-zinc-400">
+        <span className="text-ink-2">
           {passedCount}/{criteriaCount} criteria
         </span>
-        <span className="text-zinc-600">
+        <span className="text-ink-3">
           {cycle.fromPhase} &rarr; {cycle.toPhase}
         </span>
       </div>
-      <span className="text-zinc-500 font-mono">{formatDuration(elapsed)}</span>
+      <span className="text-ink-3 font-mono">{formatDuration(elapsed)}</span>
     </div>
   );
 }

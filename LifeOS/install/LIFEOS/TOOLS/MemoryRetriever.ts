@@ -1,4 +1,11 @@
 #!/usr/bin/env bun
+// Normalize env path vars Claude Code may inject unexpanded — literal $HOME/${HOME}
+// in LIFEOS_DIR/LIFEOS_CONFIG_DIR/PROJECTS_DIR resolves to a shadow dir (#1404 / PR #1451, author jbmml).
+for (const __k of ["LIFEOS_DIR", "LIFEOS_CONFIG_DIR", "PROJECTS_DIR"]) {
+  const __v = process.env[__k];
+  if (__v && /^\$\{?HOME\}?(\/|$)/.test(__v)) process.env[__k] = __v.replace(/^\$\{?HOME\}?/, process.env.HOME ?? "~");
+}
+
 /**
  * ============================================================================
  * MemoryRetriever — Compressed context retrieval over LifeOS's knowledge archive
@@ -35,6 +42,12 @@ import { parseArgs } from "util";
 import * as fs from "fs";
 import * as path from "path";
 import { spawnSync } from "child_process";
+
+// Normalize env path vars that Claude Code injects without shell expansion (LifeOS#1404)
+for (const k of ["LIFEOS_DIR", "LIFEOS_CONFIG_DIR", "PROJECTS_DIR"]) {
+  const v = process.env[k];
+  if (v && /^\$\{?HOME\}?(\/|$)/.test(v)) process.env[k] = v.replace(/^\$\{?HOME\}?/, process.env.HOME ?? "~");
+}
 
 // ============================================================================
 // Configuration
@@ -93,16 +106,40 @@ function parseFrontmatter(content: string): { frontmatter: Frontmatter; body: st
   if (!match) return { frontmatter: {}, body: content };
 
   const result: Frontmatter = {};
-  for (const line of match[1].split("\n")) {
+  const lines = match[1].split("\n");
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    // Indented lines are block-list content — consumed by the collector below,
+    // never treated as top-level keys (#1330).
+    if (/^\s/.test(line)) continue;
     const colonIdx = line.indexOf(":");
-    if (colonIdx > 0) {
-      const key = line.substring(0, colonIdx).trim();
-      let value: string | string[] = line.substring(colonIdx + 1).trim();
-      if (typeof value === "string" && value.startsWith("[") && value.endsWith("]")) {
-        value = value.slice(1, -1).split(",").map((s: string) => s.trim().replace(/['"]/g, ""));
+    if (colonIdx <= 0) continue;
+    const key = line.substring(0, colonIdx).trim();
+    let value: string | string[] = line.substring(colonIdx + 1).trim();
+    if (typeof value === "string" && value.startsWith("[") && value.endsWith("]")) {
+      // Inline array: [a, b, c]
+      value = value.slice(1, -1).split(",").map((s: string) => s.trim().replace(/['"]/g, ""));
+    } else if (typeof value === "string" && value.length === 0) {
+      // Empty scalar → possible YAML block list. Collect following indented "- item"
+      // entries the old parser silently dropped. Typed kb-v3 items ("- slug: x")
+      // yield the slug value; plain items ("- foo") yield the string. This is what
+      // makes the +related-slug retrieval boost fire on kb-v3 notes (#1330).
+      const items: string[] = [];
+      for (let j = i + 1; j < lines.length; j++) {
+        const next = lines[j];
+        if (next.trim().length === 0) continue;                     // tolerate blank lines
+        if (!next.startsWith("  ") && !next.startsWith("\t")) break; // dedent ends the block
+        const m = next.trim().match(/^-\s+(.*)$/);
+        if (!m) continue;                                           // continuation field (e.g. "type: x")
+        let item = m[1].trim();
+        const slugMatch = item.match(/^slug:\s*(.+)$/);             // typed related item → its slug
+        if (slugMatch) item = slugMatch[1].trim();
+        item = item.replace(/['"]/g, "");
+        if (item.length > 0) items.push(item);
       }
-      result[key] = value;
+      if (items.length > 0) value = items;
     }
+    result[key] = value;
   }
 
   const body = content.substring(match[0].length).trim();
@@ -309,6 +346,31 @@ function extractExcerpt(note: KnowledgeNote, queryTerms: string[]): string {
 // LLM Compression via Inference.ts
 // ============================================================================
 
+// A compression call can exit 0 with non-empty output yet return the model's
+// clarification/refusal instead of a summary (e.g. it treats the note as absent
+// and answers "I need the actual note content to compress…"). Those bodies then
+// masquerade as real summaries. These high-signal tells detect that case; the
+// guard's failure mode is benign — it falls back to a raw excerpt.
+// Ported from LifeOS#1449 by @asdf8675309.
+const META_ARTIFACT_PATTERNS: RegExp[] = [
+  /\bi need the actual\b/i,
+  /\bpaste the full\b/i,
+  /\byou'?ve provided the title\b/i,
+  /\bthe note body itself\b/i,
+  /\bnote content to compress\b/i,
+  /\bcontent to compress isn'?t\b/i,
+  /\bi'?ll compress it\b/i,
+  /\bcompress it to under\b/i,
+  /\bready when you share\b/i,
+  /\bplease (?:paste|share)\b[\s\S]{0,30}\bnote\b/i,
+  /\bnote\b[\s\S]{0,20}\b(?:isn'?t|not|wasn'?t) (?:included|provided)\b/i,
+  /\b(?:isn'?t|not|wasn'?t) (?:included|provided)\b[\s\S]{0,20}\bnote\b/i,
+];
+
+export function looksLikeMetaArtifact(s: string): boolean {
+  return META_ARTIFACT_PATTERNS.some((p) => p.test(s));
+}
+
 function compress(text: string, budget: number): string {
   const inferPath = path.join(LIFEOS_DIR, "TOOLS", "Inference.ts");
 
@@ -327,7 +389,10 @@ function compress(text: string, budget: number): string {
   );
 
   if (result.status === 0 && result.stdout.trim()) {
-    return result.stdout.trim();
+    const summary = result.stdout.trim();
+    // Reject a "successful" result that is actually the model's clarification or
+    // refusal rather than a summary; fall through to the raw-truncation fallback.
+    if (!looksLikeMetaArtifact(summary)) return summary;
   }
 
   // Fallback: return truncated raw text

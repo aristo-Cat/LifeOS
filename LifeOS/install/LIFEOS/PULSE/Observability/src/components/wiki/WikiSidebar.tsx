@@ -17,7 +17,6 @@ import {
   Lightbulb,
   Search,
   Network,
-  Bookmark,
   Library,
   BookCopy,
   Folder,
@@ -77,7 +76,8 @@ const CATEGORY_ICONS: Record<string, typeof BookOpen> = {
   People: Users,
   Companies: Building2,
   Ideas: Lightbulb,
-  Bookmarks: Bookmark,
+  Blogs: FileText,
+  Books: BookOpen,
   // Fallback
   Other: Folder,
 };
@@ -89,7 +89,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   Agents: "text-violet-400",
   Algorithm: "text-cyan-400",
   Arbol: "text-emerald-400",
-  Config: "text-slate-400",
+  Config: "text-ink-2",
   Delegation: "text-amber-400",
   Fabric: "text-violet-400",
   Feed: "text-sky-400",
@@ -101,20 +101,20 @@ const CATEGORY_COLORS: Record<string, string> = {
   Pulse: "text-emerald-400",
   Security: "text-rose-400",
   Skills: "text-amber-400",
-  Tools: "text-slate-400",
+  Tools: "text-ink-2",
   People: "text-sky-400",
   Companies: "text-amber-400",
   Ideas: "text-violet-400",
-  Bookmarks: "text-rose-400",
-  Other: "text-slate-500",
+  Books: "text-rose-400",
+  Other: "text-ink-3",
 };
 
 function TreeItem({ node, depth = 0 }: { node: TreeNode; depth?: number }) {
-  const [expanded, setExpanded] = useState(depth < 1);
+  const [expanded, setExpanded] = useState(false);
   const pathname = usePathname();
   const hasChildren = node.children && node.children.length > 0;
   const Icon = CATEGORY_ICONS[node.label] || FileText;
-  const color = CATEGORY_COLORS[node.label] || "text-slate-400";
+  const color = CATEGORY_COLORS[node.label] || "text-ink-2";
 
   const linkPath = node.slug && node.category
     ? wikiPageUrl(node.category, node.slug)
@@ -129,7 +129,7 @@ function TreeItem({ node, depth = 0 }: { node: TreeNode; depth?: number }) {
           onClick={() => setExpanded(!expanded)}
           className={cn(
             "flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded-md transition-colors group",
-            "text-slate-400 hover:text-white hover:bg-white/5"
+            "text-ink-2 hover:text-ink-1 hover:bg-surface-3"
           )}
           style={{ paddingLeft: `${depth * 12 + 8}px`, fontFamily: "'concourse-t3', sans-serif" }}
         >
@@ -142,7 +142,7 @@ function TreeItem({ node, depth = 0 }: { node: TreeNode; depth?: number }) {
           <Icon className={cn("w-3.5 h-3.5 shrink-0", color)} />
           <span className="truncate">{node.label}</span>
           {node.count !== undefined && (
-            <span className="ml-auto text-[13px] text-slate-600 tabular-nums">{node.count}</span>
+            <span className="ml-auto text-[13px] text-ink-3 tabular-nums">{node.count}</span>
           )}
         </button>
         {expanded && (
@@ -164,7 +164,7 @@ function TreeItem({ node, depth = 0 }: { node: TreeNode; depth?: number }) {
         "flex items-center gap-2 px-2 py-1.5 text-xs rounded-md transition-colors",
         isActive
           ? "bg-sky-500/10 text-sky-400 border border-sky-500/20"
-          : "text-slate-500 hover:text-slate-300 hover:bg-white/5"
+          : "text-ink-3 hover:text-ink-2 hover:bg-surface-3"
       )}
       style={{ paddingLeft: `${depth * 12 + 8}px`, fontFamily: "'concourse-t3', sans-serif" }}
     >
@@ -176,17 +176,17 @@ function TreeItem({ node, depth = 0 }: { node: TreeNode; depth?: number }) {
 
 export default function WikiSidebar({ tree, onSearchClick }: WikiSidebarProps) {
   return (
-    <aside className="w-64 shrink-0 border-r border-slate-800/50 bg-slate-950/50 overflow-y-auto h-[calc(100vh-3.5rem)]">
+    <aside className="w-64 shrink-0 border-r border-line-1 bg-surface-1 overflow-y-auto h-[calc(100vh-3.5rem)]">
       {/* Search trigger */}
-      <div className="p-3 border-b border-slate-800/50">
+      <div className="p-3 border-b border-line-1">
         <button
           onClick={onSearchClick}
-          className="flex items-center gap-2 w-full px-3 py-2 text-xs text-slate-500 rounded-lg border border-slate-800/50 bg-slate-900/50 hover:border-slate-700 hover:text-slate-400 transition-colors"
+          className="flex items-center gap-2 w-full px-3 py-2 text-xs text-ink-3 rounded-lg border border-line-1 bg-surface-2 hover:border-line-3 hover:text-ink-2 transition-colors"
           style={{ fontFamily: "'concourse-t3', sans-serif" }}
         >
           <Search className="w-3.5 h-3.5" />
           <span>Search...</span>
-          <kbd className="ml-auto text-[13px] px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700/50 text-slate-500">
+          <kbd className="ml-auto text-[13px] px-1.5 py-0.5 rounded bg-surface-3 border border-line-2 text-ink-3">
             ⌘K
           </kbd>
         </button>
@@ -196,7 +196,7 @@ export default function WikiSidebar({ tree, onSearchClick }: WikiSidebarProps) {
       <div className="px-3 pt-3 pb-1">
         <Link
           href={WIKI_GRAPH_URL}
-          className="flex items-center gap-2 px-2 py-1.5 text-xs text-slate-500 rounded-md hover:text-violet-400 hover:bg-violet-500/5 transition-colors"
+          className="flex items-center gap-2 px-2 py-1.5 text-xs text-ink-3 rounded-md hover:text-violet-400 hover:bg-violet-500/5 transition-colors"
           style={{ fontFamily: "'concourse-t3', sans-serif" }}
         >
           <Network className="w-3.5 h-3.5" />
@@ -206,52 +206,42 @@ export default function WikiSidebar({ tree, onSearchClick }: WikiSidebarProps) {
 
       {/* Tree navigation */}
       <nav className="p-3 space-y-1">
-        {/* Documentation section */}
-        <div className="mb-3">
-          <div
-            className="text-[13px] font-medium tracking-[0.2em] text-slate-600 uppercase px-2 mb-2"
-            style={{ fontFamily: "'advocate-c14', sans-serif" }}
-          >
-            Documentation
-          </div>
-          {tree
-            .filter((n) => n.label === "Documentation")
-            .map((node, i) => (
-              <TreeItem key={node.label + i} node={node} />
-            ))}
-        </div>
+        {(() => {
+          const KNOWLEDGE_LABELS = ["People", "Companies", "Ideas", "Blogs", "Books"];
+          const docNodes = tree.filter((n) => n.label === "Documentation");
+          const knowledgeNodes = tree.filter((n) => KNOWLEDGE_LABELS.includes(n.label));
+          return (
+            <>
+              {docNodes.length > 0 && (
+                <div className="mb-3">
+                  <div
+                    className="text-[13px] font-medium tracking-[0.2em] text-ink-3 uppercase px-2 mb-2"
+                    style={{ fontFamily: "'advocate-c14', sans-serif" }}
+                  >
+                    Documentation
+                  </div>
+                  {docNodes.map((node, i) => (
+                    <TreeItem key={node.label + i} node={node} />
+                  ))}
+                </div>
+              )}
 
-        {/* Knowledge section */}
-        <div>
-          <div
-            className="text-[13px] font-medium tracking-[0.2em] text-slate-600 uppercase px-2 mb-2 mt-4"
-            style={{ fontFamily: "'advocate-c14', sans-serif" }}
-          >
-            Knowledge
-          </div>
-          {tree
-            .filter((n) => n.label === "Knowledge Archive")
-            .map((node, i) => (
-              <TreeItem key={node.label + i} node={node} />
-            ))}
-        </div>
-
-        {/* Bookmarks section */}
-        {tree.some((n) => n.label === "Bookmarks") && (
-          <div>
-            <div
-              className="text-[13px] font-medium tracking-[0.2em] text-slate-600 uppercase px-2 mb-2 mt-4"
-              style={{ fontFamily: "'advocate-c14', sans-serif" }}
-            >
-              Bookmarks
-            </div>
-            {tree
-              .filter((n) => n.label === "Bookmarks")
-              .map((node, i) => (
-                <TreeItem key={node.label + i} node={node} />
-              ))}
-          </div>
-        )}
+              {knowledgeNodes.length > 0 && (
+                <div>
+                  <div
+                    className="text-[13px] font-medium tracking-[0.2em] text-ink-3 uppercase px-2 mb-2"
+                    style={{ fontFamily: "'advocate-c14', sans-serif" }}
+                  >
+                    Knowledge
+                  </div>
+                  {knowledgeNodes.map((node, i) => (
+                    <TreeItem key={node.label + i} node={node} />
+                  ))}
+                </div>
+              )}
+            </>
+          );
+        })()}
       </nav>
     </aside>
   );

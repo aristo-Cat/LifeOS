@@ -315,9 +315,9 @@ export default function ModeEscalationSankey() {
 
   if (isLoading) {
     return (
-      <div className="rounded-lg border border-white/[0.06] bg-zinc-900 p-4">
+      <div className="rounded-lg border border-white/[0.06] bg-surface-1 p-4">
         <div className="h-[340px] flex items-center justify-center">
-          <div className="w-full h-[300px] bg-zinc-800/50 rounded animate-pulse" />
+          <div className="w-full h-[300px] bg-[rgba(20,28,56,0.5)] rounded animate-pulse" />
         </div>
       </div>
     );
@@ -325,12 +325,12 @@ export default function ModeEscalationSankey() {
 
   if (totalSessions === 0) {
     return (
-      <div className="rounded-lg border border-white/[0.06] bg-zinc-900 p-4">
-        <h3 className="text-xs font-medium text-zinc-400 uppercase tracking-wider mb-3">
+      <div className="rounded-lg border border-white/[0.06] bg-surface-1 p-4">
+        <h3 className="text-xs font-medium text-ink-2 uppercase tracking-wider mb-3">
           Mode Escalation Flow
         </h3>
         <div className="flex items-center justify-center py-8">
-          <p className="text-xs text-zinc-600">No session data available</p>
+          <p className="text-xs text-ink-3">No session data available</p>
         </div>
       </div>
     );
@@ -338,8 +338,8 @@ export default function ModeEscalationSankey() {
 
   if (allSameMode) {
     return (
-      <div className="rounded-lg border border-white/[0.06] bg-zinc-900 p-4">
-        <h3 className="text-xs font-medium text-zinc-400 uppercase tracking-wider mb-3">
+      <div className="rounded-lg border border-white/[0.06] bg-surface-1 p-4">
+        <h3 className="text-xs font-medium text-ink-2 uppercase tracking-wider mb-3">
           Mode Escalation Flow
         </h3>
         <div className="flex flex-col items-center justify-center py-12 gap-2">
@@ -347,10 +347,10 @@ export default function ModeEscalationSankey() {
             className="w-3 h-3 rounded-full"
             style={{ backgroundColor: MODE_COLORS[dominantMode] }}
           />
-          <p className="text-sm text-zinc-300 font-medium">
+          <p className="text-sm text-ink-1 font-medium">
             All sessions: {MODE_LABELS[dominantMode]} ({totalSessions})
           </p>
-          <p className="text-[14px] text-zinc-500">
+          <p className="text-[14px] text-ink-3">
             No mode escalation detected
           </p>
         </div>
@@ -364,8 +364,8 @@ export default function ModeEscalationSankey() {
   const allEdges = [...edges.startToPeak, ...edges.peakToEnd];
 
   return (
-    <div className="rounded-lg border border-white/[0.06] bg-zinc-900 p-4">
-      <h3 className="text-xs font-medium text-zinc-400 uppercase tracking-wider mb-3">
+    <div className="rounded-lg border border-white/[0.06] bg-surface-1 p-4">
+      <h3 className="text-xs font-medium text-ink-2 uppercase tracking-wider mb-3">
         Mode Escalation Flow
       </h3>
 
@@ -405,7 +405,7 @@ export default function ModeEscalationSankey() {
             y={14}
             textAnchor="middle"
             fontSize={11}
-            fill="#a1a1aa"
+            fill="var(--ink-2)"
           >
             {header.label}
           </text>

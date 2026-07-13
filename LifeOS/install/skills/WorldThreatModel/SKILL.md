@@ -1,6 +1,7 @@
 ---
 name: WorldThreatModel
-description: "Persistent world-model harness that stress-tests ideas, strategies, and investments against 11 time horizons from 6 months to 50 years. Each horizon model is a deep (~10 page) analysis of geopolitics, technology, economics, society, environment, security, wildcards. Three tiers: Fast (~2 min, single synthesizer), Standard (~10 min, 11 parallel agents + RedTeam + FirstPrinciples), Deep (~1hr, adds Research + Council). Three workflows: TestIdea (probability-weighted scenario matrix across 11 horizons), UpdateModels, ViewModels. Orchestrates RedTeam, FirstPrinciples, Council, Research. USE WHEN threat model, world model, test idea, future analysis, time horizon, stress test against future, long-term risk. NOT FOR single-shot idea attack (use RedTeam)."
+version: 1.0.16
+description: "Persistent world-model harness that stress-tests ideas, strategies, and investments against 11 time horizons from 6 months to 50 years, each a deep analysis of geopolitics, tech, economics, society, and security, in Fast/Standard/Deep tiers. USE WHEN threat model, world model, test idea, future analysis, time horizon, stress test against future, long-term risk. NOT FOR single-shot idea attack (use RedTeam)."
 effort: high
 ---
 

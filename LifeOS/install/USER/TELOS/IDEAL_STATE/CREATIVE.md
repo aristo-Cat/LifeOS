@@ -1,4 +1,5 @@
 ---
+provenance: template
 dimension: creative
 kind: metric
 classification: private

@@ -34,13 +34,23 @@
  * - WRONG.md - Things I was wrong about
  */
 
-import { readFileSync, writeFileSync, copyFileSync, existsSync } from 'fs';
+import { readFileSync, writeFileSync, copyFileSync, existsSync, mkdirSync, readdirSync, rmSync } from 'fs';
 import { join } from 'path';
 import { getPrincipal } from '../../../hooks/lib/identity';
 
 const TELOS_DIR = join(process.env.HOME!, '.claude', 'LIFEOS', 'USER', 'TELOS');
 const BACKUPS_DIR = join(TELOS_DIR, 'Backups');
-const UPDATES_FILE = join(TELOS_DIR, 'Updates.md');
+// Changelog file: prefer whichever casing already exists (older installs used
+// 'Updates.md'; the docs and scaffold use 'updates.md'), so case-sensitive
+// filesystems never fork the changelog into two files (public issue #1452).
+// When neither exists it is created lazily as lowercase 'updates.md'.
+function resolveUpdatesFile(): string {
+  const lower = join(TELOS_DIR, 'updates.md');
+  const upper = join(TELOS_DIR, 'Updates.md');
+  if (existsSync(lower)) return lower;
+  if (existsSync(upper)) return upper;
+  return lower;
+}
 
 // Valid TELOS files
 const VALID_FILES = [
@@ -50,36 +60,36 @@ const VALID_FILES = [
   'TELOS.md', 'TRAUMAS.md', 'WISDOM.md', 'WRONG.md'
 ];
 
-function getPacificTimestamp(): string {
+function getLocalTimestamp(): string {
   const now = new Date();
   const principal = getPrincipal();
   const timezone = principal.timezone || 'UTC';
-  const pacificTime = new Date(now.toLocaleString('en-US', { timeZone: timezone }));
+  const localTime = new Date(now.toLocaleString('en-US', { timeZone: timezone }));
 
-  const year = pacificTime.getFullYear();
-  const month = String(pacificTime.getMonth() + 1).padStart(2, '0');
-  const day = String(pacificTime.getDate()).padStart(2, '0');
-  const hours = String(pacificTime.getHours()).padStart(2, '0');
-  const minutes = String(pacificTime.getMinutes()).padStart(2, '0');
-  const seconds = String(pacificTime.getSeconds()).padStart(2, '0');
+  const year = localTime.getFullYear();
+  const month = String(localTime.getMonth() + 1).padStart(2, '0');
+  const day = String(localTime.getDate()).padStart(2, '0');
+  const hours = String(localTime.getHours()).padStart(2, '0');
+  const minutes = String(localTime.getMinutes()).padStart(2, '0');
+  const seconds = String(localTime.getSeconds()).padStart(2, '0');
 
   return `${year}${month}${day}-${hours}${minutes}${seconds}`;
 }
 
-function getPacificDateForLog(): string {
+function getLocalDateForLog(): string {
   const now = new Date();
   const principal = getPrincipal();
   const timezone = principal.timezone || 'UTC';
-  const pacificTime = new Date(now.toLocaleString('en-US', { timeZone: timezone }));
+  const localTime = new Date(now.toLocaleString('en-US', { timeZone: timezone }));
 
-  const year = pacificTime.getFullYear();
-  const month = String(pacificTime.getMonth() + 1).padStart(2, '0');
-  const day = String(pacificTime.getDate()).padStart(2, '0');
-  const hours = String(pacificTime.getHours()).padStart(2, '0');
-  const minutes = String(pacificTime.getMinutes()).padStart(2, '0');
-  const seconds = String(pacificTime.getSeconds()).padStart(2, '0');
+  const year = localTime.getFullYear();
+  const month = String(localTime.getMonth() + 1).padStart(2, '0');
+  const day = String(localTime.getDate()).padStart(2, '0');
+  const hours = String(localTime.getHours()).padStart(2, '0');
+  const minutes = String(localTime.getMinutes()).padStart(2, '0');
+  const seconds = String(localTime.getSeconds()).padStart(2, '0');
 
-  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds} PT`;
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds} (${timezone})`;
 }
 
 async function main() {
@@ -103,29 +113,54 @@ async function main() {
 
   const targetFile = join(TELOS_DIR, filename);
 
-  // Check if file exists
+  // A valid file that isn't scaffolded yet is created as a minimal starter
+  // instead of hard-failing — the scaffold ships only a subset of VALID_FILES,
+  // and this tool is the sole sanctioned write path (public issue #1452).
   if (!existsSync(targetFile)) {
-    console.error(`❌ File does not exist: ${targetFile}`);
-    process.exit(1);
+    const title = filename.replace('.md', '');
+    mkdirSync(TELOS_DIR, { recursive: true });
+    writeFileSync(targetFile, `# ${title}\n`, 'utf-8');
+    console.log(`✅ Created starter file: ${filename}`);
   }
 
   // Step 1: Create timestamped backup
-  const timestamp = getPacificTimestamp();
+  const timestamp = getLocalTimestamp();
   const backupFilename = filename.replace('.md', `-${timestamp}.md`);
   const backupPath = join(BACKUPS_DIR, backupFilename);
 
   try {
+    mkdirSync(BACKUPS_DIR, { recursive: true });
     copyFileSync(targetFile, backupPath);
     console.log(`✅ Backup created: ${backupFilename}`);
+    // Rolling window: keep the 3 newest backups per file. Git is the durable
+    // history; these only cover the gap before the next repo sync (79 stale
+    // backups accumulated by 2026-07-12 before this prune existed).
+    const prefix = filename.replace('.md', '-');
+    const stale = readdirSync(BACKUPS_DIR)
+      .filter((f) => f.startsWith(prefix) && f.endsWith('.md'))
+      .sort()
+      .slice(0, -3);
+    for (const f of stale) rmSync(join(BACKUPS_DIR, f));
   } catch (error) {
     console.error(`❌ Failed to create backup: ${error}`);
     process.exit(1);
   }
 
-  // Step 2: Update the target file (append content)
+  // Step 2: Update the target file. TELOS templates end with a `---` +
+  // italic-commentary footer; new entries belong in the content list ABOVE
+  // that footer, not after it (public issue #1452). Files without the footer
+  // shape keep the plain EOF append.
   try {
     const currentContent = readFileSync(targetFile, 'utf-8');
-    const updatedContent = currentContent.trimEnd() + '\n' + content + '\n';
+    let updatedContent: string;
+    const footerIdx = currentContent.lastIndexOf('\n---\n');
+    const footer = footerIdx === -1 ? '' : currentContent.slice(footerIdx);
+    if (footerIdx !== -1 && /\n---\n\s*\*[\s\S]*\*\s*$/.test(footer)) {
+      const body = currentContent.slice(0, footerIdx).trimEnd();
+      updatedContent = body + '\n' + content + '\n' + footer.replace(/^\n/, '\n');
+    } else {
+      updatedContent = currentContent.trimEnd() + '\n' + content + '\n';
+    }
     writeFileSync(targetFile, updatedContent, 'utf-8');
     console.log(`✅ Updated: ${filename}`);
   } catch (error) {
@@ -135,18 +170,23 @@ async function main() {
 
   // Step 3: Update updates.md with change log
   try {
-    const logTimestamp = getPacificDateForLog();
+    const logTimestamp = getLocalDateForLog();
     const logEntry = `
 ## ${logTimestamp}
 
 - **File Modified**: ${filename}
 - **Change Type**: Content Addition
 - **Description**: ${changeDescription}
-- **Backup Location**: \`backups/${backupFilename}\`
+- **Backup Location**: \`Backups/${backupFilename}\`
 
 `;
 
-    const updatesContent = readFileSync(UPDATES_FILE, 'utf-8');
+    const updatesFile = resolveUpdatesFile();
+    // Create-instead-of-throw: fresh installs ship no changelog file (#1452).
+    if (!existsSync(updatesFile)) {
+      writeFileSync(updatesFile, '# TELOS Updates\n\nChangelog of TELOS file updates, newest first.\n', 'utf-8');
+    }
+    const updatesContent = readFileSync(updatesFile, 'utf-8');
 
     // Insert the new entry after "## Future Changes" section
     const futureChangesMarker = '## Future Changes';
@@ -162,12 +202,12 @@ async function main() {
       const changesList = afterMarker.substring(nextLineBreak + 1);
 
       const updatedUpdates = beforeMarker + headerSection + logEntry + changesList;
-      writeFileSync(UPDATES_FILE, updatedUpdates, 'utf-8');
+      writeFileSync(updatesFile, updatedUpdates, 'utf-8');
       console.log(`✅ Change logged in updates.md`);
     } else {
       // Fallback: just append
       const updatedUpdates = updatesContent.trimEnd() + '\n' + logEntry;
-      writeFileSync(UPDATES_FILE, updatedUpdates, 'utf-8');
+      writeFileSync(updatesFile, updatedUpdates, 'utf-8');
       console.log(`✅ Change logged in updates.md (appended)`);
     }
   } catch (error) {
@@ -177,7 +217,7 @@ async function main() {
 
   console.log('\n🎯 TELOS update complete!');
   console.log(`   File: ${filename}`);
-  console.log(`   Backup: backups/${backupFilename}`);
+  console.log(`   Backup: Backups/${backupFilename}`);
   console.log(`   Change: ${changeDescription}`);
 }
 

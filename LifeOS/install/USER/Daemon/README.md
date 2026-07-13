@@ -1,3 +1,7 @@
+---
+provenance: template
+---
+
 # Daemon
 
 **Purpose:** Your public digital representation — a shareable profile of what you're working on, thinking about, reading, and building.

@@ -39,7 +39,7 @@ export default function SessionVelocitySparkline({
           x2={width}
           y2={height - 2}
           stroke="currentColor"
-          className="text-zinc-700"
+          className="text-ink-3"
           strokeWidth={1}
           strokeDasharray="2 4"
         />

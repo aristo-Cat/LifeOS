@@ -1,6 +1,7 @@
 ---
 name: RootCauseAnalysis
-description: "Structured incident investigation grounded in Toyota TPS, Ishikawa, Reason's Swiss Cheese, Gano's Apollo, Google SRE blameless culture. Five workflows: FiveWhys (linear/branching causal chain), Fishbone (6 M's or 4 P's mapping), Postmortem (blameless timeline + contributing factors + actions), FaultTree (AND/OR gate logic for safety-critical multi-path failures), KepnerTregoe IS/IS-NOT. Core axiom: proximate cause is where analysis starts, not ends. Humans are never root causes — if a human could make the mistake, the system allowed it. Also FMEA pre-launch risk inversion. USE WHEN root cause, RCA, 5 whys, fishbone, postmortem, incident analysis, fault tree, why does this keep failing, blameless, recurring bug. NOT FOR systemic loops (use SystemsThinking)."
+version: 1.0.5
+description: "Structured incident investigation using Five Whys, Fishbone, blameless Postmortem, Fault Tree, Kepner-Tregoe, and FMEA — traces failures to systemic root causes rather than blaming humans. USE WHEN root cause, RCA, 5 whys, fishbone, postmortem, incident analysis, fault tree, why does this keep failing, blameless, recurring bug. NOT FOR systemic loops (use SystemsThinking)."
 effort: high
 context: fork
 ---
@@ -40,13 +41,9 @@ If this directory exists, load and apply any `PREFERENCES.md`, configurations, o
 
 Investigates why something failed — past the proximate cause, down to the contributing factors and latent conditions that actually made the failure possible. It offers five structured methods (5 Whys, Fishbone, Postmortem, Fault Tree, Kepner-Tregoe) and ends with actionable changes that prevent a whole class of failure, not just the one incident. Grounded in Toyota Production System, Ishikawa, Reason's Swiss Cheese model, Gano's Apollo method, and Google SRE / Etsy blameless culture.
 
-## The Problem
-
-When something breaks, the natural move is to find the one thing that caused it, fix that, and move on. That's triage, not analysis — and it's why the same failure keeps coming back. Real incidents have several contributing factors at once, the human "cause" usually sits on top of a system that allowed the mistake, and the first plausible story is almost never the whole one. Hindsight, confirmation, single-cause, and outcome bias all corrupt the investigation if nothing pushes back. This skill is the structure that pushes back: it forces the analysis past the first answer, past blame, and stops only at causes you can actually change.
-
 ## How It Works
 
-The goal is not to find "the" root cause — that framing is almost always wrong. The goal is to identify **contributing factors** that are **actionable**. A good RCA ends with changes that prevent a class of failure, not just the specific incident.
+The goal is not "the" root cause — that framing is almost always wrong. **A good RCA ends with 3+ actionable, systemic contributing factors, named blamelessly, that prevent a class of failure — not a single blame target.** Everything below is structure that pushes the analysis past the first plausible answer, past blame, and stops only at causes you can actually change.
 
 ## Core Concept
 
@@ -156,15 +153,6 @@ User: "this flaky test only fails in CI, not locally"
 → Distinctions point to: time-zone + concurrency + shared file system
 → Hypothesis: test relies on local timezone assumption + race condition on shared /tmp — both only triggered in CI's environment.
 ```
-
-## Best Practices
-
-1. **Always blameless.** The framing is "what system allowed this" not "who screwed up." Non-negotiable; corrupts the analysis otherwise.
-2. **Multiple causes, always.** Single-root-cause conclusions are almost always wrong. Name at least three contributing factors before stopping.
-3. **Actionability test every cause.** Can you change it? If no — go shallower. If yes — go one level deeper to make sure you've found the lever.
-4. **Timelines before theories.** Reconstruct what happened before hypothesizing why. Hindsight bias compresses the timeline.
-5. **Ask "who else could make this mistake?"** If the answer is "anyone on the team," it's a systemic cause, not individual error.
-6. **Separate investigation from judgment.** Never let the incident review drift into performance conversations. Separate meeting.
 
 ## Gotchas
 

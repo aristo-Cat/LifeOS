@@ -1,9 +1,10 @@
 #!/usr/bin/env bun
 /**
+ * @version 1.6.28
  * LoadContext.hook.ts - Inject LifeOS dynamic context into Claude's Context (SessionStart)
  *
  * LifeOS v5.0 Context Architecture:
- * - Constitutional rules     → PAI/LIFEOS_SYSTEM_PROMPT.md (system prompt via --append-system-prompt-file)
+ * - Constitutional rules     → LIFEOS/LIFEOS_SYSTEM_PROMPT.md (system prompt via --append-system-prompt-file)
  * - Operational procedures   → CLAUDE.md (loaded natively by Claude Code)
  * - Contextual knowledge     → @imports in CLAUDE.md (native Claude Code mechanism, v5.0)
  * - Dynamic context          → this hook (relationship, learning, work)
@@ -27,7 +28,7 @@
  * - exit(0): Normal completion
  *
  * DESIGN (v5.0):
- * Constitutional rules live in the system prompt (PAI/LIFEOS_SYSTEM_PROMPT.md).
+ * Constitutional rules live in the system prompt (LIFEOS/LIFEOS_SYSTEM_PROMPT.md).
  * Operational procedures + contextual knowledge live in CLAUDE.md (@imports, native).
  * This hook injects dynamic, session-specific context only (relationship, learning, work).
  *
@@ -41,7 +42,7 @@ import { readFileSync, existsSync, readdirSync } from 'fs';
 import { join } from 'path';
 import { getLifeosDir, getSettingsPath } from './lib/paths';
 import { recordSessionStart } from './lib/notifications';
-import { loadLearningDigest, loadWisdomFrames, loadFailurePatterns, loadSignalTrends, loadSynthesisPatterns } from './lib/learning-readback';
+import { loadWisdomFrames } from './lib/learning-readback';
 import { findArtifactPath } from './lib/isa-utils';
 
 interface DynamicContextConfig {
@@ -422,28 +423,18 @@ async function main() {
     // Load learning readback context
     let learningContext = '';
     if (isDynamicEnabled(settings, 'learningReadback')) {
-      const learningDigest = loadLearningDigest(paiDir);
+      // 2026-07-10 ({{PRINCIPAL_NAME}} directive): keep ONLY the Wisdom Frames — the actionable
+      // behavioral guidance. Dropped the self-rating wall (Performance Signals,
+      // Complaint Clusters, Recent Learning Signals, Recent Failure Patterns): it was
+      // negative session-start priming and the biggest single one-time context block.
       const wisdomFrames = loadWisdomFrames(paiDir);
-      const failurePatterns = loadFailurePatterns(paiDir);
-      const signalTrends = loadSignalTrends(paiDir);
-      const synthesisPatterns = loadSynthesisPatterns(paiDir);
-      if (synthesisPatterns) {
-        console.error(`🧭 Loaded synthesis patterns (${synthesisPatterns.length} chars)`);
-      }
 
-      const learningParts: string[] = [];
-      if (signalTrends) learningParts.push(signalTrends);
-      if (synthesisPatterns) learningParts.push(synthesisPatterns);
-      if (wisdomFrames) learningParts.push(wisdomFrames);
-      if (learningDigest) learningParts.push(learningDigest);
-      if (failurePatterns) learningParts.push(failurePatterns);
-
-      learningContext = learningParts.length > 0
-        ? '\n## Learning Context (auto-loaded)\n\n' + learningParts.join('\n\n')
+      learningContext = wisdomFrames
+        ? '\n## Learning Context (auto-loaded)\n\n' + wisdomFrames
         : '';
 
-      if (learningParts.length > 0) {
-        console.error(`📚 Loaded learning context: ${learningParts.length} sections (${learningContext.length} chars)`);
+      if (wisdomFrames) {
+        console.error(`📚 Loaded learning context: wisdom frames (${learningContext.length} chars)`);
       }
     } else {
       console.error('⏭️ Skipped learning readback (disabled)');
@@ -455,7 +446,7 @@ async function main() {
 LifeOS Dynamic Context (Auto-loaded at Session Start)
 ${relationshipContext ?? ''}${learningContext ? '\n---\n' + learningContext : ''}
 ---
-Dynamic context loaded. Constitutional rules are in the system prompt (PAI/LIFEOS_SYSTEM_PROMPT.md). Operational procedures are in CLAUDE.md.
+Dynamic context loaded. Constitutional rules are in the system prompt (LIFEOS/LIFEOS_SYSTEM_PROMPT.md). Operational procedures are in CLAUDE.md.
 </system-reminder>`;
 
       console.log(message);

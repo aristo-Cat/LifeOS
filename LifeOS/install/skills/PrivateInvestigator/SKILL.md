@@ -1,6 +1,7 @@
 ---
 name: PrivateInvestigator
-description: "Ethical people-finding and identity verification using 15 parallel research agents (45 concurrent search threads) across people-search aggregators, social media x-ray searches, public records (voter, property, court portals, professional licenses), reverse lookups (phone, email, image, username enumeration), and tiered Google dorking. Confidence-scored results (HIGH/MEDIUM/LOW/POSSIBLE) requiring 3+ matching identifiers. Workflows: FindPerson, SocialMediaSearch, PublicRecordsSearch, ReverseLookup, VerifyIdentity. Stops immediately if purpose shifts toward harassment or stalking. USE WHEN find person, locate person, reconnect, lost contact, old friend, reverse phone lookup, who owns this email, reverse image search, find by username, verify identity, people search, public-data background check, who is this caller. NOT FOR structured due-diligence or company/entity intelligence investigations (use _OSINT) or general web research synthesis (use Research)."
+version: 1.1.16
+description: "Ethical people-finding and identity verification via parallel research agents across people-search sites, social media, public records, and reverse phone/email/image/username lookups, with confidence-scored results requiring 3+ matching identifiers. USE WHEN find person, locate person, reconnect, lost contact, old friend, reverse phone lookup, who owns this email, reverse image search, find by username, verify identity, people search, public-data background check, who is this caller. NOT FOR structured due-diligence or company/entity intelligence investigations (use _OSINT) or general web research synthesis (use Research)."
 effort: high
 ---
 
@@ -35,7 +36,7 @@ If this directory exists, load and apply any PREFERENCES.md, configurations, or 
 
 ## What It Does
 
-Finds people and verifies identities using public data only. It fans out 15 parallel research agents (5 types, 3 each — 45 concurrent search threads) across people-search aggregators, social media, public records, and reverse lookups, then scores results by confidence (HIGH/MEDIUM/LOW/POSSIBLE) requiring 3+ matching identifiers before it trusts a match.
+Finds people and verifies identities using public data only. It covers people-search aggregators, social media, public records, and reverse lookups in parallel, then scores results by confidence (HIGH/MEDIUM/LOW/POSSIBLE) and trusts a match only when 3+ independent identifiers align.
 
 ## The Problem
 
@@ -43,7 +44,7 @@ Finding a real person from a name, a phone number, or an email is scattered acro
 
 ## How It Works
 
-**Public data only.** No hacking, pretexting, or authentication bypass — every technique here is legal and ethical. The work runs as a parallel investigation: 15 research agents launch in one message, each running sub-searches, and findings get cross-checked and confidence-scored before anything is reported.
+**Public data only.** No hacking, pretexting, or authentication bypass — every technique here is legal and ethical. The work runs as a parallel investigation across the source categories below; findings get cross-checked and confidence-scored before anything is reported. Choose the fan-out breadth the case needs — a common name across many states wants wide parallel coverage, a rare name in one city wants far less.
 
 ## Workflow Routing
 
@@ -78,19 +79,7 @@ Running the **WorkflowName** workflow in the **PrivateInvestigator** skill to AC
 
 ## Research Strategy
 
-**MANDATORY: Extensive Parallel Research**
-
-Every investigation uses **15 parallel research agents** (5 types × 3 each):
-
-**Agent Types:**
-1. **ClaudeResearcher** (3 agents) - People search aggregators, professional records, location intelligence, comprehensive identity, public records, education/alumni
-2. **GeminiResearcher** (3 agents) - Alternative identities, multi-perspective synthesis, historical context
-3. **GrokResearcher** (3 agents) - Social media deep search, contrarian analysis, real-time intelligence
-4. **CodexResearcher** (3 agents) - Username enumeration, Google dorking, technical profiles
-
-**Each agent executes 3 sub-searches** = **45 parallel search threads** per investigation
-
-**Launch Pattern:** All 15 agents launch in a SINGLE message with multiple Task tool calls.
+**Done = broad, independent coverage.** Every source category below is worked, and no key identifier (address, employer, DOB, family, social handle) rests on a single source. Run the categories in parallel — dispatch research agents concurrently in one message — and scale the fan-out to the case: a common name across many states justifies many parallel agents and spelling/location variants; a rare name in one city needs only a few. Independence is the point, not headcount: aggregators that resell the same database count as one source, so weight toward genuinely distinct origins (social the subject created, government records, unrelated aggregators).
 
 ## Core Capabilities
 
@@ -129,30 +118,7 @@ filetype:pdf resume "Jane Doe" "San Francisco"
 
 ## Investigation Methodology
 
-### Information Hierarchy
-
-**Tier 1: Foundation Data**
-- Full name (and variations/maiden names)
-- Approximate age or date of birth
-- Last known location
-- Context (school, workplace, relationship)
-
-**Tier 2: Primary Research**
-- People search aggregators
-- Social media presence scan
-- Google dorking
-
-**Tier 3: Deep Investigation**
-- Public records searches
-- Reverse lookups on discovered info
-- Cross-platform correlation
-- Associate/family network mapping
-
-**Tier 4: Verification**
-- Multi-source confirmation
-- Timeline consistency check
-- Photo verification
-- Confidence scoring
+Anchor on whatever foundation identifiers the request gives — full name (and variations/maiden names), approximate age or DOB, last known location, context (school, workplace, relationship) — then pull from every source category until identifiers corroborate. Each discovered fact (phone, email, username, address, relative) is itself a new lead to run back through the sources, and every candidate gets a timeline-consistency and cross-source check before it earns a confidence score. The order is yours; the finish line is a match that survives the 3+-independent-identifier bar below.
 
 ## Confidence Scoring
 
@@ -201,7 +167,7 @@ filetype:pdf resume "Jane Doe" "San Francisco"
 ```
 User: "Help me find my college roommate from 2005, John Smith from Austin"
 → Routes to FindPerson.md
-→ Launches 15 parallel research agents
+→ Fans out parallel research across the source categories
 → Cross-references people search + LinkedIn alumni + property records
 → Verifies identity through timeline analysis
 → Reports findings with HIGH confidence
@@ -234,7 +200,7 @@ User: "Find Jane Doe's social media, she's a marketing professional in Denver"
 ## Gotchas
 
 - **Ethical framework is mandatory.** Legitimate purposes only — reconnection, due diligence, safety. No stalking or harassment.
-- **15 parallel agents can hit rate limits on public records APIs.** Stagger launches if services throttle.
+- **Wide parallel fan-out can hit rate limits on public records APIs.** Stagger launches if services throttle.
 - **Verify findings across multiple sources.** Single-source results are unreliable.
 
 ## Execution Log

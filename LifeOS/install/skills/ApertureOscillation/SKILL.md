@@ -1,6 +1,7 @@
 ---
 name: ApertureOscillation
-description: "3-pass scope oscillation that holds a question constant while shifting the scope envelope — narrow/tactical, wide/strategic, then synthesis — to surface design tensions invisible at any single zoom level. Pass 1 captures the component's own internal logic. Pass 2 reveals what the system needs it to be. Pass 3 finds where those views diverge — that delta is the output. Produces design tensions, scope recommendations, coherence assessments. Single workflow: Oscillate. Best integration point: Algorithm OBSERVE (before ISC) or THINK phase. USE WHEN aperture oscillation, oscillate scope, zoom in and out, tactical vs strategic, scope framing, design tension, system coherence check, local vs global design, wrong scope, scope negotiation. NOT FOR lens rotation across angles (use IterativeDepth)."
+version: 1.0.8
+description: "3-pass scope oscillation that holds a question constant while shifting zoom — narrow/tactical, wide/strategic, then synthesis — to surface design tensions, scope recommendations, and coherence assessments invisible at any single zoom level. USE WHEN aperture oscillation, oscillate scope, zoom in and out, tactical vs strategic, scope framing, design tension, system coherence check, local vs global design, wrong scope, scope negotiation. NOT FOR lens rotation across angles (use IterativeDepth)."
 effort: medium
 ---
 

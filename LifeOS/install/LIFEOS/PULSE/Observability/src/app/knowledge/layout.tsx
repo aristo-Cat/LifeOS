@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import WikiSidebar from "@/components/wiki/WikiSidebar";
-import WikiSearch from "@/components/wiki/WikiSearch";
+import { openPalette } from "@/lib/palette/events";
 
 interface TreeNode {
   label: string;
@@ -13,16 +12,14 @@ interface TreeNode {
   count?: number;
 }
 
+const KNOWLEDGE_LABELS = new Set(["people", "companies", "ideas", "blogs", "books", "research"]);
+
 function filterKnowledgeTree(tree: TreeNode[]): TreeNode[] {
-  return tree.filter((node) => {
-    const label = node.label?.toLowerCase() ?? "";
-    return label === "knowledge archive" || label === "bookmarks";
-  });
+  return tree.filter((node) => KNOWLEDGE_LABELS.has(node.label?.toLowerCase() ?? ""));
 }
 
 export default function KnowledgeLayout({ children }: { children: React.ReactNode }) {
-  const [searchOpen, setSearchOpen] = useState(false);
-
+  // ⌘K is handled globally by CommandPalette (opens WIKI-scoped on this route).
   const { data } = useQuery<{ tree: TreeNode[] }>({
     queryKey: ["wiki-tree"],
     queryFn: async () => {
@@ -33,25 +30,12 @@ export default function KnowledgeLayout({ children }: { children: React.ReactNod
     staleTime: 30_000,
   });
 
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-      e.preventDefault();
-      setSearchOpen((prev) => !prev);
-    }
-  }, []);
-
-  useEffect(() => {
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [handleKeyDown]);
-
   const knowledgeTree = data?.tree ? filterKnowledgeTree(data.tree) : [];
 
   return (
     <div className="flex h-[calc(100vh-3.5rem)]">
-      <WikiSidebar tree={knowledgeTree} onSearchClick={() => setSearchOpen(true)} />
+      <WikiSidebar tree={knowledgeTree} onSearchClick={() => openPalette("wiki")} />
       <div className="flex-1 overflow-hidden">{children}</div>
-      <WikiSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
     </div>
   );
 }

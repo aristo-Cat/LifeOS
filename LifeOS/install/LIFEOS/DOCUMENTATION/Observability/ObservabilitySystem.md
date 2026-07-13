@@ -1,3 +1,7 @@
+---
+version: 1.5.7
+---
+
 # The Observability System
 
 > You can't steer a Life OS you can't see (`LIFEOS/DOCUMENTATION/LifeOs/LifeOsThesis.md`). Observability is the raw sensory feed behind the Life Dashboard — every tool call, agent, and failure as inspectable events, so both the principal and the DA can verify the hill-climb is actually climbing.
@@ -33,12 +37,12 @@ JSONL Sources (local disk)
 
 | Source | JSONL Path | Per-Source Count | Hook |
 |--------|-----------|-----------------|------|
-| Tool activity | `MEMORY/OBSERVABILITY/tool-activity.jsonl` | 100 | `ToolActivityTracker.hook.ts` (PostToolUse, catch-all) |
-| Tool failures | `MEMORY/OBSERVABILITY/tool-failures.jsonl` | 50 | `ToolFailureTracker.hook.ts` (PostToolUseFailure) |
+| Tool activity | `MEMORY/OBSERVABILITY/tool-activity.jsonl` | 100 | `EventLogger.hook.ts` (PostToolUse, catch-all) |
+| Tool failures | `MEMORY/OBSERVABILITY/tool-failures.jsonl` | 50 | `EventLogger.hook.ts` (PostToolUseFailure) |
 | Voice events | `MEMORY/VOICE/voice-events.jsonl` | 50 | Voice notification server |
 | Subagent events | `MEMORY/OBSERVABILITY/subagent-events.jsonl` | 50 | `AgentInvocation.hook.ts` (PreToolUse:Agent / PostToolUse:Agent) |
 | Agent watchdog | stdout (Monitor notifications) | — | `Tools/AgentWatchdog.ts` via Monitor tool. Reads tool-activity.jsonl + subagent-starts.json; alerts on 90s silence with active agents. Auto-triggered by Pulse agent-guard hook on background agent spawn. |
-| Effort routing | `MEMORY/OBSERVABILITY/effort-router.jsonl` | — | `TheRouter.hook.ts` (UserPromptSubmit). MODE + TIER classification per prompt; tail consumed by `MemoryReviewTrigger.hook.ts` to skip MINIMAL-mode. |
+| Effort routing _(retired 2026-07-11)_ | `MEMORY/OBSERVABILITY/effort-router.jsonl` | — | `TheRouter.hook.ts` (retired/merged 2026-07-11) — mode/tier classification abolished, no successor writes this stream. The `MemoryReviewTrigger` MINIMAL-skip gate that read its tail is also gone. |
 | ISA rework | `MEMORY/OBSERVABILITY/isa-rework.jsonl` | — | `ISASync.hook.ts` Resume-After-Complete path (Algorithm v6.9.0, 2026-05-22). One row per auto-rewind: ts, session_id, slug, prev_phase, new_phase, prev_iteration, new_iteration, body_delta_bytes. |
 | Frame drift | `MEMORY/OBSERVABILITY/frame-drift.jsonl` | — | Algorithm VERIFY-phase emitter (v6.8.0). T1/T2/T3 boolean tests per ISA at VERIFY entry. |
 | Reviewer runs | `MEMORY/OBSERVABILITY/reviewer-runs.jsonl` | — | `MemoryReviewer.ts` (autonomic memory). One row per reviewer execution: runId, transcript path, exchanges read, inference_duration_ms, parse_ok, dispatch_summary { total, by_type, succeeded, failed, failures }. |
@@ -74,7 +78,7 @@ Pulse reads on demand. The Observatory dashboard polls `/api/events/recent` ever
 
 | File | Role |
 |------|------|
-| `~/.claude/hooks/ToolActivityTracker.hook.ts` | PostToolUse catch-all — writes JSONL |
+| `~/.claude/hooks/EventLogger.hook.ts` | Consolidated event writer (absorbed ToolActivityTracker + ToolFailureTracker + SkillExecutionLog + ConfigAudit + StopFailureHandler 2026-07-11). PostToolUse catch-all → tool-activity.jsonl (+ SKILLS/execution.jsonl on Skill); PostToolUseFailure → tool-failures.jsonl; ConfigChange → config-changes.jsonl; StopFailure → SECURITY stop-failures (log-only) |
 | `~/.claude/LIFEOS/PULSE/Observability/observability.ts` | Observability module inside unified Pulse daemon — serves events from JSONL at :31337 |
 | `~/.claude/LIFEOS/PULSE/Observability/` | Next.js static dashboard — polls `/api/events/recent` |
 
@@ -105,8 +109,6 @@ The LifeOS Observatory is the local observability UI -- a Next.js 15.5 static ex
 | Agents | `/agents` (default) | Work dashboard -- iterations, optimize, ideate, loops |
 | Knowledge | `/knowledge` | Knowledge archive browser |
 | Security | `/security` | Security system management -- patterns, rules, events, hooks |
-| Ladder | `/ladder` | Improvement ladder tracking |
-| Novelty | `/novelty` | Novelty detection dashboard |
 
 ### Security Page (`/security`)
 
@@ -148,8 +150,8 @@ All endpoints served by the Pulse daemon's observability module (`Observability/
 |----------|--------|---------|--------|
 | `/api/algorithm` | GET | Work sessions — ISA metadata, ISC progress, phase history | observability |
 | `/api/agents` | GET | Subagent events — start/stop/duration from JSONL | observability |
-| `/api/novelty` | GET | Learning signals, ratings, failure patterns | observability |
-| `/api/ladder` | GET | Improvement pipeline data | observability |
+| `/api/novelty` | GET | Ideate-run telemetry (UI removed 2026-07-08, archived as future work) | observability |
+| `/api/ladder` | GET | Improvement pipeline data (UI removed 2026-07-08, archived as future work) | observability |
 
 **Security**
 
@@ -223,20 +225,20 @@ All endpoints served by the Pulse daemon's observability module (`Observability/
 
 ## Session State Tracking
 
-Distinct from the event pipeline above, session state (active sessions, phase, progress, criteria, ratings) flows through a single canonical file. Both the Pulse dashboard and the ULAdmin `/agents` page read the same file so they never drift.
+Distinct from the event pipeline above, session state (active sessions, phase, progress, criteria, ratings) flows through a single canonical file. Both the Pulse dashboard and any external admin dashboard's agents page read the same file so they never drift.
 
 **Canonical source:** `$LIFEOS_DIR/MEMORY/STATE/work.json`
 
 ```
 Writers (atomic read-modify-write via isa-utils.ts:writeRegistry)
 ├─ SessionAnalysis.hook.ts      UserPromptSubmit → upsertSession (native or starting)
-├─ ToolActivityTracker.hook.ts  PostToolUse → bumpLastToolActivity (30s debounced)
+├─ EventLogger.hook.ts          PostToolUse → bumpLastToolActivity (30s debounced)
 ├─ ISASync.hook.ts              syncToWorkJson() → promote native entry to full ISA session
 └─ ISAAutoName.hook.ts          updateSessionNameInWorkJson()
 
 Readers (both use identical mapping)
 ├─ Pulse Observability          localhost:31337 → observability.ts handleAlgorithmApi
-└─ ULAdmin daemon               localhost:4000  → server/src/algorithm-watcher.ts
+└─ external admin daemon        localhost:4000  → server/src/algorithm-watcher.ts
 ```
 
 **Display lanes:**
@@ -247,7 +249,7 @@ Readers (both use identical mapping)
 
 **Staleness thresholds:** 5 min native, 10 min algorithm. Matched in both readers.
 
-**Loud-fail:** `algorithm-watcher.ts` emits `console.error` on missing work.json at startup; `/api/algorithm` returns HTTP 503 with the resolved path. `ToolActivityTracker.hook.ts` logs exceptions via `console.error` so a silently-broken tracker shows up in session logs.
+**Loud-fail:** `algorithm-watcher.ts` emits `console.error` on missing work.json at startup; `/api/algorithm` returns HTTP 503 with the resolved path. `EventLogger.hook.ts` logs exceptions via `console.error` so a silently-broken tracker shows up in session logs.
 
 **Self-healing:** Both readers use `Math.max(updatedAt, lastToolActivity)` for the activity signal, so a fresh user prompt revives a stale session even if the tool-activity tracker is down.
 

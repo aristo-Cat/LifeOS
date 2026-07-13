@@ -5,7 +5,7 @@
  *   bun ~/.claude/LIFEOS/TOOLS/CodexUpdate.ts            # update to @latest
  *   bun ~/.claude/LIFEOS/TOOLS/CodexUpdate.ts --check    # report versions only
  *
- * codex is the agentic runtime behind the cross-vendor GPT-5.5 agents (Forge,
+ * codex is the agentic runtime behind the cross-vendor GPT-5.6 Sol agents (Forge,
  * the researchers). It's a Bun global (`@openai/codex`), so "stay updated" means
  * `bun install -g @openai/codex@latest` on a cadence. The com.lifeos.codexupdate
  * launchd agent runs this daily; see InstallCodexUpdate.ts.

@@ -64,7 +64,7 @@ const EXCLUDE_DIR_NAMES = new Set([
   'node_modules', '.git', '.next', '.turbo', '.cache', 'dist', 'build',
   'logs',
   'Archive', 'Backups',  // frozen historical snapshots — broken refs are expected
-  'PAISYSTEMUPDATES',     // historical system-update records reference long-renamed files (added 2026-05-24)
+  'SYSTEMUPDATES',     // historical system-update records reference long-renamed files (added 2026-05-24)
   'WORK',                 // per-session work archives — refs to files renamed/deleted after the session
 ]);
 
@@ -204,7 +204,7 @@ function isExcludedDir(absPath: string): boolean {
   // before release — their internal references are not a public-release
   // concern. ShadowRelease.ts's G1 + skill-deletion sweep guarantees they
   // never ship, so a broken ref inside _SOMESKILL/Tools/foo.ts does not
-  // affect the bundle that hits github.com/danielmiessler/PAI. Skipping
+  // affect the bundle that hits github.com/danielmiessler/LifeOS. Skipping
   // them here keeps a half-built private skill from gating release.
   if (rel.startsWith(`skills${sep}_`)) return true;
   return false;
@@ -554,6 +554,11 @@ const filesToReport = changed
     )
   : null;
 
+// Runtime-generated targets — data-plane / state JSON written at runtime (per
+// Pulse capture), not static docs. A doc referencing one is not a broken ref.
+// Mirrors the LIFEOS/PULSE/state source exclusion above, on the target side.
+const RUNTIME_TARGET_SUBSTRINGS = ['MEMORY/PULSE_DATA/'];
+
 // Second pass — classify findings
 for (const [file, refs] of fileRefs) {
   if (filesToReport && !filesToReport.has(file)) continue;
@@ -562,6 +567,10 @@ for (const [file, refs] of fileRefs) {
 
   for (const r of refs) {
     if (!r.exists) {
+      // Skip runtime-generated targets — they're written at runtime, so a doc
+      // referencing one is not a broken reference.
+      const relResolved = relative(CLAUDE_DIR, r.resolved);
+      if (RUNTIME_TARGET_SUBSTRINGS.some(s => relResolved.includes(s))) continue;
       findings.push({
         type: 'missing',
         file: relFile,

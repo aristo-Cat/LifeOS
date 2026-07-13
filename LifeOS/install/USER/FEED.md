@@ -1,3 +1,7 @@
+---
+provenance: template
+---
+
 # Feed Sources — User
 
 > Bootstrap default. Run `/interview` to populate sources.

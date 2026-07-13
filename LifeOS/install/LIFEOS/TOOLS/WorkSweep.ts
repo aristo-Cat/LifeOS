@@ -1,4 +1,11 @@
 #!/usr/bin/env bun
+// Normalize env path vars Claude Code may inject unexpanded — literal $HOME/${HOME}
+// in LIFEOS_DIR/LIFEOS_CONFIG_DIR/PROJECTS_DIR resolves to a shadow dir (#1404 / PR #1451, author jbmml).
+for (const __k of ["LIFEOS_DIR", "LIFEOS_CONFIG_DIR", "PROJECTS_DIR"]) {
+  const __v = process.env[__k];
+  if (__v && /^\$\{?HOME\}?(\/|$)/.test(__v)) process.env[__k] = __v.replace(/^\$\{?HOME\}?/, process.env.HOME ?? "~");
+}
+
 /**
  * WorkSweep.ts — Periodic sweep that catches what event-driven hooks miss.
  *
@@ -25,8 +32,17 @@
  */
 
 import { existsSync, readFileSync, writeFileSync, readdirSync, statSync, mkdirSync, appendFileSync } from "fs";
+import { getDAName } from "../../hooks/lib/identity"
+
 import { join } from "path";
 import { loadWorkConfig } from "../../hooks/lib/work-config";
+
+// Normalize env path vars that Claude Code injects without shell expansion (LifeOS#1404)
+for (const k of ["LIFEOS_DIR", "LIFEOS_CONFIG_DIR", "PROJECTS_DIR"]) {
+  const v = process.env[k];
+  if (v && /^\$\{?HOME\}?(\/|$)/.test(v)) process.env[k] = v.replace(/^\$\{?HOME\}?/, process.env.HOME ?? "~");
+}
+
 
 declare const Bun: { spawn: (cmd: string[], opts?: any) => any };
 
@@ -248,7 +264,7 @@ async function sweepSessions(
       "Status:queued",
       projectProperty(fm.project),
       "Priority:P3",
-      "Agent:kai",
+      `Agent:${getDAName()}`,
     ], existingLabels);
     const goalLine = fm.principal_stated_goal ? `\n> 🎯 **Principal stated goal:** ${fm.principal_stated_goal}\n` : "";
     const body = [
@@ -371,7 +387,7 @@ async function sweepProjectChecks(
       "Status:queued",
       projectProperty(row.name.toLowerCase()),
       "Priority:P3",
-      "Agent:kai",
+      `Agent:${getDAName()}`,
       "stale",
     ], existingLabels);
     const body = [

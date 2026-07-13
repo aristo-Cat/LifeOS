@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 /**
+ * @version 1.2.1
  * LoadMemory — UserPromptSubmit hook that injects the two hot-layer memory
  * files (PRINCIPAL_MEMORY.md, DA_MEMORY.md) as additionalContext on every
  * prompt, so the Claude Code CLI session sees the same memory the Telegram
@@ -74,22 +75,26 @@ function renderBlock(title: string, mem: MemoryRead, capEntries = 48, capChars =
   return `${header}\n${mem.entries.join("\n")}`;
 }
 
-function main(): void {
+/** Returns the <pai-memory> context block, or null on error. Pure — no exit. */
+export function run(): string | null {
   try {
-    if (isSubagentInvocation()) {
-      process.exit(0);
-    }
     const principal = readMemory(PRINCIPAL_MEMORY);
     const da = readMemory(DA_MEMORY);
 
     const principalBlock = renderBlock("PRINCIPAL MEMORY", principal);
     const daBlock = renderBlock("DA MEMORY", da);
 
-    process.stdout.write(`<pai-memory>\n${principalBlock}\n\n${daBlock}\n</pai-memory>\n`);
+    return `<pai-memory>\n${principalBlock}\n\n${daBlock}\n</pai-memory>\n`;
   } catch (e) {
     process.stderr.write(`LoadMemory error: ${(e as Error)?.message || String(e)}\n`);
+    return null;
+  }
+}
+
+if (import.meta.main) {
+  if (!isSubagentInvocation()) {
+    const out = run();
+    if (out) process.stdout.write(out);
   }
   process.exit(0);
 }
-
-main();

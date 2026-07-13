@@ -1,4 +1,5 @@
 ---
+provenance: template
 # DA (Digital Assistant) Identity Configuration
 # Copy this directory and rename it to create your DA.
 # Register it in _registry.yaml.

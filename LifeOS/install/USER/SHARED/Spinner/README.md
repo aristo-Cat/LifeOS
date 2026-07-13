@@ -1,3 +1,7 @@
+---
+provenance: template
+---
+
 # Spinner
 
 **Purpose:** Static assets for the LifeOS status spinner — animation frames, color palettes, icons, and verb lists used to render activity indicators.

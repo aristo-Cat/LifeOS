@@ -1,3 +1,7 @@
+---
+version: 1.2.3
+---
+
 # Freshness System
 
 > Freshness protects the loop's inputs. The LifeOS (`LifeOs/LifeOsThesis.md`) hill-climbs against its picture of your current state and your TELOS — if those files silently age, the OS optimizes toward a person who no longer exists. The convention below makes constitutional staleness visible before it becomes drift.

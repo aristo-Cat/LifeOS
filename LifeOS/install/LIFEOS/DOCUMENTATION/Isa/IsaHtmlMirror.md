@@ -2,6 +2,7 @@
 last_updated: 2026-05-13T22:35:00Z
 last_updated_by: kai
 convention: pai-freshness-v1
+version: 1.0.15
 ---
 
 # ISA HTML Mirror
@@ -145,5 +146,5 @@ A future expansion allows per-ISA CSS overrides: drop a `<dir-of-ISA.md>/ISA.htm
 
 - `LIFEOS/DOCUMENTATION/Isa/IsaSystem.md` — twelve-section body, five identities, three-guardrail taxonomy
 - `LIFEOS/DOCUMENTATION/Isa/IsaFormat.md` — file-shape contract (frontmatter spec, locked section order)
-- `LIFEOS/ALGORITHM/v6.19.0.md` — the algorithm that produces ISAs, phase progression source
+- `LIFEOS/ALGORITHM/v8.4.0.md` — the algorithm that produces ISAs, phase progression source
 - `LIFEOS/MEMORY/WORK/20260512-isa-html-mirror-system/ISA.md` — the ISA that designed this system

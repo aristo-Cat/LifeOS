@@ -1,3 +1,7 @@
+---
+provenance: template
+---
+
 # SHARED
 
 **Purpose:** Cross-skill static assets that multiple components reference — color palettes, animation frames, icon mappings, verb lists, and similar shared resources.

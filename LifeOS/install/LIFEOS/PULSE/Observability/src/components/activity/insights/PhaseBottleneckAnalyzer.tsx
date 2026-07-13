@@ -170,8 +170,8 @@ export default function PhaseBottleneckAnalyzer() {
       <div className="space-y-3">
         {[1, 2, 3, 4, 5].map((i) => (
           <div key={i} className="flex items-center gap-3">
-            <div className="w-20 h-4 bg-zinc-800 rounded animate-pulse" />
-            <div className="flex-1 h-5 bg-zinc-800 rounded animate-pulse" />
+            <div className="w-20 h-4 bg-surface-2 rounded animate-pulse" />
+            <div className="flex-1 h-5 bg-surface-2 rounded animate-pulse" />
           </div>
         ))}
       </div>
@@ -184,7 +184,7 @@ export default function PhaseBottleneckAnalyzer() {
 
   if (!hasAnyData) {
     return (
-      <div className="flex items-center justify-center h-40 text-zinc-600 text-xs">
+      <div className="flex items-center justify-center h-40 text-ink-3 text-xs">
         No phase duration data available
       </div>
     );
@@ -231,7 +231,7 @@ export default function PhaseBottleneckAnalyzer() {
   return (
     <div className="relative">
       {/* Summary stat */}
-      <div className="mb-3 text-xs text-zinc-400">
+      <div className="mb-3 text-xs text-ink-2">
         Slowest phase:{" "}
         <span
           className="font-medium"
@@ -239,7 +239,7 @@ export default function PhaseBottleneckAnalyzer() {
         >
           {slowestPhase}
         </span>{" "}
-        <span className="text-zinc-500 font-mono">
+        <span className="text-ink-3 font-mono">
           (avg {formatDuration(slowestAvg)})
         </span>
       </div>
@@ -256,7 +256,7 @@ export default function PhaseBottleneckAnalyzer() {
           y1={0}
           x2={budgetX}
           y2={AXIS_Y}
-          stroke="#52525b"
+          stroke="var(--line-1)"
           strokeWidth={1}
           strokeDasharray="4 4"
         />
@@ -265,7 +265,7 @@ export default function PhaseBottleneckAnalyzer() {
           y={AXIS_Y + 28}
           textAnchor="middle"
           className="text-[13px]"
-          fill="#71717a"
+          fill="var(--ink-3)"
           fontSize={20}
         >
           budget
@@ -276,7 +276,7 @@ export default function PhaseBottleneckAnalyzer() {
           const stats = statsMap.get(phase);
           const y = rowIndex * ROW_HEIGHT;
           const barY = y + (ROW_HEIGHT - BAR_HEIGHT) / 2;
-          const color = PHASE_COLORS[phase] || "#71717a";
+          const color = PHASE_COLORS[phase] || "var(--ink-3)";
           const icon = PHASE_ICONS[phase] || "";
 
           if (!stats || stats.count === 0) {
@@ -287,7 +287,7 @@ export default function PhaseBottleneckAnalyzer() {
                   x={LEFT_PAD - 14}
                   y={y + ROW_HEIGHT / 2 + 5}
                   textAnchor="end"
-                  fill="#71717a"
+                  fill="var(--ink-3)"
                   fontSize={20}
                 >
                   {icon} {phase}
@@ -295,7 +295,7 @@ export default function PhaseBottleneckAnalyzer() {
                 <text
                   x={LEFT_PAD + 8}
                   y={y + ROW_HEIGHT / 2 + 5}
-                  fill="#52525b"
+                  fill="var(--line-1)"
                   fontSize={18}
                 >
                   No data
@@ -393,7 +393,7 @@ export default function PhaseBottleneckAnalyzer() {
               <text
                 x={medianX + 8}
                 y={barY + BAR_HEIGHT / 2 + 5}
-                fill="#a1a1aa"
+                fill="var(--ink-2)"
                 fontSize={16}
               >
                 {formatDuration(stats.median)}
@@ -408,7 +408,7 @@ export default function PhaseBottleneckAnalyzer() {
           y1={AXIS_Y}
           x2={1000 - RIGHT_PAD}
           y2={AXIS_Y}
-          stroke="#3f3f46"
+          stroke="var(--line-1)"
           strokeWidth={1}
         />
 
@@ -422,14 +422,14 @@ export default function PhaseBottleneckAnalyzer() {
                 y1={AXIS_Y}
                 x2={tickX}
                 y2={AXIS_Y + 6}
-                stroke="#3f3f46"
+                stroke="var(--line-1)"
                 strokeWidth={1}
               />
               <text
                 x={tickX}
                 y={AXIS_Y + 24}
                 textAnchor="middle"
-                fill="#71717a"
+                fill="var(--ink-3)"
                 fontSize={18}
               >
                 {tick.label}
@@ -442,7 +442,7 @@ export default function PhaseBottleneckAnalyzer() {
       {/* Tooltip */}
       {tooltip && (
         <div
-          className="fixed z-50 px-3 py-2 rounded-md bg-zinc-800 border border-white/[0.08] shadow-lg pointer-events-none"
+          className="fixed z-50 px-3 py-2 rounded-md bg-surface-2 border border-white/[0.08] shadow-lg pointer-events-none"
           style={{
             left: tooltip.x,
             top: tooltip.y - 10,
@@ -456,14 +456,14 @@ export default function PhaseBottleneckAnalyzer() {
             {tooltip.phase}
           </p>
           <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[13px]">
-            <span className="text-zinc-500">Median</span>
-            <span className="text-zinc-300 font-mono">{tooltip.median}</span>
-            <span className="text-zinc-500">Average</span>
-            <span className="text-zinc-300 font-mono">{tooltip.average}</span>
-            <span className="text-zinc-500">Max</span>
-            <span className="text-zinc-300 font-mono">{tooltip.max}</span>
-            <span className="text-zinc-500">Samples</span>
-            <span className="text-zinc-300 font-mono">{tooltip.count}</span>
+            <span className="text-ink-3">Median</span>
+            <span className="text-ink-1 font-mono">{tooltip.median}</span>
+            <span className="text-ink-3">Average</span>
+            <span className="text-ink-1 font-mono">{tooltip.average}</span>
+            <span className="text-ink-3">Max</span>
+            <span className="text-ink-1 font-mono">{tooltip.max}</span>
+            <span className="text-ink-3">Samples</span>
+            <span className="text-ink-1 font-mono">{tooltip.count}</span>
           </div>
         </div>
       )}

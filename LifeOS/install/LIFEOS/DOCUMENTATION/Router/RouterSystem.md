@@ -4,7 +4,14 @@ last_updated_by: kai
 last_reviewed: 2026-07-02
 last_reviewed_by: kai
 convention: pai-freshness-v1
+version: 1.0.11
 ---
+
+> **RETIRED 2026-07-11 (hooks + thinking-system BPE pass).** TheRouter hook, the mode/tier
+> classifier, and the E1–E5 effort tiers no longer exist. Mode is gone entirely — one response
+> format, one loop (Algorithm v8.2.0); spend is discovered from the work. Model rungs live in
+> `LIFEOS/TOOLS/models.ts` (EFFORT_MODEL) and `AgentInvocation.hook.ts` (dispatch injection).
+> This document is kept as history only — nothing below is operative.
 
 # The Router
 
@@ -50,13 +57,13 @@ The Router does **not** pick which context files to read — that is the Algorit
 
 Every prompt flows through four stages, in this order. Each has a load-bearing source file; the doc's accuracy is anchored to those files. The order matters: the effort posture is decided first, and the model is a lookup against it — you cannot select a model before the level exists.
 
-### 1. Classify — `hooks/TheRouter.hook.ts`
+### 1. Classify — `TheRouter.hook.ts` (deleted 2026-07-11)
 
 A `UserPromptSubmit` hook turns the raw prompt into a mode and (if ALGORITHM) a tier. It's a three-stage cascade, cheapest first:
 
 - **Stage A — deterministic fast-paths (0 ms).** Explicit `/e1`–`/e5` override; explicit ratings ("8/10") → MINIMAL; positive praise / acknowledgments → MINIMAL; system-injected text (task-notifications, reminders) → skip; sub-3-char prompts → MINIMAL; and a set of **hard-ALGORITHM phrase triggers** ("master plan", "fundamentally rethink", "audit the … doctrine/architecture/classifier/routing", "from scratch") that route straight to E3/E4 without a model call.
 - **Stage B — 60-second decision cache.** A SHA-256 of the normalized prompt keys a short-lived cache, so a repeated or retried prompt reuses its decision.
-- **Stage C — the classifier.** An Opus-level (`high`) model call with a rich system prompt does the real discrimination. Its single most important rule: **NATIVE vs ALGORITHM is decided by whether the ideal state is pre-articulable in one line — not by complexity, file count, or step count.** A lookup or an opinion is NATIVE (the answer is checkable at a glance); an answer that must be *constructed* by analytical synthesis against contested evidence is ALGORITHM. A short question is not NATIVE by virtue of being short.
+- **Stage C — the classifier.** A Fable-level (`max`) model call with a rich system prompt does the real discrimination. Its single most important rule: **NATIVE vs ALGORITHM is decided by whether the ideal state is pre-articulable in one line — not by complexity, file count, or step count.** A lookup or an opinion is NATIVE (the answer is checkable at a glance); an answer that must be *constructed* by analytical synthesis against contested evidence is ALGORITHM. A short question is not NATIVE by virtue of being short.
 - **Fail-safe.** Any error path — timeout (30 s), non-zero exit, unparseable output — defaults length-tiered: ≥1500 chars → ALGORITHM E4, ≥400 → E3, else NATIVE. Under-escalation is the failure mode the system is built to prevent, so the fail-safe biases up.
 
 The classifier also runs the **goal-signal detector** (four signals: named metric+threshold, explicit outcome assertion, completion condition, structural/design directive) with a fail-closed minimum-content rule, and sets **interview eligibility** (true iff ALGORITHM at tier ≥ E3).
@@ -68,7 +75,7 @@ One more branch lives here: the **remote-channel short-circuit.** When the turn 
 The tier picks an effort **level** and a dispatch profile. This is policy, stated as intent — the output is a level (`max` / `high` / `medium` / `low`), never a model name:
 
 - **NATIVE** delegated work → `high`. **E1–E3** → `high`. **E4/E5** → `max`.
-- **Keystone pins** (the two highest-leverage calls, pinned regardless of tier): the **Advisor** is pinned `max` (a once-per-deliverable commitment call worth the top rung); the **classifier** is pinned `high`, deliberately *not* `max` — it fires on every prompt, so "keystone" means highest-leverage, never most-expensive.
+- **Keystone pin** (the highest-leverage call, pinned regardless of tier): the **classifier** is pinned `max` (Fable, re-pinned 2026-07-06 — principal directive: light router decisions get maximum intelligence; it fires on every prompt but at tiny token volume, and Inference.ts degrades max→high if Fable is unreachable).
 - **Core-System Override (domain beats tier).** When the task upgrades LifeOS core itself — the Algorithm files, hooks, the system prompt, `CLAUDE.md`, skill/ISA doctrine, or the core routing tools — delegated work routes to `max` regardless of tier, because core changes have outsized blast radius.
 - **Per-Task Intelligence Routing.** A single tier flattens a mixed-difficulty run, so a Feature may carry its own `intelligence` level scored to its hardest criterion. Down-route-only (the tier curve is the fallback), producer-locked (never starve a Feature others depend on), and shadow-logged so a wrong trim is visible and revertible.
 
@@ -78,8 +85,8 @@ The level from stage 2 resolves to a concrete model through **`EFFORT_MODEL`** �
 
 | Level | Model rung | Used by |
 |-------|-----------|---------|
-| `max` | Fable | Algorithm E4/E5 + every Core-System Override task + the Advisor |
-| `high` | Opus | Algorithm E1–E3 + NATIVE delegated work + the classifier |
+| `max` | Fable | Algorithm E4/E5 + every Core-System Override task |
+| `high` | Opus | Algorithm E1–E3 + NATIVE delegated work (the ~90% rung) |
 | `medium` | Sonnet | Utility inference (summarization, classification, vision triage) |
 | `low` | Haiku | Cheap lookups |
 
@@ -87,7 +94,7 @@ Consumers state **intent** (the level); the mapping resolves the model. Two inde
 
 `models.ts` also carries the **cross-vendor pins** (inventory only, never auto-bumped to a Claude model) and the **data-classification × inference-source routing** that sets a per-route egress ceiling (see *Agent dispatch* below).
 
-`LIFEOS/TOOLS/Inference.ts` is the **utility-path application of this same stage**: it resolves a level to a model for non-agent inference — summaries, classification, vision triage, and the Advisor escalation — without dispatching an agent. It is a parallel consumer of select-model, not a separate stage.
+`LIFEOS/TOOLS/Inference.ts` is the **utility-path application of this same stage**: it resolves a level to a model for non-agent inference — summaries, classification, and vision triage — without dispatching an agent. It is a parallel consumer of select-model, not a separate stage. **Carrier + verification (v6.29.0):** Inference-max is also the genuine `max`/Fable carrier — `--level max` spawns `claude --model claude-fable-5` and executes REAL Fable, whereas an `Agent(model:fable)` dispatch currently downgrades to Opus, so E4/E5 Fable *reasoning* routes here (the Inference-max subprocess). Inference reads the executed model back from the JSON envelope's `modelUsage` (`verifyExecutedModel`) and logs any downgrade to `MEMORY/OBSERVABILITY/model-verification.jsonl` — the Router reports what RAN, not what it requested.
 
 ### 4. Dispatch the agent — the dispatch-time `model` param
 
@@ -97,7 +104,7 @@ Three realities to know:
 
 - **The override is not universal.** The dispatch `model` param overrides an agent's frontmatter model for agents **without** an `initialPrompt` field. An agent carrying an `initialPrompt` deterministically ignores the override and runs its frontmatter model — so never add `initialPrompt` to an agent whose model must be tier-settable.
 - **The `🤖 DISPATCH` line records intent, not execution.** Every dispatch is announced as `🤖 DISPATCH: <agent> — <level> → <model>`, resolved from a table. The only proof of the *executed* model is the agent transcript's own model field.
-- **Cross-vendor agents run their own vendor regardless of tier.** Forge (GPT-5.5, build and audit modes) exists for vendor diversity, not Claude-tier scaling, so the tier never changes its model. (The GLM open-model route reaches a non-Anthropic vendor too, but as the `OpenRouter.ts` tool + `EgressClassGuard` hook — not a persona agent; the `Gene` agent was retired 2026-07-02.)
+- **Cross-vendor agents run their own vendor regardless of tier.** Forge (GPT-5.6 Sol, build and audit modes) exists for vendor diversity, not Claude-tier scaling, so the tier never changes its model. (The GLM open-model route reaches a non-Anthropic vendor too, but as the `OpenRouter.ts` tool + `EgressClassGuard` hook — not a persona agent; the `Gene` agent was retired 2026-07-02.)
 
 ---
 
@@ -126,8 +133,8 @@ INTERVIEW_ELIGIBLE: true | false
 Three independent dials share the words "max" and "high." They are not one axis:
 
 1. **Model rung** — `EFFORT_MODEL` (max/high/medium/low) — *which model* an agent runs.
-2. **Reasoning effort** — the harness `--effort` knob (low/medium/high/xhigh/max) — *how hard* a model thinks within itself. Dispatching at model rung `max` emits reasoning effort `xhigh`, not `max` (LifeOS caps dispatch reasoning at xhigh; `/effort max` is human-interactive only).
-3. **Composition** — ultracode — *whether to fan* a task into a multi-agent Workflow. It rides on xhigh effort and belongs to no rung.
+2. **Reasoning effort** — the harness `--effort` knob — *how hard* a model thinks within itself. LifeOS runs this **uniformly at `high`** (principal directive 2026-07-06: only high); no LifeOS level dispatches `xhigh`/`max`, though `/effort` still exposes them to a human and the statusline shows the full scale as a reference.
+3. **Composition** — ultracode — *whether to fan* a task into a multi-agent Workflow. It rides on `high` effort and belongs to no rung.
 
 The crossover that trips people up: "max model" and "max thinking" are different dials. The single source of truth for the rung→effort crossover is `LEVEL_TO_HARNESS_EFFORT` in `models.ts`.
 
@@ -149,10 +156,10 @@ So "route the hard reasoning to a frontier open model" is a Router decision boun
 
 | File | Role in the Router |
 |------|--------------------|
-| `hooks/TheRouter.hook.ts` | **Classify.** The three-stage cascade, goal-signal detector, interview eligibility, remote-channel short-circuit, telemetry. |
+| `TheRouter.hook.ts` (deleted 2026-07-11) | **Classify.** The three-stage cascade, goal-signal detector, interview eligibility, remote-channel short-circuit, telemetry. |
 | `LIFEOS/ALGORITHM/v{VERSION}.md` | **Route the effort + dispatch policy.** Mode Classification, the tier→level table, Core-System Override, Per-Task Intelligence Routing, keystone pins. |
 | `LIFEOS/TOOLS/models.ts` | **Select the model.** `EFFORT_MODEL` four-level abstraction, `CURRENT`/`ALIAS` IDs, the three-axes reconciliation, cross-vendor pins, egress ceilings. |
-| `LIFEOS/TOOLS/Inference.ts` | **Utility select-model.** The same four levels for non-agent inference (summaries, classification, vision) plus the Advisor escalation. |
+| `LIFEOS/TOOLS/Inference.ts` | **Utility select-model.** The same four levels for non-agent inference (summaries, classification, vision). |
 | `LIFEOS/LIFEOS_SYSTEM_PROMPT.md` (Mode Architecture) | **The executor contract.** How the primary agent reads the classifier lines and applies the override hierarchy. |
 | `agents/*.md` + `CROSS_VENDOR` in `models.ts` | **The dispatch targets.** The agents the resolved rung/vendor selects. |
 
@@ -171,7 +178,7 @@ So "route the hard reasoning to a frontier open model" is a Router decision boun
 
 - **Not the Algorithm.** The Algorithm is its biggest consumer. The Router stops the instant the posture is decided; the Algorithm runs the phases.
 - **Not context-file selection.** Choosing what to read is OBSERVE, inside the Algorithm.
-- **Not the main-loop model switch.** The Router cannot change the running turn's model — it classifies up front and programs dispatched agents. A deliberate core-system session pairs the override with a manual `/model` on the main loop.
+- **Not the main-loop model switch.** The Router cannot change the running turn's model — it classifies up front and programs dispatched agents. The main loop's standing default is **Opus 4.8** (fork decision "Opus default, Fable escalation", 2026-07-06); deliberate hard sessions escalate with `/model fable` and the statusline posture nudge points back down when the hard work is done. The Router keeps ~90% of regular work on Opus via delegate dispatch and closes the inherit leak with the AgentInvocation model injector. Decision record: `models.ts` MAIN-LOOP DEFAULT block.
 - **Not the Memory system.** Memory decides what to remember; the Router decides how to handle the prompt.
 
 ---

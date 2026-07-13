@@ -37,9 +37,9 @@ curl -s -X POST http://localhost:31337/notify \
 
 ### Step 2 — Pick the canonical template
 
-Always start by reading `~/.claude/skills/ISA/Examples/canonical-isa.md` for section headers and tone. For E1 reference, read `e1-minimal.md`. For E5 reference, read `e5-comprehensive.md`.
+Always start by reading `~/.claude/skills/ISA/Examples/canonical-isa.md` for section headers and tone. For E1 reference, read `e1-minimal.md`. For E5 reference, read `e5-enterprise.md`.
 
-### Step 3 — Preserve principal-stated goal, then derive (revised v6.4.0)
+### Step 3 — Preserve principal-stated goal, then derive (Algorithm v7.0.0 R1)
 
 **The canonical rule:** Step 3 must populate `principal_stated_goal` (frontmatter) AND the first quoted sentence of `## Goal` verbatim — both from the same byte-for-byte literal — BEFORE producing any derived section. Derivation (Out of Scope, Constraints, Principles, distilled Goal continuation, ISCs) follows the preservation, anchored to it. If detection does not fire, the preservation step is a no-op and derivation proceeds as today.
 
@@ -82,69 +82,26 @@ Distill what remains:
 
 **The key inversion:** today's distillation runs first and loses the literal. The new rule preserves first, derives second — and derived content is anchored to the preserved literal via the `anchors_to` column in Test Strategy.
 
-### Step 3.5 — Density preflight (v6.5.0 — MANDATORY at E3+; v6.7.0 — EXTENDED to E1/E2 with permissive thresholds)
+### Step 3.5 — Ambiguity check (Algorithm v7.0.0 R3)
 
-**Stage 2 of the density × tier gate.** Stage 1 (eligibility) ran in `TheRouter.hook.ts`; this stage measures whether the prompt + recent conversation carry enough signal to scaffold the tier's required sections without speculation.
+One rule, replacing the deleted v6.x density-formula machinery: **could I be wrong about what done means?**
 
-**v6.7.0 extension:** eligibility now extends to E1 and E2 with permissive thresholds. At E1, the section-fillability term is skipped (ISA at E1 is inline/optional — depending on the term would be circular); the score uses signals 1-6 (the prompt-derived signals) only.
+If materially ambiguous — the goal supports ≥2 interpretations leading to materially different builds, or required content can't be scaffolded without speculation — ask up to 3 targeted questions (E3+) or prepend the ambiguity flag (E1/E2): `⚠️ Picking X over Y because R; redirect if wrong.` Literal whole-response `proceed` accepts reasoned defaults.
 
-#### Stage 1 → Stage 2 handoff (how Scaffold reads INTERVIEW_ELIGIBLE)
+**Skip conditions (do not run the check):**
+- `INTERVIEW_ELIGIBLE: false` in the most recent `TheRouter.hook.ts` additionalContext block (the hook decided this is fast-path work). Line absent — e.g. a continuation prompt where the hook didn't re-fire — → infer eligibility from the running tier: `true` iff tier ≥ E3. This handoff is explicit text-passing; no shared state, no subprocess IPC. The model is the carrier.
+- The scaffold call has `ephemeral_feature` set (ephemeral mode operates on an already-scaffolded master).
 
-`TheRouter.hook.ts` emits a 4-line block into `additionalContext` on every UserPromptSubmit:
+**Record the outcome in frontmatter** — `context_sufficient: true|false` and `interview_invoked: true|false` (the only two keys v7 ISAs carry for this check; the v6.x density/divergence/acknowledgment ceremony keys are deleted).
 
-```
-MODE: ALGORITHM | TIER: E4 | REASON: … | SOURCE: classifier
-GOAL_SIGNAL: 2
-GOAL_LITERAL: "verbatim user quote"
-INTERVIEW_ELIGIBLE: true
-```
+**Re-check later:** when late-surfacing information — a premortem result, a mid-build discovery — would have changed the Goal, Vision, or Out of Scope had it been known at scaffold time, re-run the one rule and log a Decisions row naming the shift. Never blocks a phase transition.
 
-The Algorithm-driven model reads this block at OBSERVE. When entering Scaffold Step 3.5 the model inspects the `INTERVIEW_ELIGIBLE` line from the most recent UserPromptSubmit emission:
+#### Interview mechanics (when questions fire)
 
-- Line present AND value `true` → run Stage 2 below.
-- Line present AND value `false` → skip Stage 2; proceed to Step 4.
-- Line absent (e.g., the prompt is a continuation in conversation-context-override mode and the hook didn't re-fire) → fall back to inferring eligibility from the running tier: `true` iff tier ≥ E3.
-
-This handoff is explicit text-passing; no shared state, no subprocess IPC. The model is the carrier.
-
-**Skip conditions (do not run Stage 2):**
-- `INTERVIEW_ELIGIBLE` is absent OR `false` from `additionalContext` (the hook decided this is E1/E2/NATIVE/MINIMAL — fast-path preserved).
-- The scaffold call has `ephemeral_feature` set (ephemeral mode operates on already-scaffolded master).
-
-**When `INTERVIEW_ELIGIBLE: true`, compute the density score deterministically:**
-
-| # | Signal | Computation | Contribution |
-|---|--------|-------------|--------------|
-| **base** | Section-fillability ratio | For each required section at this tier, can it be populated with at least one non-speculative sentence from prompt + last 5 conversation turns? `filled / required` | `0..1` (positive) |
-| 1 | Content-token count of `principal_stated_goal` (or prompt if literal is null) after stopword removal | count tokens | `< 12` → `-0.125` |
-| 2 | Named-artifact count | file paths, URLs, named systems, named files, named functions | `0` → `-0.125` |
-| 3 | Measurable-criterion count | numeric thresholds, comparison operators, named metrics | `0` at E4+ → `-0.125` |
-| 4 | Concrete-verb presence | "design/explore/figure out/think about/decide" = vague; "implement/rewrite/deploy/fix/extract/refactor" = concrete | vague-only → `-0.125`; concrete present → `0` |
-| 5 | Out-of-Scope-implying language | "not", "without", "except", "instead of" | absent → `-0.125` |
-| 6 | Constraint markers | "must", "cannot", "only", "exactly" | absent → `-0.125` |
-
-**Formula:** `density_score = filled_sections / required_sections + Σ(deductions)`. Clamp to `[0, 1]`.
-
-**Defensive guard:** if `required_sections.length === 0` (should never happen — every tier requires ≥1), set `density_score: 1.0` and skip Stage 2.
-
-**Trip threshold (v6.7.0 tier-graduated):**
-
-| Tier | Threshold | Notes |
-|------|-----------|-------|
-| **E1** | `< 0.10` | Signals 1-6 only (section-fillability skipped). Fires only on truly empty prompts; preserves <90s fast-path. Interview shape: NATIVE-flag form (one-line ambiguity flag prepended to response), NOT 3-question gate. |
-| **E2** | `< 0.20` | Signals 1-6 plus optional section-fillability. Fires rarely. Interview shape: NATIVE-flag OR ≤1 mini-interview question with `proceed` override. |
-| **E3** | `< 0.30` | Full 7-signal formula (v6.5.0 unchanged). Fires occasionally. Interview shape: ≤3 questions with `proceed`. |
-| **E4** | `< 0.50` | Full 7-signal formula (v6.5.0 unchanged). Fires regularly on truly sparse prompts. ≤3 questions with `proceed`. |
-| **E5** | `< 0.50` | Full 7-signal formula. Fires per gate AND the E5-mandatory Interview still runs (single invocation when gate fires; deeper walk when gate doesn't). |
-
-Pre-v6.7.0 behavior preserved at E3-E5; new behavior added only at E1/E2.
-
-#### Stage 2 fire — interview prompt format
-
-When the gate trips, emit ONE message to the user before scaffolding any sections beyond Goal:
+Emit ONE message to the user before scaffolding any sections beyond Goal:
 
 ```
-I have N questions before I scaffold this. The prompt is dense in X but thin on Y. Say `proceed` to scaffold on inference; otherwise answer one at a time:
+I have N questions before I scaffold this. The goal is clear on X but underdetermined on Y. Say `proceed` to scaffold on reasoned defaults; otherwise answer one at a time:
 
 1. <Q1 — chosen from the bounded shape library>
 2. <Q2>
@@ -163,72 +120,30 @@ I have N questions before I scaffold this. The prompt is dense in X but thin on 
 | Features | "What are the major work units? What can run in parallel vs sequential?" |
 | Principles | "What truths must this work respect regardless of how it's built?" |
 
-Maximum 3 questions per fire. Each is one-question-per-turn; write answers back into the ISA before asking the next.
+Maximum 3 questions per fire. Each is one-question-per-turn; write answers back into the ISA before asking the next — the document fills as the principal answers. Stop early when the signal stops (two contentless answers in a row) or the principal says done.
 
 #### `proceed` semantics
 
 The literal override is `proceed` — **whole-response match only**, trim + lowercase: `response.trim().toLowerCase() === 'proceed'`. Substring matches ("I want to proceed with X") are NOT the override and route to question-1's answer.
 
-#### Logging the gate result (in ISA frontmatter)
-
-Add four optional fields when Stage 2 ran:
+#### Logging the outcome (in ISA frontmatter)
 
 ```yaml
-density_score: 0.42                    # computed 0..1
-interview_invoked: true                # whether Stage 2 fired
-divergence_risk: medium                # low (skipped) | medium (partial-fill or 1-2 answers) | high (proceed override or fully aborted)
-density_gate_acknowledged: true        # always true on E3+ ISAs once Stage 2 has been decided one way or the other
-context_checks_fired: [observe-density, observe-sufficiency, plan-refresh]   # NEW v6.7.0 — list of which Context Sufficiency checks ran
-context_sufficient: true               # NEW v6.7.0 — final boolean after all OBSERVE checks; null if no check ran
+context_sufficient: true    # false when ambiguity was flagged or `proceed` accepted reasoned defaults
+interview_invoked: false    # true when targeted questions were actually asked
 ```
 
-| Path | `density_score` | `interview_invoked` | `divergence_risk` |
-|---|---|---|---|
-| Stage 2 skipped (eligible=false) | (omit) | (omit) | (omit) |
-| Stage 2 ran, `score ≥ 0.5` (gate didn't fire) | 0.5-1.0 | false | low |
-| Stage 2 fired, user answered all questions | 0.0-0.5 | true | low |
-| Stage 2 fired, user answered some + `proceed` | 0.0-0.5 | true | medium |
-| Stage 2 fired, user said `proceed` immediately | 0.0-0.5 | true | high |
-| Stage 2 fired, user aborted mid-interview | 0.0-0.5 | true | high |
+| Path | `context_sufficient` | `interview_invoked` |
+|---|---|---|
+| No material ambiguity found | true | false |
+| Questions asked, principal answered them | true | true |
+| Questions asked, principal said `proceed` | false | true |
+| E1/E2 ambiguity flag prepended | false | false |
 
-#### Logging on `proceed` override
-
-When user invokes `proceed` after seeing the questions:
-1. Append a Decisions row: `YYYY-MM-DD HH:MM: density gate fired (score=N), user invoked proceed — divergence_risk: <medium|high>`
-2. Set frontmatter `divergence_risk: high` (or `medium` if some questions were answered)
-3. VERIFY phase surfaces this as a known risk in `## Verification` rather than a surprise.
-
-### Step 3.6 — Sufficiency Check (NEW v6.7.0 — MANDATORY at all ALGORITHM tiers when Density Gate passes)
-
-The Density Gate measures structural-sparsity. The Sufficiency Check measures **semantic ambiguity** — a prompt can be dense (named artifacts, measurable criteria) yet still admit multiple equally-plausible builds. Sufficiency Check runs *only when Density Gate passed* — they're ordered, not parallel.
-
-**Deterministic inspection (no LLM call):**
-
-| Fork signal | What it looks like |
-|-------------|-------------------|
-| Compound clauses | "X and Y", "X or Y" — multiple objects, ambiguous which is primary |
-| Abstract verbs without object specificity | "design", "improve", "modernize", "secure" with no constraint |
-| Missing principal-preference markers | UI work with no design hint, color, framework |
-| Undisclosed constraint markers | architecture work with no cost/time/team-size |
-
-**Decision:**
-- **0 fork candidates** → write `context_sufficient: true`. Proceed to Step 4.
-- **≥1 fork candidate at E1/E2** → prepend NATIVE-form ambiguity flag to eventual response: `⚠️ Picking X over Y because R; redirect if wrong.` Write `context_sufficient: false`, append `observe-sufficiency` to `context_checks_fired`.
-- **≥1 fork candidate at E3+** → fire ≤3-question interview, `proceed` override available. Write each answer back into the ISA section. Same emission contract as Density Gate interview.
-
-**Output line:** `🧭 SUFFICIENCY CHECK: [passed | flag-emitted ("X vs Y") | interview-fired]`
-
-### Step 3.7 — PLAN-Entry Context-Sufficiency Refresh (NEW v6.7.0 — invoked from Algorithm PLAN phase, not Scaffold)
-
-This sub-step is invoked **from the Algorithm PLAN phase**, not from Scaffold OBSERVE. Documented here for canonical location.
-
-When Algorithm enters PLAN, before the planning block, ask:
-*"In THINK, did any premortem, riskiest-assumption, or capability output surface information that — if I'd had it at OBSERVE — would have changed the Goal, Vision, or Out-of-Scope sections?"*
-
-- **No** → output `🔁 PLAN REFRESH: passed`. No frontmatter change.
-- **Yes** → log a Decisions row naming the surface and implied goal-shift, set `divergence_risk: medium`, append `plan-refresh` to `context_checks_fired`. **Do not block phase transition.**
-
-Soft-gate teeth: EXECUTE opens with a flag acknowledgment line; VERIFY surfaces it in completion summary. Without those, the gate is decorative.
+When the principal invokes `proceed` after seeing the questions:
+1. Append a Decisions row: `YYYY-MM-DD HH:MM: ambiguity check fired, principal invoked proceed — reasoned defaults: <named defaults>`
+2. Set frontmatter `context_sufficient: false`.
+3. VERIFY surfaces the accepted defaults in `## Verification` as a known risk rather than a surprise.
 
 ### Step 4 — Write frontmatter
 
@@ -244,16 +159,14 @@ progress: 0/<isc-count>
 mode: interactive
 started: <ISO-8601>
 updated: <ISO-8601>
-# v6.4.0 — only when goal-signal detection fired + min-content rule passed
+# R1 — only when goal-signal detection fired + min-content rule passed
 principal_stated_goal: "verbatim quote"
 principal_stated_goal_source: prompt
 principal_stated_goal_signal: 2
 principal_stated_goal_locked: <ISO-8601>
-# v6.5.0 — only when Stage 2 of the density × tier gate ran (E3+)
-density_score: 0.42
-interview_invoked: true
-divergence_risk: medium
-density_gate_acknowledged: true
+# R3 — outcome of the ambiguity check (Step 3.5); the only two keys v7 ISAs carry for it
+context_sufficient: true
+interview_invoked: false
 ---
 ```
 
@@ -264,8 +177,8 @@ density_gate_acknowledged: true
 | E1 | Goal, Criteria |
 | E2 | Problem, Goal, Criteria, Test Strategy |
 | E3 | Problem, Vision, Out of Scope, Constraints, Goal, Criteria, Features, Test Strategy |
-| E4 | All twelve sections |
-| E5 | All twelve sections + run Interview workflow before BUILD |
+| E4 | All fourteen sections (empty sections never appear — Dependencies/Bridge Criteria only when cross-ISA links exist) |
+| E5 | All fourteen sections (same conditional rule) + run Interview workflow before BUILD |
 
 **Project ISA override:** if `<project>/ISA.md` is the target, require E3+ sections regardless of the active task's tier.
 
@@ -317,5 +230,5 @@ When `ephemeral_feature` is set:
 
 - **Tier mismatch:** caller asks for E1 sections but request is clearly E4 work. Surface the mismatch; let the Algorithm decide the correct tier.
 - **Missing required section:** CheckCompleteness blocks the return until filled.
-- **ISC count under tier floor:** at E2+, the ISC count must meet the soft floor (E2 ≥16, E3 ≥32, E4 ≥128, E5 ≥256). If under, either keep splitting or document the under-decomposition in `## Decisions`.
+- **Coverage gap (v7.0.0 — replaces the deleted numeric count floors):** every subsystem named in Vision/Goal has a container criterion decomposed until each leaf is one binary tool probe; never split to hit a number. A subsystem with no container criterion is the failure — either decompose it or document the deliberate omission in `## Decisions`.
 - **ID collision in ephemeral mode:** if the feature's ISC IDs don't exist in master, abort and surface the inconsistency — this is a master-ISA error, not a Scaffold error.

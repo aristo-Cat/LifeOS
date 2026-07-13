@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Briefcase, FolderOpen, ExternalLink, GitBranch, Cpu, Kanban, RefreshCw, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, ChevronsUpDown, List as ListIcon, Inbox } from "lucide-react";
 import EmptyStateGuide from "@/components/EmptyStateGuide";
+import { PageShell, PageHeader, Panel, TabBar, Pill, EmptyState } from "@/components/ui/chrome";
 
 interface AlgorithmSession {
   slug: string;
@@ -92,35 +93,39 @@ function Banner({
   projectCount: number;
 }) {
   return (
-    <section className="telos-card pulse" style={{ cursor: "default", borderLeft: "3px solid #F87B7B" }}>
+    <Panel className="border-l-[3px] [border-left-color:var(--creative)]">
       <div className="flex items-start gap-6 flex-wrap">
-        <Briefcase className="w-10 h-10 shrink-0" color="#F87B7B" />
+        <Briefcase className="w-10 h-10 shrink-0" style={{ color: "var(--creative)" }} />
         <div className="flex-1 min-w-0">
-          <div className="text-[13px] uppercase tracking-widest muted mb-2" style={{ color: "#E0A458" }}>Current Focus</div>
+          <div
+            className="text-[13px] uppercase tracking-widest mb-2 text-ink-3"
+          >
+            Current Focus
+          </div>
           {focus ? (
-            <p className="text-2xl lg:text-3xl font-medium leading-snug" data-sensitive>
+            <p className="text-2xl lg:text-3xl font-medium leading-snug text-ink-1" data-sensitive>
               {focus}
             </p>
           ) : (
-            <p className="text-xl italic muted">No current focus set in TELOS/CURRENT.md</p>
+            <p className="text-xl italic text-ink-2">No current focus set in TELOS/CURRENT.md</p>
           )}
           {current && (
-            <p className="text-sm mt-3 muted" data-sensitive>
+            <p className="text-sm mt-3 text-ink-2" data-sensitive>
               <span>Primary project:</span> {current}
             </p>
           )}
           {streams && (
-            <p className="text-xs mt-2 muted" data-sensitive>
+            <p className="text-xs mt-2 text-ink-2" data-sensitive>
               Streams: {streams}
             </p>
           )}
           <div className="mt-4 flex gap-2 flex-wrap">
-            <span className="pill pill-creative">{sessionCount} active sessions</span>
-            <span className="pill pill-money">{projectCount} projects</span>
+            <Pill dim="creative">{sessionCount} active sessions</Pill>
+            <Pill dim="money">{projectCount} projects</Pill>
           </div>
         </div>
       </div>
-    </section>
+    </Panel>
   );
 }
 
@@ -128,23 +133,22 @@ function AlgorithmSessions({ sessions }: { sessions?: AlgorithmSession[] }) {
   if (!sessions || sessions.length === 0) return null;
   return (
     <section>
-      <h2 className="text-sm font-medium uppercase tracking-widest muted mb-4 flex items-center gap-2">
-        <Cpu className="w-4 h-4" color="#7DD3FC" /> Algorithm Sessions
-        <span className="text-xs muted font-normal">({sessions.length})</span>
+      <h2 className="text-sm font-medium uppercase tracking-widest text-ink-3 mb-4 flex items-center gap-2">
+        <Cpu className="w-4 h-4" style={{ color: "var(--freedom)" }} /> Algorithm Sessions
+        <span className="text-xs text-ink-3 font-normal">({sessions.length})</span>
       </h2>
-      <div className="telos-card" style={{ cursor: "default", padding: 0 }}>
+      <Panel className="p-0">
         <div>
           {sessions.slice(0, 10).map((s, i) => {
             const phase = (s.phase || "unknown").toUpperCase();
-            const phaseColor = PHASE_COLOR[phase] ?? "#A8A5C8";
+            const phaseColor = PHASE_COLOR[phase] ?? "var(--ink-2)";
             const pct = progressPct(s.progress);
             const effort = s.effort?.toLowerCase();
-            const effortColor = effort ? EFFORT_COLOR[effort] ?? "#A8A5C8" : null;
+            const effortColor = effort ? EFFORT_COLOR[effort] ?? "var(--ink-2)" : null;
             return (
               <div
                 key={s.slug}
-                className="flex items-center gap-4 px-5 py-4"
-                style={{ borderTop: i === 0 ? "none" : "1px solid #1A2A4D" }}
+                className={`flex items-center gap-4 px-5 py-4 ${i === 0 ? "" : "border-t border-line-1"}`}
                 data-sensitive
               >
                 <span
@@ -159,16 +163,16 @@ function AlgorithmSessions({ sessions }: { sessions?: AlgorithmSession[] }) {
                   {phase}
                 </span>
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm truncate" title={s.task}>
+                  <div className="text-sm truncate text-ink-1" title={s.task}>
                     {s.task}
                   </div>
-                  <div className="text-[12px] font-mono mt-0.5 truncate muted">{s.slug}</div>
+                  <div className="text-[12px] font-mono mt-0.5 truncate text-ink-3">{s.slug}</div>
                 </div>
                 <div className="w-28 shrink-0">
                   <div className="progress-bar">
                     <div className="progress-fill" style={{ width: pct + "%" }} />
                   </div>
-                  <div className="text-[12px] text-right tabular-nums mt-1 muted">{s.progress}</div>
+                  <div className="text-[12px] text-right tabular-nums mt-1 text-ink-3">{s.progress}</div>
                 </div>
                 {s.effort && effortColor && (
                   <span
@@ -182,7 +186,7 @@ function AlgorithmSessions({ sessions }: { sessions?: AlgorithmSession[] }) {
             );
           })}
         </div>
-      </div>
+      </Panel>
     </section>
   );
 }
@@ -300,13 +304,12 @@ function KanbanCard({ issue }: { issue: KanbanIssue }) {
       href={issue.url}
       target="_blank"
       rel="noreferrer"
-      className="telos-card"
-      style={{ display: "block", textDecoration: "none", padding: "10px 12px", marginBottom: 8 }}
+      className="block no-underline bg-surface-2 border border-line-2 rounded-lg px-3 py-2.5 mb-2 transition-colors duration-200 hover:bg-surface-3 hover:border-line-3"
     >
-      <div style={{ fontSize: 12, fontFamily: "var(--font-mono, monospace)", color: "#A8A5C8", marginBottom: 4 }}>
+      <div className="mono text-[12px] text-ink-3 mb-1">
         #{issue.number}
       </div>
-      <div style={{ fontSize: 13, fontWeight: 500, lineHeight: 1.35, marginBottom: 6 }} title={issue.title}>
+      <div className="text-[13px] font-medium leading-snug mb-1.5 text-ink-1" title={issue.title}>
         {cleanTitle(issue.title)}
       </div>
       {labels.length > 0 && (
@@ -316,8 +319,8 @@ function KanbanCard({ issue }: { issue: KanbanIssue }) {
           ))}
         </div>
       )}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 6, fontSize: 12, color: "#A8A5C8" }}>
-        <span style={{ color: "#7DD3FC" }}>
+      <div className="flex justify-between items-center mt-1.5 text-[12px] text-ink-3">
+        <span style={{ color: "var(--freedom)" }}>
           {issue.assignees && issue.assignees.length > 0 ? "@" + issue.assignees.join(" @") : ""}
         </span>
         <span>{ageStr(issue.ageHours)}</span>
@@ -377,13 +380,12 @@ function KanbanView({ data }: { data: KanbanData }) {
       >
         {cols.map((col) => {
           const items = grouped[col] || [];
-          const color = COLUMN_COLOR[col] ?? "#A8A5C8";
+          const color = COLUMN_COLOR[col] ?? "var(--ink-2)";
           return (
             <div
               key={col}
-              className="telos-card"
+              className="bg-surface-2 border border-line-2 rounded-xl"
               style={{
-                cursor: "default",
                 padding: 0,
                 borderLeft: `3px solid ${color}`,
                 display: "flex",
@@ -394,24 +396,16 @@ function KanbanView({ data }: { data: KanbanData }) {
                 scrollSnapAlign: "start",
               }}
             >
-              <div
-                style={{
-                  padding: "10px 12px",
-                  borderBottom: "1px solid #1A2A4D",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                }}
-              >
+              <div className="flex items-center gap-2 px-3 py-2.5 border-b border-line-1">
                 <span style={{ width: 8, height: 8, borderRadius: "50%", background: color }} />
-                <span style={{ fontSize: 13, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                <span className="text-[13px] font-semibold uppercase tracking-[0.06em] text-ink-1">
                   {col}
                 </span>
-                <span className="muted" style={{ fontSize: 12, marginLeft: "auto" }}>{items.length}</span>
+                <span className="text-[12px] text-ink-3 ml-auto">{items.length}</span>
               </div>
               <div style={{ padding: 8, minHeight: 80, overflowY: "auto", flex: 1 }}>
                 {items.length === 0 ? (
-                  <div className="muted" style={{ fontSize: 12, fontStyle: "italic", textAlign: "center", padding: "16px 0" }}>
+                  <div className="text-[12px] italic text-center text-ink-3 py-4">
                     empty
                   </div>
                 ) : (
@@ -472,7 +466,7 @@ function SortHeader({
   return (
     <button
       onClick={() => onSort(col)}
-      className="muted"
+      className={active ? "" : "text-ink-3"}
       style={{
         display: "inline-flex",
         alignItems: "center",
@@ -485,7 +479,7 @@ function SortHeader({
         textTransform: "uppercase",
         letterSpacing: "0.05em",
         fontWeight: 600,
-        color: active ? "#7DD3FC" : undefined,
+        color: active ? "var(--accent-soft)" : undefined,
         justifyContent: align === "right" ? "flex-end" : "flex-start",
         width: "100%",
         padding: 0,
@@ -552,22 +546,21 @@ function WorkList({ data }: { data: KanbanData }) {
 
   if (allItems.length === 0) {
     return (
-      <div className="telos-card" style={{ cursor: "default", textAlign: "center", padding: "40px 16px" }}>
-        <Inbox className="w-8 h-8 mx-auto" style={{ opacity: 0.3 }} color="#A8A5C8" />
-        <p className="muted" style={{ marginTop: 10, fontSize: 13 }}>No work items. You&apos;re clear.</p>
-      </div>
+      <Panel>
+        <EmptyState icon={Inbox} title="No work items. You're clear." />
+      </Panel>
     );
   }
 
   return (
-    <div className="telos-card" style={{ cursor: "default", padding: 0, overflow: "hidden" }}>
+    <Panel className="p-0 overflow-hidden">
       {/* Filter toolbar */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderBottom: "1px solid rgba(255,255,255,0.06)", flexWrap: "wrap" }}>
-        <span className="muted" style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600 }}>Type</span>
+      <div className="flex items-center gap-2.5 px-3.5 py-2.5 border-b border-line-1 flex-wrap">
+        <span className="text-[11px] uppercase tracking-[0.05em] font-semibold text-ink-3">Type</span>
         <select
           value={typeFilter}
           onChange={(e) => setTypeFilter(e.target.value)}
-          style={{ background: "var(--panel-2, #181c25)", color: "inherit", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 4, padding: "3px 8px", fontSize: 12, cursor: "pointer" }}
+          className="bg-surface-1 text-ink-1 border border-line-2 rounded px-2 py-[3px] text-[12px] cursor-pointer"
         >
           <option value="all">all ({allItems.length})</option>
           {typesPresent.map((t) => (
@@ -584,30 +577,20 @@ function WorkList({ data }: { data: KanbanData }) {
           </button>
         )}
         <span className="flex-1" />
-        <span className="muted" style={{ fontSize: 11, fontFamily: "var(--font-mono, monospace)" }}>{sorted.length} shown</span>
+        <span className="text-[11px] mono text-ink-3">{sorted.length} shown</span>
       </div>
       {/* Header row */}
       <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: LIST_GRID,
-          gap: 10,
-          alignItems: "center",
-          padding: "10px 14px",
-          borderBottom: "1px solid rgba(255,255,255,0.08)",
-          position: "sticky",
-          top: 0,
-          background: "var(--panel, #12151c)",
-          zIndex: 1,
-        }}
+        className="grid items-center px-3.5 py-2.5 border-b border-line-2 sticky top-0 z-[1] bg-surface-1"
+        style={{ gridTemplateColumns: LIST_GRID, gap: 10 }}
       >
         <span />
         <SortHeader label="P" col="priority" active={sortKey === "priority"} dir={sortDir} onSort={onSort} />
         <SortHeader label="#" col="number" active={sortKey === "number"} dir={sortDir} onSort={onSort} align="right" />
         <SortHeader label="Title" col="title" active={sortKey === "title"} dir={sortDir} onSort={onSort} />
-        <span className="muted" style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600 }}>Type</span>
+        <span className="text-[11px] uppercase tracking-[0.05em] font-semibold text-ink-3">Type</span>
         <SortHeader label="Status" col="status" active={sortKey === "status"} dir={sortDir} onSort={onSort} />
-        <span className="muted" style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600 }}>Property</span>
+        <span className="text-[11px] uppercase tracking-[0.05em] font-semibold text-ink-3">Property</span>
         <SortHeader label="Age" col="age" active={sortKey === "age"} dir={sortDir} onSort={onSort} align="right" />
         <SortHeader label="Updated" col="updated" active={sortKey === "updated"} dir={sortDir} onSort={onSort} align="right" />
         <span />
@@ -616,7 +599,7 @@ function WorkList({ data }: { data: KanbanData }) {
       {/* Rows */}
       <div>
         {sorted.length === 0 && (
-          <div className="muted" style={{ padding: "24px 16px", textAlign: "center", fontSize: 12, fontStyle: "italic" }}>
+          <div className="text-ink-3 text-center text-[12px] italic px-4 py-6">
             No {typeFilter} items match.
           </div>
         )}
@@ -638,11 +621,11 @@ function WorkList({ data }: { data: KanbanData }) {
                   gap: 10,
                   alignItems: "center",
                   padding: "7px 14px",
-                  borderBottom: "1px solid rgba(255,255,255,0.04)",
-                  borderLeft: hasGoal ? "2px solid #E0A458" : "2px solid transparent",
+                  borderBottom: "1px solid var(--line-1)",
+                  borderLeft: hasGoal ? "2px solid var(--money)" : "2px solid transparent",
                   cursor: "pointer",
                   opacity: isClosed ? 0.55 : 1,
-                  background: isExpanded ? "rgba(255,255,255,0.03)" : undefined,
+                  background: isExpanded ? "var(--surface-3)" : undefined,
                 }}
                 className="work-row"
                 title={cleanTitle(it.title)}
@@ -674,11 +657,11 @@ function WorkList({ data }: { data: KanbanData }) {
                   ) : null}
                 </span>
                 {/* number */}
-                <span style={{ fontFamily: "var(--font-mono, monospace)", fontSize: 12, color: "#A8A5C8", textAlign: "right" }}>
+                <span className="text-ink-3" style={{ fontFamily: "var(--font-mono, monospace)", fontSize: 12, textAlign: "right" }}>
                   #{it.number}
                 </span>
                 {/* title */}
-                <span style={{ fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>
+                <span className="text-ink-1" style={{ fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>
                   {cleanTitle(it.title)}
                 </span>
                 {/* type pill */}
@@ -700,15 +683,15 @@ function WorkList({ data }: { data: KanbanData }) {
                   {it.column}
                 </span>
                 {/* property */}
-                <span className="muted" style={{ fontSize: 11, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <span className="text-ink-3" style={{ fontSize: 11, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {prop ?? ""}
                 </span>
                 {/* age */}
-                <span className="muted" style={{ fontSize: 11, fontFamily: "var(--font-mono, monospace)", textAlign: "right" }}>
+                <span className="text-ink-3" style={{ fontSize: 11, fontFamily: "var(--font-mono, monospace)", textAlign: "right" }}>
                   {ageStr(it.ageHours)}
                 </span>
                 {/* updated */}
-                <span className="muted" style={{ fontSize: 11, fontFamily: "var(--font-mono, monospace)", textAlign: "right" }}>
+                <span className="text-ink-3" style={{ fontSize: 11, fontFamily: "var(--font-mono, monospace)", textAlign: "right" }}>
                   {relativeUpdated(it.updatedAt)}
                 </span>
                 {/* open in github */}
@@ -717,7 +700,7 @@ function WorkList({ data }: { data: KanbanData }) {
                   target="_blank"
                   rel="noreferrer"
                   onClick={(e) => e.stopPropagation()}
-                  className="muted"
+                  className="text-ink-3 hover:text-ink-1 transition-colors"
                   style={{ display: "inline-flex", justifyContent: "center" }}
                   aria-label="Open in GitHub"
                 >
@@ -727,13 +710,13 @@ function WorkList({ data }: { data: KanbanData }) {
 
               {/* Expanded detail — leads with the principal-stated goal (the "why"). */}
               {isExpanded && (
-                <div style={{ padding: "10px 16px 14px 16px", borderBottom: "1px solid rgba(255,255,255,0.04)", background: "rgba(255,255,255,0.015)" }}>
+                <div className="border-b border-line-1 bg-surface-1" style={{ padding: "10px 16px 14px 16px" }}>
                   {it.principal_stated_goal && (
-                    <p style={{ fontSize: 12, fontStyle: "italic", color: "#7DD3FC", marginBottom: 8 }}>
+                    <p style={{ fontSize: 12, fontStyle: "italic", color: "var(--freedom)", marginBottom: 8 }}>
                       🎯 why: {it.principal_stated_goal}
                     </p>
                   )}
-                  <p style={{ fontSize: 13, marginBottom: 8, lineHeight: 1.4 }}>{cleanTitle(it.title)}</p>
+                  <p className="text-ink-1" style={{ fontSize: 13, marginBottom: 8, lineHeight: 1.4 }}>{cleanTitle(it.title)}</p>
                   {(it.labels || []).filter((l) => l !== "pai-sync").length > 0 && (
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 8 }}>
                       {(it.labels || []).filter((l) => l !== "pai-sync").map((l) => (
@@ -741,12 +724,12 @@ function WorkList({ data }: { data: KanbanData }) {
                       ))}
                     </div>
                   )}
-                  <div className="muted" style={{ fontSize: 11, display: "flex", gap: 14, flexWrap: "wrap", alignItems: "center" }}>
+                  <div className="text-ink-3" style={{ fontSize: 11, display: "flex", gap: 14, flexWrap: "wrap", alignItems: "center" }}>
                     <span>state: {it.state}</span>
                     {it.assignees && it.assignees.length > 0 && <span>@{it.assignees.join(" @")}</span>}
                     {it.source && <span>source: {it.source}</span>}
                     <span>age {ageStr(it.ageHours)}</span>
-                    <a href={it.url} target="_blank" rel="noreferrer" style={{ color: "#7DD3FC", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                    <a href={it.url} target="_blank" rel="noreferrer" style={{ color: "var(--accent-soft)", display: "inline-flex", alignItems: "center", gap: 4 }}>
                       <ExternalLink className="w-3 h-3" /> Open in GitHub
                     </a>
                   </div>
@@ -756,7 +739,7 @@ function WorkList({ data }: { data: KanbanData }) {
           );
         })}
       </div>
-    </div>
+    </Panel>
   );
 }
 
@@ -798,12 +781,12 @@ function WorkItemsPanel() {
   if (error) {
     return (
       <section>
-        <h2 className="text-sm font-medium uppercase tracking-widest muted mb-4 flex items-center gap-2">
-          <Kanban className="w-4 h-4" color="#7DD3FC" /> Work
+        <h2 className="text-sm font-medium uppercase tracking-widest text-ink-3 mb-4 flex items-center gap-2">
+          <Kanban className="w-4 h-4" style={{ color: "var(--freedom)" }} /> Work
         </h2>
-        <div className="telos-card" style={{ cursor: "default", borderLeft: "3px solid #F87171" }}>
-          <p className="text-sm" style={{ color: "#FCA5A5" }}>Failed to load /api/work — {error}</p>
-        </div>
+        <Panel className="border-l-[3px] [border-left-color:var(--err)]">
+          <p className="text-sm text-err">Failed to load /api/work — {error}</p>
+        </Panel>
       </section>
     );
   }
@@ -811,10 +794,10 @@ function WorkItemsPanel() {
   if (!data) {
     return (
       <section>
-        <h2 className="text-sm font-medium uppercase tracking-widest muted mb-4 flex items-center gap-2">
-          <Kanban className="w-4 h-4" color="#7DD3FC" /> Work
+        <h2 className="text-sm font-medium uppercase tracking-widest text-ink-3 mb-4 flex items-center gap-2">
+          <Kanban className="w-4 h-4" style={{ color: "var(--freedom)" }} /> Work
         </h2>
-        <div className="text-sm muted">Loading work items...</div>
+        <div className="text-sm text-ink-2">Loading work items...</div>
       </section>
     );
   }
@@ -822,82 +805,58 @@ function WorkItemsPanel() {
   if (data.setup_required) {
     return (
       <section>
-        <h2 className="text-sm font-medium uppercase tracking-widest muted mb-4 flex items-center gap-2">
-          <Kanban className="w-4 h-4" color="#7DD3FC" /> Work — setup required
+        <h2 className="text-sm font-medium uppercase tracking-widest text-ink-3 mb-4 flex items-center gap-2">
+          <Kanban className="w-4 h-4" style={{ color: "var(--freedom)" }} /> Work — setup required
         </h2>
-        <div className="telos-card" style={{ cursor: "default", borderLeft: "3px solid #E0A458" }}>
-          <p className="text-sm muted">{data.reason}</p>
-          <ol className="text-sm mt-3 ml-5 space-y-1" style={{ listStyle: "decimal" }}>
+        <Panel className="border-l-[3px] [border-left-color:var(--warn)]">
+          <p className="text-sm text-ink-2">{data.reason}</p>
+          <ol className="text-sm mt-3 ml-5 space-y-1 text-ink-1" style={{ listStyle: "decimal" }}>
             {(data.instructions || []).map((s, i) => <li key={i}>{s}</li>)}
           </ol>
-        </div>
+        </Panel>
       </section>
     );
   }
 
   const total = data.items?.length ?? 0;
 
-  const TabButton = ({ id, label, icon: Icon }: { id: "list" | "kanban"; label: string; icon: typeof ListIcon }) => {
-    const on = tab === id;
-    return (
+  const meta = (
+    <>
+      <span className="text-xs text-ink-3 mono hidden sm:inline">
+        {total} issues · {data.config?.repo} · poll {data.config?.poll_interval_seconds}s
+        {data.lastFetch && ` · last fetch ${new Date(data.lastFetch).toLocaleTimeString()}`}
+      </span>
       <button
-        onClick={() => setTab(id)}
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 6,
-          background: "none",
-          border: "none",
-          borderBottom: on ? "2px solid #7DD3FC" : "2px solid transparent",
-          color: on ? "#7DD3FC" : "#A8A5C8",
-          cursor: "pointer",
-          font: "inherit",
-          fontSize: 13,
-          fontWeight: 600,
-          padding: "4px 2px",
-          marginBottom: -1,
-        }}
+        onClick={handleRefresh}
+        disabled={refreshing}
+        className="pill"
+        style={{ display: "inline-flex", alignItems: "center", gap: 4, cursor: "pointer" }}
       >
-        <Icon className="w-4 h-4" />
-        {label}
+        <RefreshCw className="w-3 h-3" style={{ animation: refreshing ? "spin 1s linear infinite" : undefined }} />
+        {refreshing ? "Refreshing" : "Refresh"}
       </button>
-    );
-  };
+    </>
+  );
 
   return (
     <section>
-      <div
-        className="mb-4 flex items-center gap-5 flex-wrap"
-        style={{ borderBottom: "1px solid rgba(255,255,255,0.08)", paddingBottom: 2 }}
-      >
-        <TabButton id="list" label="List" icon={ListIcon} />
-        <TabButton id="kanban" label="Kanban" icon={Kanban} />
-        <span className="flex-1" />
-        <span className="text-xs muted font-normal">
-          {total} issues · {data.config?.repo} · poll {data.config?.poll_interval_seconds}s
-        </span>
-        {data.lastFetch && (
-          <span className="text-xs muted font-normal">
-            last fetch {new Date(data.lastFetch).toLocaleTimeString()}
-          </span>
-        )}
-        <button
-          onClick={handleRefresh}
-          disabled={refreshing}
-          className="pill"
-          style={{ display: "inline-flex", alignItems: "center", gap: 4, cursor: "pointer" }}
-        >
-          <RefreshCw className="w-3 h-3" style={{ animation: refreshing ? "spin 1s linear infinite" : undefined }} />
-          {refreshing ? "Refreshing" : "Refresh"}
-        </button>
-      </div>
+      <TabBar<"list" | "kanban">
+        className="mb-4"
+        tabs={[
+          { id: "list", label: "List", icon: ListIcon },
+          { id: "kanban", label: "Kanban", icon: Kanban },
+        ]}
+        active={tab}
+        onChange={setTab}
+        right={meta}
+      />
 
       {data.stale && (
-        <div className="telos-card" style={{ cursor: "default", borderLeft: "3px solid #E0A458", marginBottom: 12 }}>
-          <p className="text-xs" style={{ color: "#E0A458" }}>
+        <Panel className="border-l-[3px] [border-left-color:var(--warn)] mb-3 py-3">
+          <p className="text-xs text-warn">
             ⚠ Stale data — {data.stale_reason || "gh fetch failed; showing cached snapshot"}
           </p>
-        </div>
+        </Panel>
       )}
 
       {tab === "list" ? <WorkList data={data} /> : <KanbanView data={data} />}
@@ -909,20 +868,20 @@ function Projects({ projects }: { projects?: Array<{ name: string; path: string;
   if (!projects || projects.length === 0) return null;
   return (
     <section>
-      <h2 className="text-sm font-medium uppercase tracking-widest muted mb-4 flex items-center gap-2">
-        <GitBranch className="w-4 h-4" color="#E0A458" /> Projects
-        <span className="text-xs muted font-normal">({projects.length})</span>
+      <h2 className="text-sm font-medium uppercase tracking-widest text-ink-3 mb-4 flex items-center gap-2">
+        <GitBranch className="w-4 h-4" style={{ color: "var(--money)" }} /> Projects
+        <span className="text-xs text-ink-3 font-normal">({projects.length})</span>
       </h2>
       <div className="prob-grid">
         {projects.map((p) => {
           const isPublic = !p.url.toLowerCase().includes("private");
           const href = isPublic && p.url.startsWith("github.com") ? `https://${p.url}` : undefined;
           return (
-            <div key={p.name} className="telos-card dim-creative" style={{ cursor: "default", borderLeft: "3px solid #F87B7B" }}>
+            <Panel key={p.name} hover className="border-l-[3px] [border-left-color:var(--creative)]">
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-2 min-w-0">
-                  <FolderOpen className="w-4 h-4 shrink-0" color="#F87B7B" />
-                  <h3 className="text-sm font-medium truncate">{p.name}</h3>
+                  <FolderOpen className="w-4 h-4 shrink-0" style={{ color: "var(--creative)" }} />
+                  <h3 className="text-sm font-medium truncate text-ink-1">{p.name}</h3>
                 </div>
                 {href ? (
                   <a
@@ -930,21 +889,21 @@ function Projects({ projects }: { projects?: Array<{ name: string; path: string;
                     target="_blank"
                     rel="noreferrer"
                     className="shrink-0"
-                    style={{ color: "#E0A458" }}
+                    style={{ color: "var(--money)" }}
                   >
                     <ExternalLink className="w-3.5 h-3.5" />
                   </a>
                 ) : (
-                  <span className="pill pill-creative shrink-0">private</span>
+                  <Pill dim="creative" className="shrink-0">private</Pill>
                 )}
               </div>
-              <div className="text-[12px] font-mono mt-1 truncate muted" data-sensitive title={p.path}>
+              <div className="text-[12px] font-mono mt-1 truncate text-ink-3" data-sensitive title={p.path}>
                 {p.path}
               </div>
-              <div className="text-[12px] mt-1 truncate muted" data-sensitive title={p.url}>
+              <div className="text-[12px] mt-1 truncate text-ink-3" data-sensitive title={p.url}>
                 {p.url}
               </div>
-            </div>
+            </Panel>
           );
         })}
       </div>
@@ -963,27 +922,31 @@ export default function WorkPage() {
   }, []);
   if (error) {
     return (
-      <div className="p-8 max-w-5xl mx-auto">
-        <div
-          className="telos-card"
-          style={{ cursor: "default", borderLeft: "3px solid #F87171" }}
-        >
-          <h2 className="font-medium" style={{ color: "#F87171" }}>
-            Failed to load work
-          </h2>
-          <p className="text-sm" style={{ color: "#FCA5A5" }}>{error}</p>
-        </div>
-      </div>
+      <PageShell>
+        <PageHeader title="Work" icon={Briefcase} subtitle="Focus, work items, sessions, and projects" />
+        <Panel className="border-l-[3px] [border-left-color:var(--err)]">
+          <h2 className="font-medium text-err">Failed to load work</h2>
+          <p className="text-sm text-err">{error}</p>
+        </Panel>
+      </PageShell>
     );
   }
-  if (!data) return <div className="p-8 text-sm muted">Loading Work...</div>;
+  if (!data) {
+    return (
+      <PageShell>
+        <PageHeader title="Work" icon={Briefcase} subtitle="Focus, work items, sessions, and projects" />
+        <div className="text-sm text-ink-2">Loading Work...</div>
+      </PageShell>
+    );
+  }
 
   const sessionCount = data.algorithmSessions?.length ?? 0;
   const projectCount = data.projects?.length ?? 0;
   const showEmptyGuide = sessionCount === 0 && projectCount === 0 && !data.currentFocus && !data.currentProject;
 
   return (
-    <div className="p-6 lg:p-8 max-w-[1920px] mx-auto space-y-6">
+    <PageShell>
+      <PageHeader title="Work" icon={Briefcase} subtitle="Focus, work items, sessions, and projects" />
       {showEmptyGuide && (
         <EmptyStateGuide
           section="Work Hub"
@@ -1002,6 +965,6 @@ export default function WorkPage() {
       <WorkItemsPanel />
       <AlgorithmSessions sessions={data.algorithmSessions} />
       <Projects projects={data.projects} />
-    </div>
+    </PageShell>
   );
 }

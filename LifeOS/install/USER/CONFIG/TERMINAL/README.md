@@ -1,3 +1,7 @@
+---
+provenance: template
+---
+
 # TERMINAL — Terminal Preferences
 
 This directory holds settings that customize how LifeOS integrates with

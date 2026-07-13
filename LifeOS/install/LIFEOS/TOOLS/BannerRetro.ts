@@ -278,24 +278,12 @@ const LIFEOS_CUBE_WIDE = [
   "   +----------+",
 ];
 
-// ═══════════════════════════════════════════════════════════════════════════
-// Block Letter KAI (using block characters)
-// ═══════════════════════════════════════════════════════════════════════════
-
-const BLOCK_KAI = [
-  "█  █  █████  █████",
-  "█ █   █   █    █  ",
-  "██    █████    █  ",
-  "█ █   █   █    █  ",
-  "█  █  █   █  █████",
-];
-
-// Smaller block KAI
-const BLOCK_KAI_SMALL = [
-  "█▀▄  ▄▀█  █",
-  "█▀▄  █▀█  █",
-  "▀ ▀  ▀ ▀  █",
-];
+// The banner spells the configured DA name (stats.name, default "LifeOS"),
+// letter-spaced at the render sites. The former hardcoded "KAI" block-letters
+// were removed so the banner reflects whatever DA the principal named (PR #1457, author anikin-xyz).
+function daNameBanner(name: string): string {
+  return name.toUpperCase().split("").join(" ");
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Dynamic Stats & Identity
@@ -517,16 +505,14 @@ function createRetroBanner(): string {
   // BLOCK LETTER KAI
   // ─────────────────────────────────────────────────────────────────────────
   lines.push("");
-  for (const row of BLOCK_KAI_SMALL) {
-    lines.push(`    ${c}${row}${RESET}`);
-  }
+  lines.push(`    ${c}${daNameBanner(stats.name)}${RESET}`);
 
   // ─────────────────────────────────────────────────────────────────────────
   // GITHUB URL
   // ─────────────────────────────────────────────────────────────────────────
   lines.push("");
   lines.push(`  ${gd}${BOX.sh.repeat(40)}${RESET}`);
-  lines.push(`  ${g}>${RESET} ${h}github.com/danielmiessler/PAI${RESET}${BLINK}_${RESET}`);
+  lines.push(`  ${g}>${RESET} ${h}github.com/danielmiessler/LifeOS${RESET}${BLINK}_${RESET}`);
   lines.push(`  ${gd}${BOX.sh.repeat(40)}${RESET}`);
 
   return lines.join("\n");
@@ -625,16 +611,11 @@ function createPureASCIIBanner(): string {
   lines.push(`  ${gd}Status:${RESET} ${g}[########....] 75%${RESET}`);
 
   lines.push("");
-  // Simple block KAI
-  lines.push(`    ${c}#  # ### ###${RESET}`);
-  lines.push(`    ${c}# #  ### ###${RESET}`);
-  lines.push(`    ${c}##   # # ###${RESET}`);
-  lines.push(`    ${c}# #  ### ###${RESET}`);
-  lines.push(`    ${c}#  # # # ###${RESET}`);
+  lines.push(`    ${c}${daNameBanner(stats.name)}${RESET}`);
 
   lines.push("");
   lines.push(`  ${gd}----------------------------------------${RESET}`);
-  lines.push(`  ${g}>${RESET} ${h}github.com/danielmiessler/PAI${RESET}${g}_${RESET}`);
+  lines.push(`  ${g}>${RESET} ${h}github.com/danielmiessler/LifeOS${RESET}${g}_${RESET}`);
   lines.push(`  ${gd}----------------------------------------${RESET}`);
 
   return lines.join("\n");
@@ -682,7 +663,7 @@ function createCompactRetroBanner(): string {
 
   lines.push("");
   lines.push(`${g}LifeOS${RESET} ${gd}|${RESET} ${h}LifeOS${RESET}`);
-  lines.push(`${gd}> github.com/danielmiessler/PAI${RESET}`);
+  lines.push(`${gd}> github.com/danielmiessler/LifeOS${RESET}`);
 
   return lines.join("\n");
 }

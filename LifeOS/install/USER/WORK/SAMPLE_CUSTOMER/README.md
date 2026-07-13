@@ -1,3 +1,7 @@
+---
+provenance: template
+---
+
 # SAMPLE_CUSTOMER
 
 > 💼 SAMPLE TEMPLATE — Rename this directory to your actual customer name (e.g. `AcmeCorp/`, `BigCo/`) and populate it via /interview or by editing these files.

@@ -1,3 +1,7 @@
+---
+version: 1.0.10
+---
+
 # LifeOS Digital Assistant Subsystem
 
 > The DA is layer one of the Life OS (`LIFEOS/DOCUMENTATION/LifeOs/LifeOsThesis.md`): the interface the principal actually talks to. This subsystem is what makes that layer real rather than a markdown file — identity that persists, a heartbeat that asks "should I do something to close the gap?", and growth that compounds. Everything below serves the thesis claim that the DA is the primary (eventually only) interface to the OS.

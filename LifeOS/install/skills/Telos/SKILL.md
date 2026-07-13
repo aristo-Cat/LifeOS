@@ -1,6 +1,7 @@
 ---
 name: Telos
-description: "Dual-context LifeOS skill. Personal TELOS: read and update goals, beliefs, wisdom, books, movies, challenges, narratives, strategies, mission, models, predictions, traumas, frames, lessons, wrong-beliefs in USER/TELOS/ via Update workflow with timestamped backups. Project TELOS: analyze .md/.csv directories to extract dependency chains (PROBLEMS→GOALS→STRATEGIES→PROJECTS), bottlenecks, alignment, progress metrics; generate McKinsey-style WriteReport, n=24 CreateNarrativePoints, or Next.js dashboards via parallel engineers. Also InterviewExtraction. USE WHEN Telos, life goals, projects, dependencies, update TELOS, narrative points, McKinsey report, dashboard, what am I wrong about, life frames, mental models. NOT FOR conversational constitutional review (use Interview)."
+version: 1.0.39
+description: "Dual-context skill: Personal TELOS reads and updates goals, beliefs, narratives, strategies, and more with timestamped backups; Project TELOS analyzes .md/.csv directories for dependency chains, bottlenecks, and alignment, generating reports, narrative points, or dashboards. USE WHEN Telos, life goals, projects, dependencies, update TELOS, narrative points, McKinsey report, dashboard, what am I wrong about, life frames, mental models. NOT FOR conversational constitutional review (use Interview)."
 effort: medium
 ---
 
@@ -81,7 +82,7 @@ User: "analyze ~/Projects/MyApp with TELOS"
 **Example 3: Build project dashboard**
 ```
 User: "build a dashboard for TELOSAPP"
---> Launches up to 10 parallel engineers
+--> Launches up to 16 parallel engineers
 --> Creates Next.js dashboard with shadcn/ui + Aceternity
 --> Returns interactive dashboard with dependency graphs, metrics cards, progress tables
 ```
@@ -220,78 +221,20 @@ For any project directory, TELOS provides:
 # {DA_IDENTITY.NAME} automatically finds all .md and .csv files regardless of structure
 ```
 
-## Analysis Workflow
+## Analysis
 
-### Step 1: Identify Target
+Point the skill at a project directory (named project, explicit path, or common location). A good analysis surfaces the dependency chains PROBLEMS→GOALS→STRATEGIES→PROJECTS, the bottlenecks blocking progress, whether projects align with stated objectives, progress/completion metrics, and risk areas (overdue or blocked work) — grounded in what the files actually say, never cached assumptions.
 
-**Auto-detection:**
-- User mentions project name (TELOSAPP, Alma, etc.)
-- User provides path explicitly
-- {DA_IDENTITY.NAME} looks for common project locations
-
-### Step 2: Scan Files
-
-Discover all markdown and CSV files:
+Discover the source files:
 ```bash
 find $TARGET_DIR -type f \( -name "*.md" -o -name "*.csv" \)
 ```
 
-Index:
-- Markdown structure (headings, sections, links)
-- CSV schema (columns, data types)
-- Cross-references and mentions
-- Entities (people, teams, projects, problems)
-
-### Step 3: Relationship Analysis
-
-Build relationship graph:
-1. **Entity Extraction** - Identify unique entities
-2. **Connection Discovery** - Find explicit/implicit links
-3. **Dependency Mapping** - Trace dependencies
-4. **Network Construction** - Build directed graph
-
-### Step 4: Generate Insights
-
-Produce analytics:
-- **Dependency Chains**: PROBLEMS --> GOALS --> STRATEGIES --> PROJECTS
-- **Bottlenecks**: What blocks progress?
-- **Goal Alignment**: Projects aligned with objectives?
-- **Progress Metrics**: Completion percentages
-- **Risk Areas**: Overdue items, blocked work
-
-### Step 5: Create Outputs
-
-**Output Formats:**
-
-1. **Markdown Report** - Static analysis with Mermaid diagrams
-2. **Web Dashboard** - Interactive app with shadcn/ui + Aceternity
-3. **JSON Export** - Structured data
-4. **Executive Summary** - Narrative overview
-5. **Custom Format** - As requested
+Deliver in whatever format was asked: markdown report (Mermaid diagrams), interactive web dashboard, JSON export, or executive summary.
 
 ## Building Dashboards
 
-### Parallel Engineer Strategy
-
-**CRITICAL: When building UIs, use up to 16 parallel engineers.**
-
-**Launch Strategy:**
-Use single message with 10 Task calls in parallel:
-
-```
-Engineer 1: Project structure + layout + navigation
-Engineer 2: Overview page with metrics cards
-Engineer 3: Projects page with progress tracking
-Engineer 4: Teams page with performance tables
-Engineer 5: Vulnerabilities/issues page
-Engineer 6: Progress timeline visualization
-Engineer 7: Data parsing library (MD/CSV)
-Engineer 8: Shared components (cards, badges, tables)
-Engineer 9: Design polish and theme
-Engineer 10: Integration and testing
-```
-
-### Dashboard Requirements
+The deliverable is an interactive Next.js dashboard that renders the analysis against the stack and design tokens below. Fan the build out across parallel agents however the work splits cleanly — data-parsing lib, shared components, per-page views, theme, integration — running independent pieces at once.
 
 **Tech Stack:**
 - Next.js 14 + TypeScript
@@ -307,7 +250,7 @@ Engineer 10: Integration and testing
 - Timeline visualizations
 - Relationship networks
 
-**Design:**
+**Design tokens:**
 ```css
 --background: #ffffff
 --foreground: #1a1b26
@@ -382,25 +325,6 @@ Engineer 10: Integration and testing
 - Follow LifeOS security protocols
 
 ---
-
-## Key Principles
-
-1. **Dual Context** - Handles both personal and project TELOS seamlessly
-   - Personal TELOS: `~/.claude/LIFEOS/USER/TELOS/` (in CORE USER directory)
-   - Project TELOS: User-specified directories
-2. **Auto-Detection** - Determines context from user question
-3. **Flexible Discovery** - Finds files regardless of structure
-4. **TELOS Methodology** - Applies relationships, dependencies, goals, narratives
-5. **Parallel Execution** - Up to 10 engineers for dashboard builds
-6. **Visual Excellence** - Beautiful outputs with shadcn/ui + Aceternity
-7. **Privacy-Aware** - Respects sensitive data
-8. **Integrated** - Works with development, research, and other skills
-
----
-
-**TELOS is {PRINCIPAL.NAME}'s life operating system AND project analysis framework. One skill, two powerful contexts.**
-
-**Remember:** Personal TELOS files live at `~/.claude/LIFEOS/USER/TELOS/` (in the CORE USER directory)
 
 ## Gotchas
 

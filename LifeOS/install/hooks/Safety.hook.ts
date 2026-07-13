@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 /**
+ * @version 1.3.13
  * Safety.hook.ts — unified safety/permissions hook.
  *
  * Single entry point dispatching by event:
@@ -48,6 +49,7 @@ import {
   type Classification,
   type ToolCall,
 } from "./lib/safety-classifier";
+import { SECRET_VALUE_SHAPES } from "./lib/egress-class-core";
 
 const STDIN_CAP_BYTES = 2 * 1024 * 1024;
 const CACHE_MAX_BYTES = 10 * 1024 * 1024;
@@ -168,6 +170,30 @@ function logDecision(opts: {
   }
 }
 
+/**
+ * Secret-shape scan for MCP egress (#1275). The classifier's blanket
+ * `mcp-pre-vetted` allow never inspects tool_input, so an MCP write call
+ * (mail send, message post, canvas update, …) carrying .env contents or a
+ * credential would previously auto-allow unscanned. Before emitting allow
+ * for any mcp__ tool, serialize the full tool_input and scan it for secret
+ * VALUE shapes — reusing SECRET_VALUE_SHAPES from lib/egress-class-core.ts
+ * (sk-ant-/sk-*, AKIA, ghp_, glpat-, xox*, PEM blocks, AIza, Bearer, …) —
+ * plus a secret-named-assignment shape (KEY/TOKEN/SECRET/PASSWORD = long
+ * opaque value). On a hit we simply DON'T emitAllow: the native permission
+ * prompt fires and {{PRINCIPAL_NAME}} decides. Defer, never hard-deny — a false
+ * positive costs one prompt, not a broken workflow.
+ */
+const SECRET_ASSIGNMENT_SHAPE =
+  /\b[A-Za-z_][A-Za-z0-9_]*(?:KEY|TOKEN|SECRET|PASSWORD|PASSWD|CREDENTIAL)S?\b["']?\s*[=:]\s*["']?[A-Za-z0-9+/_.=-]{20,}/i;
+
+function findSecretShape(text: string): string | null {
+  for (const r of SECRET_VALUE_SHAPES) {
+    if (r.test(text)) return r.source;
+  }
+  if (SECRET_ASSIGNMENT_SHAPE.test(text)) return SECRET_ASSIGNMENT_SHAPE.source;
+  return null;
+}
+
 function emitAllow(): void {
   process.stdout.write(
     JSON.stringify({
@@ -192,6 +218,33 @@ function permissionRequest(input: {
     typeof toolInput.command === "string" ? toolInput.command : undefined;
   const filePath =
     typeof toolInput.file_path === "string" ? toolInput.file_path : undefined;
+
+  // #1275 — MCP egress secret scan. Runs BEFORE the classifier's blanket
+  // mcp-pre-vetted allow. On a secret-shape hit, skip emitAllow entirely so
+  // the native permission prompt fires; benign mcp__ calls fall through to
+  // the normal allow path.
+  if (toolName.startsWith("mcp__")) {
+    let serialized = "";
+    try {
+      serialized = JSON.stringify(toolInput);
+    } catch {
+      serialized = "";
+    }
+    const secretHit = serialized ? findSecretShape(serialized) : null;
+    if (secretHit) {
+      // Redacted body: never write a prefix of a secret-bearing payload
+      // into the observability JSONL.
+      logDecision({
+        toolName,
+        body: `[mcp tool_input redacted: ${serialized.length} bytes]`,
+        decision: "neutral",
+        reasons: ["mcp-secret-egress"],
+        matched_pattern: secretHit,
+        cache: "n/a",
+      });
+      return;
+    }
+  }
 
   const tc: ToolCall = { toolName, command, filePath };
   const result: Classification = classifyCommand(tc);
@@ -235,6 +288,13 @@ function permissionRequest(input: {
  */
 function isAttackerWritableSource(toolName: string): boolean {
   if (toolName === "WebFetch" || toolName === "WebSearch") return true;
+  // ToolSearch (#1276, partial mitigation): returned tool schemas are
+  // third-party-authored text (MCP server descriptions) loaded on demand —
+  // a TOCTOU surface with no schema-load hook event upstream. Scanning the
+  // ToolSearch RESULT gives the schemas the same data-not-instructions
+  // framing + injection-shape scan as WebFetch output. The full fix (a
+  // ToolSchemaLoaded hook event) is an upstream Claude Code feature request.
+  if (toolName === "ToolSearch") return true;
   if (!toolName.startsWith("mcp__")) return false;
   return /gmail|mail|drive|calendar|inbox/i.test(toolName);
 }
@@ -261,11 +321,21 @@ function annotate(input: { tool_name?: string; tool_response?: unknown }): void 
     }
   }
 
+  // 2026-07-10 ({{PRINCIPAL_NAME}} directive): only re-echo the framed body when an injection
+  // shape actually fired. That is the case where the model needs the suspicious
+  // content pinned next to the warning. On the common no-signal path, emit the
+  // warning alone: the native tool result already carries the content, and the
+  // Constitutional Security Protocol orders external content treated as data.
+  // Kills the per-fetch full-body duplication (up to the 2MB stdin cap).
+  const additionalContext = injectionMarker
+    ? EXTERNAL_WARNING + injectionMarker + body
+    : EXTERNAL_WARNING;
+
   process.stdout.write(
     JSON.stringify({
       hookSpecificOutput: {
         hookEventName: "PostToolUse",
-        additionalContext: EXTERNAL_WARNING + injectionMarker + body,
+        additionalContext,
       },
     }) + "\n",
   );

@@ -1,6 +1,7 @@
 ---
 name: BiasCheck
-description: Three-layer bias analysis on any source — URL, file path, or raw text. Auto-fetches the content plus any underlying study cited, then audits (1) data-level biases (funding, sampling, question design, self-report, causal inflation, publication), (2) source-organization conflicts of interest, (3) journalism-added distortions (headline-vs-source swap, frame escalation, echo-chain). Output separates what the data actually supports from what's editorialized. USE WHEN bias analysis, analyze bias, bias check, check this study, who funded this, is this source biased, fact-check article, methodological flaws, source credibility, what's wrong with this claim. NOT FOR psychological author analysis (use _CRITICAL_ANALYSIS), research synthesis (use Research), entity due diligence (use _OSINT).
+version: 1.0.2
+description: "Three-layer bias analysis on any URL, file, or text — auto-fetches the content and any cited study, then audits data-level biases, source conflicts of interest, and journalism-added distortions, separating what the data supports from what's editorialized. USE WHEN bias analysis, analyze bias, bias check, check this study, who funded this, is this source biased, fact-check article, methodological flaws, source credibility, what's wrong with this claim. NOT FOR psychological author analysis (use _CRITICAL_ANALYSIS), research synthesis (use Research), entity due diligence (use _OSINT)."
 disallowed-tools: Edit, Write, NotebookEdit
 ---
 

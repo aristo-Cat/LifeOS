@@ -22,6 +22,7 @@
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { resolve as pathResolve } from "node:path";
 import { homedir } from "node:os";
+import { getDAName } from "../../hooks/lib/identity"
 
 const ROOT = pathResolve(homedir(), ".claude");
 const OBS = pathResolve(ROOT, "LIFEOS/MEMORY/OBSERVABILITY");
@@ -41,7 +42,7 @@ function parseArgs(): Args {
       if (!Number.isNaN(n) && n > 0) days = n;
       i++;
     } else if (argv[i] === "--help" || argv[i] === "-h") {
-      console.log("kai insights — memory delta over the last N day(s)");
+      console.log(`${getDAName().toLowerCase()} insights — memory delta over the last N day(s)`);
       console.log("usage: bun LIFEOS/TOOLS/MemoryInsights.ts [--days N]");
       console.log("       --days N    window size in days (default: 1)");
       process.exit(0);

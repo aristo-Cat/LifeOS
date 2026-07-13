@@ -1,3 +1,7 @@
+---
+version: 1.1.3
+---
+
 # CLI-First Architecture Pattern
 
 > CLI-first is how the Life OS stays deterministic (`LIFEOS/DOCUMENTATION/LifeOs/LifeOsThesis.md`): the hill-climb's moves are code you can script, test, and trust — prompts orchestrate, code executes.

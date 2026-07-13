@@ -20,7 +20,11 @@
 #
 # Exit codes: 0 ok; 2 bad args; 3 preflight failed (propagated); 7 target denied
 # (Default/working profile); 8 test-context unset; 9 capture failed after recovery;
-# 10 stale extension (operator must reload); 11 empty/missing image after capture.
+# 10 stale extension (operator must reload); 11 empty/missing image after capture;
+# 12 BLANK/DEGENERATE capture — image landed but is near-uniform (the black-frame
+#    failure: page unhydrated or mid entrance-animation). A blank frame is NEVER a
+#    successful capture — it is a wedged verifier, so it fails hard (defer, never
+#    treat a black frame as evidence).
 
 set -euo pipefail
 
@@ -35,11 +39,15 @@ Usage:
   Capture.sh <url>          Navigate the pinned test context to <url>, capture.
   Capture.sh --current      Capture the pinned test context's current page.
   Capture.sh ... --full     Full-page capture (default is viewport).
+  Capture.sh ... --pixel    Skip DOM-render, capture the real compositor frame
+                            directly (use on dark/animated pages that DOM-render
+                            snaps blank before hydration). Needs the tab foreground.
   Capture.sh ... --out PATH  Write to PATH (default: ~/Downloads/interceptor-capture-*.png).
   Capture.sh --help
 
 Always targets only INTERCEPTOR_TEST_CONTEXT_ID from preferences.env. Refuses
-Default / working profiles. Prints only the saved file path on success.
+Default / working profiles. Prints only the saved file path on success. A blank /
+near-uniform capture is rejected (exit 12), never returned as success.
 EOF
 }
 
@@ -47,6 +55,7 @@ EOF
 TARGET_URL=""
 USE_CURRENT=0
 FULL=0
+FORCE_PIXEL=0
 OUT=""
 
 if [ "$#" -eq 0 ]; then
@@ -66,6 +75,10 @@ while [ "$#" -gt 0 ]; do
             ;;
         --full)
             FULL=1
+            shift
+            ;;
+        --pixel)
+            FORCE_PIXEL=1
             shift
             ;;
         --out)
@@ -178,6 +191,50 @@ image_landed() {
     [ -s "$OUT" ]
 }
 
+# --- degeneracy guard ---------------------------------------------------------
+# A capture that LANDED but is near-uniform (all-black / blank) is NOT a
+# successful capture — it is the framer-motion-before-hydration failure, where
+# every animated element sits at opacity:0 and the DOM-render snaps a black
+# rectangle. Existence of a non-empty PNG proved nothing about content; this is
+# the guard that makes "a file landed" insufficient. std-dev via ImageMagick was
+# the widest-margin separator of the metrics measured (maxima/range/unique-colors
+# all overlap — a blank frame with one stray bright pixel hits maxima 1.0):
+# observed blank frames cluster at 0.008-0.012, real content at >=0.022 (a very
+# dark dim-text page) up to 0.24 (bright content). Default 0.017 sits at the
+# midpoint, ~0.005 margin each side. The failure direction is deliberately SAFE:
+# a borderline-dark legit page just under the line is conservatively REJECTED
+# (exit 12), forcing a --pixel + a human look, never a false "verified". If
+# ImageMagick is absent the probe cannot run — warn, but PASS (UNKNOWN != MISSING:
+# never block on our own blind spot). Override with INTERCEPTOR_MIN_STDDEV.
+MIN_STDDEV="${INTERCEPTOR_MIN_STDDEV:-0.017}"
+
+# Loudly record a skipped guard so "the blank-frame check didn't run" is
+# discoverable, never silent (cross-vendor audit 2026-07-07: the fail-open path
+# reproduced the original bug invisibly on any magick-less host).
+guard_skipped() {
+    local reason="$1"
+    echo "Capture.sh: ⚠️  BLANK-FRAME GUARD SKIPPED ($reason) — this capture is NOT checked for a black/blank frame; do not treat it as pixel-verified without looking. Install ImageMagick (brew install imagemagick) to enable." >&2
+    local log="${HOME}/.claude/LIFEOS/MEMORY/OBSERVABILITY/capture-guard.jsonl"
+    mkdir -p "$(dirname "$log")" 2>/dev/null || true
+    printf '{"ts":"%s","event":"guard-skipped","reason":"%s","out":"%s"}\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$reason" "$OUT" >> "$log" 2>/dev/null || true
+}
+
+content_ok() {
+    [ -s "$OUT" ] || return 1
+    if ! command -v magick >/dev/null 2>&1; then
+        guard_skipped "imagemagick-absent"
+        return 0
+    fi
+    local sd
+    sd="$(magick "$OUT" -format '%[fx:standard_deviation]' info: 2>/dev/null)"
+    if [ -z "$sd" ]; then
+        guard_skipped "stddev-probe-empty"
+        return 0
+    fi
+    # ok (return 0) iff sd >= MIN_STDDEV
+    awk -v s="$sd" -v t="$MIN_STDDEV" 'BEGIN{ exit !((s+0) >= (t+0)) }'
+}
+
 # interceptor screenshot prints JSON including "filePath" — the path it ACTUALLY
 # wrote. The --pixel path (captureVisibleTab) ignores --out and saves to a
 # daemon-chosen temp path, so after every capture we reconcile: if $OUT wasn't
@@ -211,7 +268,10 @@ pixel_capture() {
     interceptor screenshot "${SS_FLAGS[@]}" --pixel 2>&1
 }
 
-# --- 5/6/7. capture with bounded recovery (hard cap = 2 capture attempts total) ---
+# --- 5/6/7. capture with bounded recovery. DOM-first, then a single classified
+# recovery move. NOTE: the wedge path (heal_bridge → pixel → daemon respawn →
+# pixel-or-dom) can issue up to ~4 run_one calls total; non-wedge paths issue 2.
+# A degenerate DOM frame is treated as a failure so it escalates to --pixel. ---
 attempt=0
 err=""
 
@@ -231,15 +291,28 @@ run_one() {
         out_text="$(dom_capture)"
     fi
     if resolve_saved "$out_text"; then
-        return 0
+        # Landing is necessary but NOT sufficient — a blank/degenerate frame is a
+        # failed capture, not a success. Reject it so the DOM path escalates to
+        # --pixel and a genuinely-blank final frame fails hard (exit 12).
+        if content_ok; then
+            return 0
+        fi
+        err="degenerate/blank image on $1 capture (std-dev < ${MIN_STDDEV}) — page unhydrated or mid entrance-animation"
+        return 1
     fi
     err="$out_text"
     return 1
 }
 
-# Attempt 1 — DOM-render first (engineered-robust default, needs no foreground).
+# Attempt 1. --pixel forces the real compositor frame (known dark/animated pages);
+# otherwise DOM-render first (engineered-robust default, needs no foreground).
 attempt=1
-if run_one dom; then
+if [ "$FORCE_PIXEL" -eq 1 ]; then
+    if run_one pixel; then
+        printf '%s\n' "$OUT"
+        exit 0
+    fi
+elif run_one dom; then
     printf '%s\n' "$OUT"
     exit 0
 fi
@@ -292,10 +365,26 @@ else
     fi
 fi
 
-# Final guard: nothing landed.
+# Final guard: distinguish nothing-landed (exit 9) from landed-but-blank (exit 12).
 if image_landed; then
-    printf '%s\n' "$OUT"
-    exit 0
+    if content_ok; then
+        printf '%s\n' "$OUT"
+        exit 0
+    fi
+    cat >&2 <<EOF
+Capture.sh: BLANK/DEGENERATE capture (exit 12) — an image landed but is near-uniform
+(std-dev < ${MIN_STDDEV}). This is NOT a verified capture. The page most likely has not
+hydrated, or uses entrance animations (elements start at opacity:0), so DOM-render
+snapped a blank frame. DO NOT treat a blank frame as evidence — this is a wedged
+verifier, so defer.
+REMEDIATION:
+  1. Foreground the tab, then re-run with --pixel (real compositor capture):
+       interceptor open <url> --reuse --activate --context <ctx>
+       Capture.sh --current --pixel
+  2. Or wait for hydration and re-capture.
+  last error: $err
+EOF
+    exit 12
 fi
 
 cat >&2 <<EOF

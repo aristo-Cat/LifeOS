@@ -1,4 +1,5 @@
 ---
+provenance: template
 dimension: infrastructure
 classification: private
 auto_populated: partial

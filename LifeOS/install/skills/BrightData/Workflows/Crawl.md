@@ -205,42 +205,9 @@ For both modes:
 
 ## Examples
 
-**Example 1: Crawl a Documentation Section**
-
-User: "Crawl all the pages under https://docs.example.com/api/"
-
-1. Mode: **Light Crawl** (section-scoped)
-2. Start URL: `https://docs.example.com/api/`
-3. URL filter: only links matching `/api/` path
-4. Depth: 3
-5. Page limit: 30
-6. Scrape starting page → find 12 links under /api/
-7. Batch scrape 10, then 2 → find 5 more sub-pages
-8. Batch scrape 5 → no new links
-9. Total: 20 pages crawled in ~90 seconds
-10. Return structured content + site map
-
-**Example 2: Map an Entire Site**
-
-User: "Crawl the entire site at https://smallbusiness.com"
-
-1. Mode: **Full Crawl** (entire site)
-2. Confirm with user: "This will use the Bright Data Crawl API. Estimated cost depends on site size. Proceed?"
-3. POST to Crawl API with depth 3, no URL filter
-4. Poll for completion
-5. Retrieve results (e.g., 250 pages)
-6. Present site map + content summary
-7. Cost: ~$0.38
-
-**Example 3: Competitive Research Crawl**
-
-User: "Crawl competitor.com and get all their product pages"
-
-1. Mode: **Full Crawl** with URL filter
-2. URL filter regex: `"https://competitor\\.com/products/.*"`
-3. Depth: 2 (products are usually 1-2 levels deep)
-4. Crawl API handles bot detection automatically
-5. Return structured product page content
+- **Section:** "crawl all pages under docs.example.com/api/" → Light Crawl, url_filter `/api/`, depth 3, page limit 30.
+- **Whole site:** "crawl the entire site at smallbusiness.com" → Full Crawl, confirm cost first, depth 3, no filter.
+- **Scoped competitive:** "get competitor.com's product pages" → Full Crawl, url_filter `"https://competitor\\.com/products/.*"`, depth 2.
 
 ---
 

@@ -21,7 +21,7 @@ bun Tools/FrameScrub.ts <recording> scrub --at 4.2 --window 1.5 --fps 8
 
 Output: PNG frames + a `manifest.json` (`{video, mode, frame_count, flagged_frame, min_ssim, extracted:[{frame, path, timestamp_s, ssim_to_prev}]}`). **Survey answers "does the flow broadly work"; scrub answers "does the animation at 4.2s render clean." The SSIM flag points the model at the frame with the most change so it looks at the motion, not twelve near-identical stills.**
 
-Verify a motion ISC by opening the flagged frame (and its neighbors) with Read, then cite the manifest path — `SuccessClaimGate` accepts a `frames/…/manifest.json` as Interceptor-class evidence.
+Verify a motion ISC by opening the flagged frame (and its neighbors) with Read, then cite the manifest path — `VerificationGate` (T2) accepts a `frames/…/manifest.json` as flow-exercised evidence.
 
 ## Getting the recording
 

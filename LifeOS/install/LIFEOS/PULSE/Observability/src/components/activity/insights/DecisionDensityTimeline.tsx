@@ -218,18 +218,18 @@ export default function DecisionDensityTimeline() {
 
   if (isLoading) {
     return (
-      <div className="rounded-lg border border-white/[0.06] bg-zinc-900 p-4">
+      <div className="rounded-lg border border-white/[0.06] bg-surface-1 p-4">
         <div className="h-[220px] flex items-center justify-center">
-          <div className="w-full h-[160px] bg-zinc-800/50 rounded animate-pulse" />
+          <div className="w-full h-[160px] bg-[rgba(20,28,56,0.5)] rounded animate-pulse" />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="rounded-lg border border-white/[0.06] bg-zinc-900 p-4">
+    <div className="rounded-lg border border-white/[0.06] bg-surface-1 p-4">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-xs font-medium text-zinc-400 uppercase tracking-wider">
+        <h3 className="text-xs font-medium text-ink-2 uppercase tracking-wider">
           Decision Density
         </h3>
         <div className="flex gap-1">
@@ -239,8 +239,8 @@ export default function DecisionDensityTimeline() {
               onClick={() => setTimeRange(r)}
               className={`px-2 py-0.5 text-[13px] rounded transition-colors ${
                 timeRange === r
-                  ? "bg-zinc-700 text-zinc-200"
-                  : "text-zinc-500 hover:text-zinc-400"
+                  ? "bg-surface-3 text-ink-1"
+                  : "text-ink-3 hover:text-ink-2"
               }`}
             >
               {r}
@@ -251,7 +251,7 @@ export default function DecisionDensityTimeline() {
 
       {!hasData ? (
         <div className="flex items-center justify-center h-[160px]">
-          <p className="text-xs text-zinc-600">No criteria data in selected time range</p>
+          <p className="text-xs text-ink-3">No criteria data in selected time range</p>
         </div>
       ) : (
         <>
@@ -272,7 +272,7 @@ export default function DecisionDensityTimeline() {
                     y1={y}
                     x2={svgWidth - padRight}
                     y2={y}
-                    stroke="#3f3f46"
+                    stroke="var(--line-1)"
                     strokeWidth={0.5}
                     strokeDasharray="2 3"
                   />
@@ -282,7 +282,7 @@ export default function DecisionDensityTimeline() {
                     textAnchor="end"
                     dominantBaseline="central"
                     fontSize={9}
-                    fill="#71717a"
+                    fill="var(--ink-3)"
                   >
                     {tick}
                   </text>
@@ -344,7 +344,7 @@ export default function DecisionDensityTimeline() {
                 y={svgHeight - 4}
                 textAnchor="middle"
                 fontSize={9}
-                fill="#71717a"
+                fill="var(--ink-3)"
               >
                 {lbl.label}
               </text>
@@ -355,7 +355,7 @@ export default function DecisionDensityTimeline() {
           <div className="flex items-center gap-4 mt-2 text-[14px]">
             <span className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-blue-400" />
-              <span className="text-zinc-400">
+              <span className="text-ink-2">
                 {totals.created} created
               </span>
               {totals.created > 0 && (
@@ -364,7 +364,7 @@ export default function DecisionDensityTimeline() {
             </span>
             <span className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-emerald-400" />
-              <span className="text-zinc-400">
+              <span className="text-ink-2">
                 {totals.completed} completed
               </span>
               {totals.completed > 0 && (
@@ -373,7 +373,7 @@ export default function DecisionDensityTimeline() {
             </span>
             <span className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-rose-400" />
-              <span className="text-zinc-400">
+              <span className="text-ink-2">
                 {totals.failed} failed
               </span>
               {totals.failed > 0 && (

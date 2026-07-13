@@ -222,12 +222,22 @@ function parseFile(content: string): ParsedFile {
   const endIdx = afterFm.indexOf(END_MARKER);
 
   if (beginIdx === -1 || endIdx === -1 || endIdx < beginIdx) {
-    // Markers missing or malformed — treat as empty entries with the whole
-    // body as preEntries; this preserves principal content if they edited.
+    // Markers missing or malformed. Recover any orphaned prefixed entries a prior
+    // broken write may have dumped into the body (see serializeFile's BEGIN-marker
+    // heal) so read() still surfaces them and the next write re-homes them inside a
+    // proper marker block instead of duplicating them. Non-entry lines stay in
+    // preEntriesBody, preserving principal-authored content.
+    const recovered: string[] = [];
+    const kept: string[] = [];
+    for (const line of afterFm.split("\n")) {
+      const t = line.trim();
+      if (t.length > 0 && PREFIX_PATTERN.test(t)) recovered.push(t);
+      else kept.push(line);
+    }
     return {
       frontmatter,
-      preEntriesBody: afterFm,
-      entries: [],
+      preEntriesBody: kept.join("\n"),
+      entries: recovered,
       postEntriesBody: "",
     };
   }
@@ -267,8 +277,16 @@ function serializeFile(parsed: ParsedFile, newEntries: string[], updatedBy: stri
   let fm = updateFrontmatterTimestamp(parsed.frontmatter);
   fm = updateFrontmatterUpdatedBy(fm, updatedBy);
 
-  // Ensure preEntriesBody ends just after BEGIN_MARKER, with newline before entries
+  // Ensure preEntriesBody ends just after BEGIN_MARKER, with a newline before entries.
+  // Symmetric self-heal (mirrors the END-marker heal below): if the body lost its
+  // BEGIN marker, re-insert it so appended entries land inside a parseable block.
+  // parseFile only recovers entries between BEGIN and END, so without this an
+  // already-broken file would keep accepting writes that never persist as entries.
   let pre = parsed.preEntriesBody;
+  if (!pre.includes(BEGIN_MARKER)) {
+    if (pre.length > 0 && !pre.endsWith("\n")) pre += "\n";
+    pre += BEGIN_MARKER;
+  }
   if (!pre.endsWith("\n")) pre += "\n";
 
   const entriesBlock = newEntries.length === 0 ? "" : newEntries.join("\n") + "\n";

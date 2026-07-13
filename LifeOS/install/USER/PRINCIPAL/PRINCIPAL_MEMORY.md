@@ -1,4 +1,5 @@
 ---
+provenance: template
 schema_version: 1
 cap_entries: 48
 cap_chars_per_entry: 256
@@ -11,4 +12,7 @@ convention: pai-freshness-v1
 
 > 🎯 SAMPLE TEMPLATE — auto-curated hot-layer memory about you. It starts empty and the memory reviewer writes durable facts here as you work with your DA. Nothing to fill in manually. Pulse's memory panel reads this file.
 
-<!-- Entries are appended automatically by the memory curation loop. Empty on a fresh install — this is expected. -->
+<!-- Entries are appended automatically by the memory curation loop. Empty on a fresh install — this is expected. The marker pair below is where entries are written; keep both markers in place. -->
+
+<!-- BEGIN ENTRIES -->
+<!-- END ENTRIES -->

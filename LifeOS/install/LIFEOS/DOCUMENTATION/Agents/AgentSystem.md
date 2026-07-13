@@ -1,3 +1,7 @@
+---
+version: 1.6.2
+---
+
 # LifeOS Agent System
 
 > Agents are how the LifeOS parallelizes the hill-climb. One DA fronts the system (thesis: `../LifeOs/LifeOsThesis.md`), but closing a current→ideal-state gap often takes many hands — research fanned out, code written, work audited cross-vendor. The routing rules below exist so that fan-out stays deterministic and the right kind of worker handles each leg of the climb.
@@ -14,34 +18,29 @@ LifeOS has three agent systems that serve different purposes. Confusing them cau
 |--------|-----------|-------------|-------------------|
 | **Task Tool Subagent Types** | Pre-built agents in Claude Code (Explore, Plan, general-purpose, etc.) | Internal workflow use ONLY | No |
 | **Named Agents** | Persistent identities with backstories and voices (your own personas) | Recurring work, voice output, relationships | Yes |
-| **Custom Agents** | Dynamic agents composed via ComposeAgent from traits | When user says "custom agents" | Yes (trait-mapped) |
+| **Custom Agents** | Agents composed as inline briefs (role/perspective/voice written into the prompt), launched with `general-purpose` | When user says "custom agents" | Yes (described in the brief) |
 
 ---
 
 ## 🚫 FORBIDDEN PATTERNS
 
-> **Note:** `Architect`, `Designer`, and `Engineer` were retired as agent types. Don't reach for any static built-in `subagent_type` when the user asks for custom agents — compose via the Agents skill instead.
+> **Note:** `Architect`, `Designer`, and `Engineer` were retired as agent types, and so was the old `Agents` composition skill (`ComposeAgent`/`Traits.yaml`). Don't reach for a bare static built-in `subagent_type` when the user asks for custom agents — write a distinct inline brief per agent and launch with `general-purpose`.
 
 **When user says "custom agents":**
 
 ```typescript
-// ❌ WRONG - a static built-in subagent_type is NOT a custom agent
-//   (Architect/Designer/Engineer were retired; this was always the anti-pattern)
+// ❌ WRONG - a bare static built-in subagent_type is NOT a custom agent
 Task({ subagent_type: "<static built-in type>", prompt: "..." })
 
-// ✅ RIGHT - Invoke the Agents skill for custom agents
-Skill("Agents")  // → CreateCustomAgent workflow
-// OR follow the workflow directly:
-// 1. Run ComposeAgent with different trait combinations
-// 2. Launch agents with the generated prompts
-// 3. Each gets unique personality + voice
+// ✅ RIGHT - one distinct inline brief per agent, launched with general-purpose
+//   (role, perspective, and voice written straight into the prompt)
+Task({ subagent_type: "general-purpose", prompt: "You are a <role> arguing from a <perspective> angle. …" })
 
-// ❌ WRONG - User says "specialized agents to brainstorm", you reach for static types
+// ❌ WRONG - "specialized agents to brainstorm", you reach for bare static types
 Task({ subagent_type: "<static built-in type>", prompt: "Brainstorm UI ideas..." })
 
-// ✅ RIGHT - Use Agents skill for ANY user-requested specialized agents
-Skill("Agents")  // → CreateCustomAgent workflow with unique traits per agent
-// Each agent gets: unique name, unique voice, unique personality via ComposeAgent
+// ✅ RIGHT - a topic-specific brief per perspective (as Council/RedTeam/Ideate do)
+Task({ subagent_type: "general-purpose", prompt: "You are a skeptical UX critic. Brainstorm UI ideas, then attack your own. …" })
 ```
 
 ---
@@ -52,53 +51,51 @@ Skill("Agents")  // → CreateCustomAgent workflow with unique traits per agent
 
 | User Says | Action | Implementation |
 |-----------|--------|----------------|
-| "**custom agents**", "spin up **custom** agents" | Invoke Agents skill | `Skill("Agents")` → CreateCustomAgent workflow |
-| "agents", "**specialized agents**", "launch agents", "parallel agents" | Custom agents via Agents skill | `Skill("Agents")` → ComposeAgent → `Task({ subagent_type: "general-purpose" })` |
+| "**custom agents**", "spin up **custom** agents" | Inline brief per agent | Write each brief, launch with `Task({ subagent_type: "general-purpose", prompt: "<brief>" })` |
+| "agents", "**specialized agents**", "launch agents", "parallel agents" | Inline briefs, one per perspective | `Task({ subagent_type: "general-purpose", prompt: "<brief>" })` — batch in one message |
 | "research X", "investigate Y" | Research skill | `Skill("Research")` → appropriate researcher agents |
 | "use Remy", "get Ava to" | Named agent | Use appropriate researcher subagent_type |
 | (Code implementation, standard) | `general-purpose` + senior-engineer/TDD brief | `Task({ subagent_type: "general-purpose", prompt: "Senior engineer, TDD. …" })` |
-| (Production-grade code, E3+, "no shortcuts" directive, OR named "Forge") | Forge (cross-vendor, OpenAI-family GPT-5.5 via `codex exec`) | `Agent({ subagent_type: "Forge" })` |
-| (Cross-vendor audit, MANDATORY at E4/E5 in VERIFY) | Forge in audit mode (read-only, OpenAI-family GPT-5.5) | `Agent({ subagent_type: "Forge", prompt: "MODE: audit\n…" })` |
+| (Production-grade code, E3+, "no shortcuts" directive, OR named "Forge") | Forge (cross-vendor, OpenAI-family GPT-5.6 Sol via `codex exec`) | `Agent({ subagent_type: "Forge" })` |
+| (Cross-vendor audit, OPTIONAL at E4/E5 — Algorithm's discretion) | Forge in audit mode (read-only, OpenAI-family GPT-5.6 Sol) | `Agent({ subagent_type: "Forge", prompt: "MODE: audit\n…" })` |
 | (Architecture/design) | `general-purpose` + system-design brief | `Task({ subagent_type: "general-purpose", prompt: "System design / distributed systems. …" })` |
 | (Claude Code hooks, settings, commands, MCP, agents, API) | Claude Code Guide | `Task({ subagent_type: "claude-code-guide" })` — verify latest features before implementing |
 
 ### Custom Agent Creation Flow
 
-When user requests custom agents:
+When the user requests custom agents, compose each one as an **inline brief** — role, stance, and voice written straight into the prompt — and launch with `general-purpose`. There is no composition tool; Council, RedTeam, and Ideate all build members this way (topic-specific briefs, never bare built-in types).
 
-1. **Invoke Agents skill** via `Skill("Agents")` or follow CreateCustomAgent workflow
-2. **Run ComposeAgent** for EACH agent with DIFFERENT trait combinations
-3. **Extract prompt and voice_id** from ComposeAgent output
-4. **Launch agents** with Task tool using the composed prompts
-5. **Voice results** using each agent's unique voice_id
+1. **Write a distinct brief per agent** — role, perspective, and the specific angle it argues from, directly in the prompt text
+2. **Launch each** with `Task({ subagent_type: "general-purpose", prompt: "<brief>" })`, batched in one message for parallelism
+3. **Voice results** in the brief's described voice if voice output is wanted
 
-```bash
-# Example: 3 custom research agents
-bun run ~/.claude/skills/Agents/Tools/ComposeAgent.ts --traits "research,enthusiastic,exploratory"
-bun run ~/.claude/skills/Agents/Tools/ComposeAgent.ts --traits "research,skeptical,systematic"
-bun run ~/.claude/skills/Agents/Tools/ComposeAgent.ts --traits "research,analytical,synthesizing"
+```ts
+// Example: 3 custom research agents, each a different inline brief
+Task({ subagent_type: "general-purpose", prompt: "You are an enthusiastic, exploratory researcher. …" })
+Task({ subagent_type: "general-purpose", prompt: "You are a skeptical, systematic researcher. …" })
+Task({ subagent_type: "general-purpose", prompt: "You are an analytical, synthesizing researcher. …" })
 ```
 
 ---
 
 ## ⚠️ Task Tool Subagent Types — INTERNAL WORKFLOW USE ONLY
 
-**These are NOT for user-requested custom/specialized agents.** When the user asks for specialized agents, custom agents, or agents with unique perspectives, ALWAYS use the Agents skill (ComposeAgent) instead. See Routing Rules above.
+**These are NOT for user-requested custom/specialized agents.** When the user asks for specialized agents, custom agents, or agents with unique perspectives, write an inline brief and launch with `general-purpose` (as Council/RedTeam/Ideate do). See Routing Rules above.
 
 These are pre-built agents in the Claude Code Task tool. They are for **internal workflow use**, not for user-requested "custom agents."
 
 | Subagent Type | Purpose | When Used |
 |---------------|---------|-----------|
-| `general-purpose` | Custom agents via ComposeAgent; code/design/architecture work with a role brief in the prompt | Parallel work with task-specific prompts (the `Architect`/`Designer`/`Engineer` types were retired — use this with a brief) |
+| `general-purpose` | Custom agents via inline brief; code/design/architecture work with a role brief in the prompt | Parallel work with task-specific prompts (the `Architect`/`Designer`/`Engineer` types were retired — use this with a brief) |
 | `Explore` | Codebase exploration | Finding files, understanding structure |
 | `Plan` | Implementation planning | Plan mode |
-| `Forge` | Cross-vendor coder + auditor (OpenAI-family GPT-5.5 via `codex exec`) — `MODE: build` writes production code, `MODE: audit` is the read-only E4/E5 VERIFY pass (folded in the former Cato agent) | Production-grade code at E3+; MANDATORY cross-vendor audit at E4/E5 in VERIFY |
+| `Forge` | Cross-vendor coder + auditor (OpenAI-family GPT-5.6 Sol via `codex exec`) — `MODE: build` writes production code, `MODE: audit` is the read-only E4/E5 VERIFY pass (folded in the former Cato agent) | Production-grade code at E3+; optional cross-vendor audit at E4/E5 (Algorithm's discretion) |
 | `claude-code-guide` | Claude Code knowledge (hooks, settings, slash commands, MCP, agent types, keybindings, IDE, Agent SDK, Claude API) | Any task involving Claude Code internals — freshness check before implementing |
 | `ClaudeResearcher` | Claude-based research | Research skill workflows |
 | `GeminiResearcher` | Gemini-based research | Research skill workflows |
 | `GrokResearcher` | Grok-based research | Research skill workflows |
 
-**These do NOT have unique voices or ComposeAgent composition.**
+**These do NOT have unique voices.**
 
 ---
 
@@ -118,11 +115,11 @@ Named agents have rich backstories, personality traits, and mapped voices. They 
 
 ---
 
-## Custom Agents (Dynamic Composition)
+## Custom Agents (Inline Briefs)
 
-Custom agents are composed on-the-fly from traits using ComposeAgent. Each unique trait combination maps to a different ElevenLabs voice.
+Custom agents are composed on the fly by writing an **inline brief** into the prompt — no tool, no registry. The trait vocabulary below is a menu to draw from when writing a brief: state the expertise, personality, and approach in prose, then launch with `general-purpose`.
 
-### Trait Categories
+### Trait Vocabulary
 
 **Expertise** (domain knowledge):
 `security`, `legal`, `finance`, `medical`, `technical`, `research`, `creative`, `business`, `data`, `communications`
@@ -133,16 +130,7 @@ Custom agents are composed on-the-fly from traits using ComposeAgent. Each uniqu
 **Approach** (work style):
 `thorough`, `rapid`, `systematic`, `exploratory`, `comparative`, `synthesizing`, `adversarial`, `consultative`
 
-### Voice Mapping Examples
-
-| Trait Combo | Voice | Why |
-|-------------|-------|-----|
-| contrarian + skeptical | Clyde (gravelly) | Challenging intensity |
-| enthusiastic + creative | Jeremy (energetic) | High-energy creativity |
-| security + adversarial | Callum (edgy) | Hacker character |
-| analytical + meticulous | Charlotte (sophisticated) | Precision analysis |
-
-**Full trait definitions and voice mappings:** `skills/Agents/Data/Traits.yaml`
+**Traits and voice** are described in prose inside each agent's brief — there is no separate trait registry or voice-mapping table.
 
 ---
 
@@ -272,37 +260,12 @@ Background agents can hang or go silent with no visibility. The Pulse agent-guar
 
 ---
 
-## Observer Team Archetype (Read-Only Oversight)
-
-Distinct from functional teams (engineering, design, security, etc.). An Observer team watches what a primary agent DID — not what it said. Mythos-class autonomous agents can represent concealment and strategic manipulation in their activations, so chain-of-thought oversight is insufficient; audit-log oversight becomes load-bearing.
-
-**Shape:**
-- **Read-only** — observers never call write tools. Violations = immediate self-halt.
-- **Fed the audit log** — consume `MEMORY/OBSERVABILITY/tool-activity.jsonl` (with `ground_truth` captured by `ToolActivityTracker.hook.ts`), not chat transcripts.
-- **Vote** — continue / halt / escalate. Majority rule; any escalate bubbles to {{PRINCIPAL_NAME}} via Pulse.
-- **Cost-justified by catastrophe prevention**, not feature velocity.
-
-**Use ONLY when BOTH conditions hold:**
-1. **Time is not a constraint** — observers add 30-second voting cycles and ~$0.10/primary-hour in Sonnet cost. They trade speed for safety.
-2. **Auditability is the primary requirement** — when the goal is a defensible, verifiable trail of what the primary agent did (for compliance, post-incident review, or catastrophe prevention), not fast turnaround.
-
-**Typical fit:** overnight / unattended autonomous runs, production deploys where post-hoc review matters, credential rotation, PATTERNS.yaml or security-hook edits, any work where "I want to be able to prove nothing dangerous happened" is the goal.
-
-**Do NOT use for:** any time-sensitive work, interactive sessions where {{PRINCIPAL_NAME}} is watching, short reactive tasks (<5 tool calls), read-only analysis, or anything where preflight gates A/B/C/D already give sufficient guarantees.
-
-**Invocation:** `Skill("Agents")` → `SPAWNOBSERVERS` workflow (`skills/Agents/Workflows/SpawnObservers.md`). Three observer instances spawn with specializations: policy-compliance, intent-drift, blast-radius.
-
----
-
 ## References
 
 - **Master Architecture:** `~/.claude/LIFEOS/DOCUMENTATION/LifeosSystemArchitecture.md` — authoritative system-of-systems reference
-- **Agents Skill:** `skills/Agents/SKILL.md` — Custom agent creation, workflows
-- **ComposeAgent:** `skills/Agents/Tools/ComposeAgent.ts` — Dynamic composition tool
-- **Traits:** `skills/Agents/Data/Traits.yaml` — Trait definitions and voice mappings
 - **Agent Personalities:** Individual `agents/*.md` files — Named agent backstories and voice settings
 - **Managed Agents:** https://www.anthropic.com/engineering/managed-agents — Anthropic cloud agent API
 
 ---
 
-*Last updated: 2026-04-29*
+*Last updated: 2026-07-07*

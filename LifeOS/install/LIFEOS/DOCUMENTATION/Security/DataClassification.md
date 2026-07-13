@@ -2,6 +2,7 @@
 last_updated: 2026-06-18T00:00:00Z
 last_updated_by: kai
 convention: pai-freshness-v1
+version: 1.0.7
 ---
 
 # LifeOS Data Classification & Inference-Source Routing

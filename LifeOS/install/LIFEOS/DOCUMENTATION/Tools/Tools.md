@@ -1,3 +1,7 @@
+---
+version: 1.8.0
+---
+
 # LifeOS Tools - CLI Utilities Reference
 
 > CLI-first is how the Life OS stays deterministic (`LIFEOS/DOCUMENTATION/LifeOs/LifeOsThesis.md`): the hill-climb's moves are code you can script, test, and trust — prompts orchestrate, code executes.
@@ -17,6 +21,8 @@ This file documents single-purpose CLI utilities that have been consolidated fro
 **Use this — never import `@anthropic-ai/sdk` directly.** Inference.ts handles auth, retries, timeouts, and LifeOS-specific defaults. Hooks, skills, agents, and ad-hoc Bash all route through it.
 
 Single inference tool with four run levels for different speed/capability trade-offs — the same four-level abstraction as `EFFORT_MODEL` in `models.ts` (max→fable, high→opus, medium→sonnet, low→haiku; one-line mapping edit on a lineup change).
+
+**Executed-model verification (v6.29.0).** `--level max` genuinely runs Fable (spawns `claude --model claude-fable-5`), unlike an `Agent(model:fable)` dispatch which downgrades to Opus — so this is the real Fable carrier for E4/E5 reasoning. Every run reads the executed model back from the JSON envelope's `modelUsage` (`verifyExecutedModel` — filters Claude Code's per-turn background haiku pass, then takes the highest-output model as the answer's author and checks its family; presence alone can't tell a tiny classifier pass from real authorship). The result carries `executedModel` + `modelDowngraded`; the CLI prints a `[model] requested=… → executed=…` line to stderr (stdout stays the clean answer); any downgrade is logged to `MEMORY/OBSERVABILITY/model-verification.jsonl`. The tool reports what RAN, never what it requested.
 
 **Usage:**
 ```bash
@@ -45,7 +51,7 @@ bun ~/.claude/LIFEOS/TOOLS/Inference.ts --level medium --timeout 60000 "Prompt" 
 | **low** | Haiku | 15s | Quick tasks, simple generation, basic classification |
 | **medium** | Sonnet | 30s | Balanced reasoning, typical analysis, decisions |
 | **high** | Opus | 90s | Deep reasoning, strategic decisions, complex analysis |
-| **max** | Fable | 120s | Keystone decisions — TheRouter classifier, Advisor, hardest reasoning |
+| **max** | Fable | 120s | Keystone decisions, hardest reasoning (the TheRouter classifier that formerly used this level was retired 2026-07-11) |
 
 **Programmatic Usage:**
 ```typescript
@@ -70,7 +76,7 @@ if (result.success) {
 - "quick inference" → low
 - "analyze this" → medium
 - "deep analysis" → high
-- keystone decisions (classifier, advisor) → max
+- keystone decisions (classifier) → max
 - Hooks use this for sentiment analysis, tab titles, work classification
 
 **Technical Details:**
@@ -792,6 +798,39 @@ bun ~/.claude/LIFEOS/TOOLS/ArchitectureSummaryGenerator.ts check
 - "regenerate architecture summary"
 - "check if architecture summary is stale"
 - After modifying LifeosSystemArchitecture.md
+
+---
+
+## Doctor.ts - Capability Prober & Health Manifest
+
+**Location:** `~/.claude/LIFEOS/TOOLS/Doctor.ts`
+
+Probes the external tools LifeOS doctrine assumes but the core install does not ship — `codex` (cross-vendor audit), Interceptor (browser verification), Cloudflare/wrangler (scheduled flows), ElevenLabs (voice) — plus core wiring, and writes an **advisory** capability manifest at `MEMORY/STATE/capabilities.json`. Born from onboarding-friction feedback (discussion #1461): capabilities assumed but never verified degrade silently, and change-scoped checks can't see what's dormant at rest.
+
+Four states per capability: `live` / `broken` / `declined` / `stale`. The manifest is a **TTL'd cache, never truth** — it carries a salted integrity hash and readers re-verify doctrine-critical capabilities live at point-of-use. `declined` is a first-class permanent, silent opt-out. Diagnostic register only — no scores, no percentages.
+
+**Usage:**
+```bash
+# Probe (offline checks), human table
+bun ~/.claude/LIFEOS/TOOLS/Doctor.ts
+
+# Include network probes (only for configured capabilities — no pre-consent egress)
+bun ~/.claude/LIFEOS/TOOLS/Doctor.ts --network
+
+bun ~/.claude/LIFEOS/TOOLS/Doctor.ts --json          # machine-readable
+bun ~/.claude/LIFEOS/TOOLS/Doctor.ts --verify        # integrity-check the manifest (exit 2 on tamper)
+bun ~/.claude/LIFEOS/TOOLS/Doctor.ts --reconcile     # hooks declared-on-disk vs registered-in-settings
+bun ~/.claude/LIFEOS/TOOLS/Doctor.ts --statusline    # one glyph if a NEW regression since ack, else empty
+bun ~/.claude/LIFEOS/TOOLS/Doctor.ts decline <cap>   # permanent silent opt-out
+bun ~/.claude/LIFEOS/TOOLS/Doctor.ts enable <cap>    # undo a decline
+bun ~/.claude/LIFEOS/TOOLS/Doctor.ts ack             # acknowledge the current broken set (statusline delta base)
+```
+
+**Consumers (read the manifest, never write it):** the statusline delta line (precomputed sidecar), the `AlgorithmNudge` capability row (fires at the moment a broken capability's command fails — reads only `state`, fix command is a static in-hook constant), and the Pulse System Health panel (`/api/doctor`). Never install-fatal: the default run always exits 0; every probe is timeout-bounded.
+
+**When to Use:**
+- "run the doctor", "check capabilities", "why is voice/codex/cloudflare not working"
+- Post-install (INSTALL.md step 8.5) and any time something feels off
 
 ---
 

@@ -116,8 +116,8 @@ export default function PhaseRhythmStrip() {
       <div className="space-y-2">
         {[1, 2, 3].map((i) => (
           <div key={i} className="flex items-center gap-3">
-            <div className="w-[160px] h-4 bg-zinc-800 rounded animate-pulse" />
-            <div className="flex-1 h-7 bg-zinc-800 rounded animate-pulse" />
+            <div className="w-[160px] h-4 bg-surface-2 rounded animate-pulse" />
+            <div className="flex-1 h-7 bg-surface-2 rounded animate-pulse" />
           </div>
         ))}
       </div>
@@ -126,7 +126,7 @@ export default function PhaseRhythmStrip() {
 
   if (sessions.length === 0) {
     return (
-      <div className="flex items-center justify-center h-40 text-zinc-600 text-xs">
+      <div className="flex items-center justify-center h-40 text-ink-3 text-xs">
         No algorithm sessions with phase data
       </div>
     );
@@ -151,7 +151,7 @@ export default function PhaseRhythmStrip() {
               style={{ width: LABEL_WIDTH }}
               title={getSessionName(session)}
             >
-              <span className="text-[14px] text-zinc-400">
+              <span className="text-[14px] text-ink-2">
                 {getSessionName(session)}
               </span>
             </div>
@@ -177,7 +177,7 @@ export default function PhaseRhythmStrip() {
                       ? (seg.duration / totalDuration) * 100
                       : 0;
 
-                  const color = PHASE_COLORS[seg.phase] || "#71717a";
+                  const color = PHASE_COLORS[seg.phase] || "var(--ink-3)";
                   const phaseEntry = (session.phaseHistory || [])[idx];
                   const isActive = phaseEntry
                     ? isActivePhase(session, phaseEntry)
@@ -232,7 +232,7 @@ export default function PhaseRhythmStrip() {
               className="w-2.5 h-2.5 rounded-sm"
               style={{ backgroundColor: PHASE_COLORS[phase] }}
             />
-            <span className="text-[13px] text-zinc-500">{phase}</span>
+            <span className="text-[13px] text-ink-3">{phase}</span>
           </div>
         ))}
       </div>
@@ -240,15 +240,15 @@ export default function PhaseRhythmStrip() {
       {/* Tooltip (portal-style via fixed positioning) */}
       {tooltip && (
         <div
-          className="fixed z-50 px-2.5 py-1.5 rounded-md bg-zinc-800 border border-white/[0.08] shadow-lg pointer-events-none"
+          className="fixed z-50 px-2.5 py-1.5 rounded-md bg-surface-2 border border-white/[0.08] shadow-lg pointer-events-none"
           style={{
             left: tooltip.x,
             top: tooltip.y - 40,
             transform: "translateX(-50%)",
           }}
         >
-          <p className="text-xs text-zinc-200 font-medium">{tooltip.phase}</p>
-          <p className="text-[13px] text-zinc-400 font-mono">
+          <p className="text-xs text-ink-1 font-medium">{tooltip.phase}</p>
+          <p className="text-[13px] text-ink-2 font-mono">
             {tooltip.duration}
           </p>
         </div>

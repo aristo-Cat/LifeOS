@@ -5,7 +5,7 @@
  * Commands:
  *   --today              Parse all today's activity
  *   --session <id>       Parse specific session only
- *   --generate           Generate MEMORY/PAISYSTEMUPDATES/ file (outputs path)
+ *   --generate           Generate MEMORY/SYSTEMUPDATES/ file (outputs path)
  *
  * Examples:
  *   bun run ActivityParser.ts --today
@@ -25,7 +25,7 @@ const CLAUDE_DIR = path.join(process.env.HOME!, ".claude");
 const MEMORY_DIR = path.join(CLAUDE_DIR, "LIFEOS", "MEMORY");
 const USERNAME = process.env.USER || require("os").userInfo().username;
 const PROJECTS_DIR = path.join(CLAUDE_DIR, "projects", `-Users-${USERNAME}--claude`);  // Claude Code native storage
-const SYSTEM_UPDATES_DIR = path.join(MEMORY_DIR, "PAISYSTEMUPDATES");  // Canonical system change history
+const SYSTEM_UPDATES_DIR = path.join(MEMORY_DIR, "SYSTEMUPDATES");  // Canonical system change history
 
 // ============================================================================
 // Types
@@ -62,7 +62,7 @@ interface ParsedActivity {
 const PATTERNS = {
   // Skip patterns (check first)
   skip: [
-    /MEMORY\/PAISYSTEMUPDATES\//,    // Don't self-reference
+    /MEMORY\/SYSTEMUPDATES\//,    // Don't self-reference
     /MEMORY\//,                    // Memory outputs (all of MEMORY is capture, not source)
     /WORK\/.*\/scratch\//,         // Temporary work session files
     /history\.jsonl$/,             // History file
@@ -631,7 +631,7 @@ async function writeUpdateFile(activity: ParsedActivity): Promise<string> {
   const [year, month] = activity.date.split("-");
   const filename = `${activity.date}_${slug}.md`;
 
-  // Structure: MEMORY/PAISYSTEMUPDATES/YYYY/MM/YYYY-MM-DD_title.md
+  // Structure: MEMORY/SYSTEMUPDATES/YYYY/MM/YYYY-MM-DD_title.md
   const yearMonthDir = path.join(SYSTEM_UPDATES_DIR, year, month);
   const filepath = path.join(yearMonthDir, filename);
 

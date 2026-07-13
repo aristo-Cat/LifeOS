@@ -115,7 +115,7 @@ function StabilityScore({
         textAnchor="middle"
         dominantBaseline="central"
         fontSize={9}
-        fill="#71717a"
+        fill="var(--ink-3)"
       >
         Stability
       </text>
@@ -130,16 +130,16 @@ function BarFallback({ domains }: { domains: DomainCount[] }) {
     <div className="space-y-2">
       {domains.map((d) => (
         <div key={d.domain} className="flex items-center gap-2">
-          <span className="text-[14px] text-zinc-400 w-16 truncate text-right">
+          <span className="text-[14px] text-ink-2 w-16 truncate text-right">
             {d.domain}
           </span>
-          <div className="flex-1 h-4 bg-zinc-800 rounded overflow-hidden">
+          <div className="flex-1 h-4 bg-surface-2 rounded overflow-hidden">
             <div
               className="h-full bg-blue-500/40 rounded"
               style={{ width: `${(d.count / max) * 100}%` }}
             />
           </div>
-          <span className="text-[13px] text-zinc-500 font-mono w-6 text-right tabular-nums">
+          <span className="text-[13px] text-ink-3 font-mono w-6 text-right tabular-nums">
             {d.count}
           </span>
         </div>
@@ -175,9 +175,9 @@ export default function ConfigDriftRadar() {
 
   if (isLoading) {
     return (
-      <div className="rounded-lg border border-white/[0.06] bg-zinc-900 p-4">
+      <div className="rounded-lg border border-white/[0.06] bg-surface-1 p-4">
         <div className="flex items-center justify-center h-[320px]">
-          <div className="w-[280px] h-[280px] rounded-full border-2 border-zinc-800 animate-pulse" />
+          <div className="w-[280px] h-[280px] rounded-full border-2 border-line-2 animate-pulse" />
         </div>
       </div>
     );
@@ -185,20 +185,20 @@ export default function ConfigDriftRadar() {
 
   if (domains.length === 0) {
     return (
-      <div className="rounded-lg border border-white/[0.06] bg-zinc-900 p-4">
-        <h3 className="text-xs font-medium text-zinc-400 uppercase tracking-wider mb-3">
+      <div className="rounded-lg border border-white/[0.06] bg-surface-1 p-4">
+        <h3 className="text-xs font-medium text-ink-2 uppercase tracking-wider mb-3">
           Config Drift Radar
         </h3>
         <div className="flex items-center justify-center py-8">
-          <p className="text-xs text-zinc-600">No config changes recorded</p>
+          <p className="text-xs text-ink-3">No config changes recorded</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="rounded-lg border border-white/[0.06] bg-zinc-900 p-4">
-      <h3 className="text-xs font-medium text-zinc-400 uppercase tracking-wider mb-3">
+    <div className="rounded-lg border border-white/[0.06] bg-surface-1 p-4">
+      <h3 className="text-xs font-medium text-ink-2 uppercase tracking-wider mb-3">
         Config Drift Radar
       </h3>
 
@@ -218,7 +218,7 @@ export default function ConfigDriftRadar() {
                 key={`grid-${scale}`}
                 points={buildPolygonPoints(cx, cy, maxRadius * scale, sides)}
                 fill="none"
-                stroke="#3f3f46"
+                stroke="var(--line-1)"
                 strokeWidth={0.5}
               />
             ))}
@@ -234,7 +234,7 @@ export default function ConfigDriftRadar() {
                   y1={cy}
                   x2={x}
                   y2={y}
-                  stroke="#3f3f46"
+                  stroke="var(--line-1)"
                   strokeWidth={0.5}
                   opacity={0.5}
                 />
@@ -304,7 +304,7 @@ export default function ConfigDriftRadar() {
                     textAnchor="middle"
                     dominantBaseline="central"
                     fontSize={10}
-                    fill={isHovered ? "#d4d4d8" : "#a1a1aa"}
+                    fill={isHovered ? "#d4d4d8" : "var(--ink-2)"}
                     fontWeight={isHovered ? 500 : 400}
                   >
                     {d.domain}
@@ -317,7 +317,7 @@ export default function ConfigDriftRadar() {
                     textAnchor="middle"
                     dominantBaseline="central"
                     fontSize={9}
-                    fill="#71717a"
+                    fill="var(--ink-3)"
                     fontFamily="monospace"
                   >
                     {d.count}

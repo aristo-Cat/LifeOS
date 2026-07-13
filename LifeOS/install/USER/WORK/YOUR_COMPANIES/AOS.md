@@ -1,3 +1,7 @@
+---
+provenance: template
+---
+
 # Annual Operating System (AOS)
 
 > 🏢 SAMPLE TEMPLATE — Replace with your own business data via /interview or by editing this file.

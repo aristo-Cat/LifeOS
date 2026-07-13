@@ -26,39 +26,42 @@ export interface HookInput {
    * `true` when this Stop hook is firing as a follow-up to a previous
    * `{"decision":"block"}` response — the hook MUST short-circuit (continue:true)
    * to avoid deadlocking the session. See OutputFormatGate.hook.ts +
-   * SuccessClaimGate.hook.ts for canonical usage.
+   * VerificationGate.hook.ts for canonical usage.
    */
   stop_hook_active?: boolean;
 }
 
 /**
- * Read and parse JSON from stdin with a 500ms timeout.
+ * Read and parse JSON from stdin with a 2000ms timeout.
  * Returns null if stdin is empty or malformed.
  */
 export async function readHookInput(): Promise<HookInput | null> {
+  let reader: ReadableStreamDefaultReader<Uint8Array> | null = null;
   try {
     const decoder = new TextDecoder();
-    const reader = Bun.stdin.stream().getReader();
+    reader = Bun.stdin.stream().getReader();
     let input = '';
 
     const timeoutPromise = new Promise<void>((resolve) => {
-      setTimeout(() => resolve(), 500);
+      setTimeout(() => resolve(), 2000);
     });
 
     const readPromise = (async () => {
       while (true) {
-        const { done, value } = await reader.read();
+        const { done, value } = await reader!.read();
         if (done) break;
         input += decoder.decode(value, { stream: true });
       }
     })();
 
     await Promise.race([readPromise, timeoutPromise]);
+    reader.cancel().catch(() => {});
 
     if (input.trim()) {
       return JSON.parse(input) as HookInput;
     }
   } catch (error) {
+    if (reader) reader.cancel().catch(() => {});
     console.error('[hook-io] Error reading stdin:', error);
   }
   return null;

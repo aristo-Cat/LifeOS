@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 /**
+ * @version 1.2.5
  * SystemFileGuard.hook.ts — PreToolUse Write/Edit/MultiEdit gate.
  *
  * Blocks writes of user-identifying patterns (per skills/_LIFEOS/DENY_LIST.txt)
@@ -90,24 +91,20 @@ function denyMessage(relPath: string, pattern: string, match: string): string {
   ].join("\n");
 }
 
-function main(): never {
+/**
+ * Pure check for PreToolGuard dispatch. Returns a block decision or null (allow).
+ * FAIL-OPEN: any internal error → null (never block on a guard bug). Owns its own
+ * logging so the dispatcher stays logic-free.
+ */
+export function check(input: HookInput): { block: true; message: string } | null {
   try {
-    const input = readHookInput();
     const filePath = input?.tool_input?.file_path;
-    if (!filePath) {
-      // No path → harmless, allow.
-      process.exit(0);
-    }
+    if (!filePath) return null; // no path → harmless
 
     const newContent = extractNewContent(input.tool_input);
     const decision = evaluateWrite(filePath, newContent);
+    if (!decision.block) return null; // out-of-tree, USER zone, or clean SYSTEM write
 
-    if (!decision.block) {
-      // Allow: out-of-tree, USER zone, or clean SYSTEM write.
-      process.exit(0);
-    }
-
-    // Block: SYSTEM file write with a deny-list match.
     const hit = decision.hits[0]!;
     logEvent({
       action: "block",
@@ -120,13 +117,19 @@ function main(): never {
       match: hit.match,
       match_index: hit.index,
     });
-    process.stderr.write(denyMessage(decision.relPath, hit.pattern, hit.match));
-    process.exit(2);
+    return { block: true, message: denyMessage(decision.relPath, hit.pattern, hit.match) };
   } catch (err) {
     // Fail-safe-open. NEVER block on internal errors.
     logEvent({ action: "fail-safe-open", error: String(err) });
-    process.exit(0);
+    return null;
   }
 }
 
-main();
+if (import.meta.main) {
+  const result = check(readHookInput());
+  if (result?.block) {
+    process.stderr.write(result.message);
+    process.exit(2);
+  }
+  process.exit(0);
+}

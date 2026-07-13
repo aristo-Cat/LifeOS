@@ -1,6 +1,7 @@
 ---
 name: CreateCLI
-description: "Generate production-ready TypeScript CLIs via 3-tier template system: Tier 1 llcli-style manual arg parsing (zero deps, Bun + TS, 80% of cases), Tier 2 Commander.js (subcommands, nested options, 15%), Tier 3 oclif reference (enterprise, 5%). Every CLI ships full implementation, README + QUICKSTART, Bun package.json, strict tsconfig, JSON output, exit code compliance. Workflows: CreateCli, AddCommand, UpgradeTier. Gates: zero TS errors, exit codes 0/1, --help comprehensive, jq-pipeable JSON. USE WHEN create CLI, build CLI, command-line tool, wrap API, add command, upgrade tier, TypeScript CLI. NOT FOR LifeOS skill scaffolding (use CreateSkill)."
+version: 1.1.18
+description: "Generates production-ready TypeScript CLIs via a 3-tier template system (manual arg parsing, Commander.js, oclif), each shipping full implementation, docs, package.json, strict config, JSON output, and exit-code compliance. USE WHEN create CLI, build CLI, command-line tool, wrap API, add command, upgrade tier, TypeScript CLI. NOT FOR LifeOS skill scaffolding (use CreateSkill)."
 effort: medium
 ---
 

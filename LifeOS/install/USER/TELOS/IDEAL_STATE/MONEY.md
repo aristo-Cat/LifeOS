@@ -1,4 +1,5 @@
 ---
+provenance: template
 dimension: money
 kind: metric
 classification: private

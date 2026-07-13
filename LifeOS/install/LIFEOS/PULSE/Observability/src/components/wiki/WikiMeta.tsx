@@ -46,9 +46,9 @@ const CATEGORY_COLORS: Record<string, { text: string; bg: string; border: string
 };
 
 function qualityColor(q: number): string {
-  if (q >= 7) return "text-emerald-400";
-  if (q >= 4) return "text-amber-400";
-  return "text-red-400";
+  if (q >= 7) return "text-ok";
+  if (q >= 4) return "text-warn";
+  return "text-err";
 }
 
 function readingTime(words: number): string {
@@ -77,7 +77,7 @@ export default function WikiMeta({
   const colors = CATEGORY_COLORS[category] || CATEGORY_COLORS["system-doc"];
 
   return (
-    <aside className="w-56 shrink-0 border-l border-slate-800/50 bg-slate-950/30 overflow-y-auto h-[calc(100vh-3.5rem)] p-4 space-y-5">
+    <aside className="w-56 shrink-0 border-l border-line-1 bg-surface-1 overflow-y-auto h-[calc(100vh-3.5rem)] p-4 space-y-5">
       {/* Category badge */}
       <div>
         <span
@@ -92,11 +92,11 @@ export default function WikiMeta({
       {/* Author */}
       {author && (
         <div>
-          <div className="text-[13px] text-slate-600 uppercase tracking-wider mb-1.5" style={{ fontFamily: "'advocate-c14', sans-serif" }}>
+          <div className="text-[13px] text-ink-3 uppercase tracking-wider mb-1.5" style={{ fontFamily: "'advocate-c14', sans-serif" }}>
             Author
           </div>
-          <div className="flex items-center gap-2 text-sm text-slate-200" style={{ fontFamily: "'concourse-t3', sans-serif" }}>
-            <User className="w-3.5 h-3.5 shrink-0 text-slate-500" />
+          <div className="flex items-center gap-2 text-sm text-ink-1" style={{ fontFamily: "'concourse-t3', sans-serif" }}>
+            <User className="w-3.5 h-3.5 shrink-0 text-ink-3" />
             <span>{author}</span>
           </div>
         </div>
@@ -105,12 +105,12 @@ export default function WikiMeta({
       {/* Source */}
       {(source || sourceUrl) && (
         <div>
-          <div className="text-[13px] text-slate-600 uppercase tracking-wider mb-1.5" style={{ fontFamily: "'advocate-c14', sans-serif" }}>
+          <div className="text-[13px] text-ink-3 uppercase tracking-wider mb-1.5" style={{ fontFamily: "'advocate-c14', sans-serif" }}>
             Source
           </div>
           {source && (
-            <div className="flex items-center gap-2 text-sm text-slate-200 mb-1" style={{ fontFamily: "'concourse-t3', sans-serif" }}>
-              <BookOpen className="w-3.5 h-3.5 shrink-0 text-slate-500" />
+            <div className="flex items-center gap-2 text-sm text-ink-1 mb-1" style={{ fontFamily: "'concourse-t3', sans-serif" }}>
+              <BookOpen className="w-3.5 h-3.5 shrink-0 text-ink-3" />
               <span>{source}</span>
             </div>
           )}
@@ -132,10 +132,10 @@ export default function WikiMeta({
       {/* Post date (original publication) */}
       {postDate && (
         <div>
-          <div className="text-[13px] text-slate-600 uppercase tracking-wider mb-1.5" style={{ fontFamily: "'advocate-c14', sans-serif" }}>
+          <div className="text-[13px] text-ink-3 uppercase tracking-wider mb-1.5" style={{ fontFamily: "'advocate-c14', sans-serif" }}>
             Published
           </div>
-          <div className="flex items-center gap-2 text-xs text-slate-400" style={{ fontFamily: "'concourse-t3', sans-serif" }}>
+          <div className="flex items-center gap-2 text-xs text-ink-2" style={{ fontFamily: "'concourse-t3', sans-serif" }}>
             <Calendar className="w-3 h-3" />
             <span>
               {(() => {
@@ -158,7 +158,7 @@ export default function WikiMeta({
       {/* Quality (knowledge notes only) */}
       {quality !== undefined && (
         <div>
-          <div className="text-[13px] text-slate-600 uppercase tracking-wider mb-1.5" style={{ fontFamily: "'advocate-c14', sans-serif" }}>
+          <div className="text-[13px] text-ink-3 uppercase tracking-wider mb-1.5" style={{ fontFamily: "'advocate-c14', sans-serif" }}>
             Quality
           </div>
           <div className="flex items-center gap-2">
@@ -173,14 +173,14 @@ export default function WikiMeta({
       {/* Word count & reading time */}
       {wordCount !== undefined && (
         <div>
-          <div className="text-[13px] text-slate-600 uppercase tracking-wider mb-1.5" style={{ fontFamily: "'advocate-c14', sans-serif" }}>
+          <div className="text-[13px] text-ink-3 uppercase tracking-wider mb-1.5" style={{ fontFamily: "'advocate-c14', sans-serif" }}>
             Length
           </div>
-          <div className="flex items-center gap-2 text-xs text-slate-400" style={{ fontFamily: "'concourse-t3', sans-serif" }}>
+          <div className="flex items-center gap-2 text-xs text-ink-2" style={{ fontFamily: "'concourse-t3', sans-serif" }}>
             <FileText className="w-3 h-3" />
             <span>{wordCount.toLocaleString()} words</span>
           </div>
-          <div className="flex items-center gap-2 text-xs text-slate-500 mt-1" style={{ fontFamily: "'concourse-t3', sans-serif" }}>
+          <div className="flex items-center gap-2 text-xs text-ink-3 mt-1" style={{ fontFamily: "'concourse-t3', sans-serif" }}>
             <Clock className="w-3 h-3" />
             <span>{readingTime(wordCount)}</span>
           </div>
@@ -190,10 +190,10 @@ export default function WikiMeta({
       {/* Last modified */}
       {lastModified && (
         <div>
-          <div className="text-[13px] text-slate-600 uppercase tracking-wider mb-1.5" style={{ fontFamily: "'advocate-c14', sans-serif" }}>
+          <div className="text-[13px] text-ink-3 uppercase tracking-wider mb-1.5" style={{ fontFamily: "'advocate-c14', sans-serif" }}>
             Updated
           </div>
-          <div className="text-xs text-slate-400" style={{ fontFamily: "'concourse-t3', sans-serif" }}>
+          <div className="text-xs text-ink-2" style={{ fontFamily: "'concourse-t3', sans-serif" }}>
             {new Date(lastModified).toLocaleDateString("en-US", {
               year: "numeric",
               month: "short",
@@ -206,14 +206,14 @@ export default function WikiMeta({
       {/* Tags */}
       {tags && tags.length > 0 && (
         <div>
-          <div className="text-[13px] text-slate-600 uppercase tracking-wider mb-1.5" style={{ fontFamily: "'advocate-c14', sans-serif" }}>
+          <div className="text-[13px] text-ink-3 uppercase tracking-wider mb-1.5" style={{ fontFamily: "'advocate-c14', sans-serif" }}>
             Tags
           </div>
           <div className="flex flex-wrap gap-1">
             {tags.map((tag) => (
               <span
                 key={tag}
-                className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[13px] rounded bg-slate-800 text-slate-400 border border-slate-700/50"
+                className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[13px] rounded bg-surface-3 text-ink-2 border border-line-2"
                 style={{ fontFamily: "'concourse-t3', sans-serif" }}
               >
                 <Tag className="w-2.5 h-2.5" />
@@ -227,7 +227,7 @@ export default function WikiMeta({
       {/* Related (frontmatter cross-links) */}
       {related && related.length > 0 && (
         <div>
-          <div className="text-[13px] text-slate-600 uppercase tracking-wider mb-1.5" style={{ fontFamily: "'advocate-c14', sans-serif" }}>
+          <div className="text-[13px] text-ink-3 uppercase tracking-wider mb-1.5" style={{ fontFamily: "'advocate-c14', sans-serif" }}>
             Related ({related.length})
           </div>
           <div className="space-y-1">
@@ -251,7 +251,7 @@ export default function WikiMeta({
       {/* Backlinks */}
       {backlinks && backlinks.length > 0 && (
         <div>
-          <div className="text-[13px] text-slate-600 uppercase tracking-wider mb-1.5" style={{ fontFamily: "'advocate-c14', sans-serif" }}>
+          <div className="text-[13px] text-ink-3 uppercase tracking-wider mb-1.5" style={{ fontFamily: "'advocate-c14', sans-serif" }}>
             <ArrowLeft className="w-3 h-3 inline mr-1" />
             Linked from ({backlinks.length})
           </div>
@@ -278,7 +278,7 @@ export default function WikiMeta({
         <div>
           <button
             onClick={() => navigator.clipboard.writeText(filePath)}
-            className="flex items-center gap-1.5 text-[13px] text-slate-600 hover:text-slate-400 transition-colors"
+            className="flex items-center gap-1.5 text-[13px] text-ink-3 hover:text-ink-2 transition-colors"
             style={{ fontFamily: "'concourse-t3', sans-serif" }}
             title="Copy file path"
           >

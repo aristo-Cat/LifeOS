@@ -30,8 +30,7 @@ curl -s -X POST http://localhost:31337/notify \
 2. **Spawn one Thief agent per domain in parallel** via Task tool. Each receives:
    - Problem statement
    - Its assigned foreign domain
-   - Trait composition: `resourceful + cross-domain + opportunistic`
-   - Instruction: *"In your assigned domain, find 2-3 patterns/solutions/approaches that solve problems analogous to ours. For each, write the mapping: 'In [foreign domain], they solve [analogous problem] by [technique]. Applied to our problem: [mapping].'"*
+   - Deliverable: 2-3 patterns from the domain that solve analogous problems, each written as the mapping `In [foreign domain], they solve [analogous problem] by [technique]. Applied to our problem: [mapping].`
    - Each agent invokes `Skill("Research")` to gather domain-specific material
 
 3. **Aggregate the borrowed patterns** into a single output. Each pattern includes:

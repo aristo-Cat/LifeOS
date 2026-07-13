@@ -1,3 +1,7 @@
+---
+provenance: template
+---
+
 # DA Opinions — Working with User
 
 > Bootstrap default. The DA accumulates opinions here as it learns how

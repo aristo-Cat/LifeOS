@@ -1,4 +1,11 @@
 #!/usr/bin/env bun
+// Normalize env path vars Claude Code may inject unexpanded — literal $HOME/${HOME}
+// in LIFEOS_DIR/LIFEOS_CONFIG_DIR/PROJECTS_DIR resolves to a shadow dir (#1404 / PR #1451, author jbmml).
+for (const __k of ["LIFEOS_DIR", "LIFEOS_CONFIG_DIR", "PROJECTS_DIR"]) {
+  const __v = process.env[__k];
+  if (__v && /^\$\{?HOME\}?(\/|$)/.test(__v)) process.env[__k] = __v.replace(/^\$\{?HOME\}?/, process.env.HOME ?? "~");
+}
+
 /**
  * Grok.ts - xAI Grok search client (Agent Tools API)
  *
@@ -18,13 +25,13 @@
  *   bun ~/.claude/LIFEOS/TOOLS/Grok.ts --x-only "<query>"         # X only
  *   bun ~/.claude/LIFEOS/TOOLS/Grok.ts --code "<query>"           # + code execution
  *   bun ~/.claude/LIFEOS/TOOLS/Grok.ts --json "<query>"
- *   bun ~/.claude/LIFEOS/TOOLS/Grok.ts --model grok-4.3 "<query>"
+ *   bun ~/.claude/LIFEOS/TOOLS/Grok.ts --model grok-4.5 "<query>"
  *
  * Options:
  *   --web-only        Only search the web, no X
  *   --x-only          Only search X (Twitter), no web
  *   --code            Also enable code_execution (compute/analyze mid-search)
- *   --model <id>      Model id (default: grok-4.3)
+ *   --model <id>      Model id (default: grok-4.5)
  *   --max-tokens <n>  Cap output tokens (default: model default)
  *   --json            Emit raw {content, citations, usage} JSON
  *
@@ -40,6 +47,13 @@
 import { readFileSync } from 'fs'
 import { homedir } from 'os'
 import { join } from 'path'
+
+// Normalize env path vars that Claude Code injects without shell expansion (LifeOS#1404)
+for (const k of ["LIFEOS_DIR", "LIFEOS_CONFIG_DIR", "PROJECTS_DIR"]) {
+  const v = process.env[k];
+  if (v && /^\$\{?HOME\}?(\/|$)/.test(v)) process.env[k] = v.replace(/^\$\{?HOME\}?/, process.env.HOME ?? "~");
+}
+
 
 const colors = {
   reset: '\x1b[0m', bold: '\x1b[1m', dim: '\x1b[2m',
@@ -71,7 +85,7 @@ const API_URL = 'https://api.x.ai/v1/responses'
 interface Parsed { content: string; citations: string[]; usage: any }
 
 function parseArgs(argv: string[]) {
-  const opts = { model: 'grok-4.3', xOnly: false, webOnly: false, code: false, json: false, maxTokens: 0 }
+  const opts = { model: 'grok-4.5', xOnly: false, webOnly: false, code: false, json: false, maxTokens: 0 }
   const rest: string[] = []
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]

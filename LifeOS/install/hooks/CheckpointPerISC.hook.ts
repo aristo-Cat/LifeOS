@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 /**
+ * @version 1.1.1
  * CheckpointPerISC.hook.ts — auto git commit on every ISC `[ ]`->`[x]` transition
  *
  * TRIGGER: PostToolUse (Write, Edit) on ISA.md (or legacy PRD.md) under

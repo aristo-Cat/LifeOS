@@ -30,7 +30,7 @@ export default function EmptyStateGuide({
   const defaultDaPrompt = daPromptExample ?? `help me set up my ${section.toLowerCase()}`;
 
   return (
-    <div className="rounded-xl border border-blue-900/40 bg-gradient-to-br from-blue-950/30 to-slate-950/50 p-6">
+    <div className="rounded-xl border border-blue-900/40 bg-gradient-to-br from-blue-950/30 to-[rgba(6,11,26,0.5)] p-6">
       <div className="flex items-start gap-3 mb-4">
         <div className="rounded-lg bg-blue-500/10 p-2 mt-0.5">
           <Sparkles className="w-5 h-5 text-blue-400" />
@@ -39,7 +39,7 @@ export default function EmptyStateGuide({
           <h3 className="text-base font-semibold text-blue-50">
             {section} is empty — let's fill it in
           </h3>
-          <p className="text-sm text-slate-400 mt-1">{description}</p>
+          <p className="text-sm text-ink-2 mt-1">{description}</p>
         </div>
       </div>
 
@@ -48,11 +48,11 @@ export default function EmptyStateGuide({
           <div className="flex items-start gap-2.5 text-sm">
             <MessageSquare className="w-4 h-4 text-blue-400 mt-0.5 shrink-0" />
             <div>
-              <span className="text-slate-200">Run </span>
-              <code className="px-1.5 py-0.5 rounded bg-slate-800 text-blue-300 text-xs font-mono">
+              <span className="text-ink-1">Run </span>
+              <code className="px-1.5 py-0.5 rounded bg-surface-3 text-blue-300 text-xs font-mono">
                 {interviewCommand}
               </code>
-              <span className="text-slate-400">
+              <span className="text-ink-2">
                 {" "}— your DA walks you through the questions and writes the answers to disk.
               </span>
             </div>
@@ -62,35 +62,35 @@ export default function EmptyStateGuide({
         <div className="flex items-start gap-2.5 text-sm">
           <FolderOpen className="w-4 h-4 text-blue-400 mt-0.5 shrink-0" />
           <div>
-            <span className="text-slate-200">Edit files at </span>
-            <code className="px-1.5 py-0.5 rounded bg-slate-800 text-blue-300 text-xs font-mono">
+            <span className="text-ink-1">Edit files at </span>
+            <code className="px-1.5 py-0.5 rounded bg-surface-3 text-blue-300 text-xs font-mono">
               {userPath}
             </code>
-            <span className="text-slate-400">
+            <span className="text-ink-2">
               {" "}— or import existing data (Obsidian, Notion, journals) with the{" "}
             </span>
-            <code className="px-1.5 py-0.5 rounded bg-slate-800 text-blue-300 text-xs font-mono">
+            <code className="px-1.5 py-0.5 rounded bg-surface-3 text-blue-300 text-xs font-mono">
               Migrate
             </code>
-            <span className="text-slate-400"> skill.</span>
+            <span className="text-ink-2"> skill.</span>
           </div>
         </div>
 
         <div className="flex items-start gap-2.5 text-sm">
           <BookOpen className="w-4 h-4 text-blue-400 mt-0.5 shrink-0" />
           <div>
-            <span className="text-slate-200">Read </span>
-            <code className="px-1.5 py-0.5 rounded bg-slate-800 text-blue-300 text-xs font-mono">
+            <span className="text-ink-1">Read </span>
+            <code className="px-1.5 py-0.5 rounded bg-surface-3 text-blue-300 text-xs font-mono">
               {readmePath}
             </code>
-            <span className="text-slate-400"> for the full layout and customization guide.</span>
+            <span className="text-ink-2"> for the full layout and customization guide.</span>
           </div>
         </div>
 
         <div className="flex items-start gap-2.5 text-sm pt-1">
           <Sparkles className="w-4 h-4 text-blue-400 mt-0.5 shrink-0" />
           <div>
-            <span className="text-slate-200">Or just ask your DA: </span>
+            <span className="text-ink-1">Or just ask your DA: </span>
             <span className="text-blue-300 italic">"{defaultDaPrompt}"</span>
           </div>
         </div>

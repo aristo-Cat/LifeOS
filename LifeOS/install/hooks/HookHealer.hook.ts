@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 /**
+ * @version 1.0.2
  * HookHealer.hook.ts - Self-healing for the registered-script exec-bit class
  *
  * PURPOSE:

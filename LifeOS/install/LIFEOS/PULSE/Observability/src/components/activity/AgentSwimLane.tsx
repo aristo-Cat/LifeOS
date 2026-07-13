@@ -202,26 +202,26 @@ export default function AgentSwimLane({ agentName, events, timeRange, onClose }:
 
           {/* Model badge */}
           {modelName && (
-            <div className="flex items-center gap-1.5 px-2 py-1.5 bg-[rgb(20,25,40)] rounded-lg border border-[#414868] min-h-[28px]">
+            <div className="flex items-center gap-1.5 px-2 py-1.5 bg-surface-1 rounded-lg border border-[var(--line-2)] min-h-[28px]">
               <Brain size={14} strokeWidth={2.5} />
               <span className="text-xs font-bold">{formatModelName(modelName)}</span>
             </div>
           )}
 
           {/* Event count */}
-          <div className="flex items-center gap-1.5 px-2 py-1.5 bg-[rgb(20,25,40)] rounded-lg border border-[#414868] min-h-[28px]">
+          <div className="flex items-center gap-1.5 px-2 py-1.5 bg-surface-1 rounded-lg border border-[var(--line-2)] min-h-[28px]">
             <Zap size={14} strokeWidth={2.5} className="shrink-0" />
             <span className="text-xs font-bold">{totalEventCount}</span>
           </div>
 
           {/* Tool call count */}
-          <div className="flex items-center gap-1.5 px-2 py-1.5 bg-[rgb(20,25,40)] rounded-lg border border-[#414868] min-h-[28px]">
+          <div className="flex items-center gap-1.5 px-2 py-1.5 bg-surface-1 rounded-lg border border-[var(--line-2)] min-h-[28px]">
             <Wrench size={14} strokeWidth={2.5} className="shrink-0" />
             <span className="text-xs font-bold">{toolCallCount}</span>
           </div>
 
           {/* Avg gap */}
-          <div className="flex items-center gap-1.5 px-2 py-1.5 bg-[rgb(20,25,40)] rounded-lg border border-[#414868] min-h-[28px]">
+          <div className="flex items-center gap-1.5 px-2 py-1.5 bg-surface-1 rounded-lg border border-[var(--line-2)] min-h-[28px]">
             <Clock size={16} strokeWidth={2.5} className="shrink-0" />
             <span className="text-sm font-bold">{formatGap(avgGap)}</span>
           </div>
@@ -229,7 +229,7 @@ export default function AgentSwimLane({ agentName, events, timeRange, onClose }:
 
         <button
           onClick={onClose}
-          className="text-[#565f89] hover:text-white transition-colors p-0.5 rounded hover:bg-white/[0.05]"
+          className="text-[var(--ink-3)] hover:text-white transition-colors p-0.5 rounded hover:bg-white/[0.05]"
           title="Remove this swim lane"
         >
           <X size={16} strokeWidth={2.5} />
@@ -237,11 +237,11 @@ export default function AgentSwimLane({ agentName, events, timeRange, onClose }:
       </div>
 
       {/* Chart */}
-      <div ref={containerRef} className="relative w-full border border-[#414868] rounded-md overflow-hidden bg-[rgb(20,25,40)]">
+      <div ref={containerRef} className="relative w-full border border-[var(--line-2)] rounded-md overflow-hidden bg-surface-1">
         <canvas ref={canvasRef} className="w-full cursor-crosshair" style={{ height: chartHeight + "px" }} />
         {!hasData && (
           <div className="absolute inset-0 flex items-center justify-center">
-            <p className="flex items-center gap-2 text-[#565f89] text-sm font-semibold">
+            <p className="flex items-center gap-2 text-[var(--ink-3)] text-sm font-semibold">
               <Loader2 size={16} strokeWidth={2.5} className="animate-spin" />
               Waiting for events...
             </p>

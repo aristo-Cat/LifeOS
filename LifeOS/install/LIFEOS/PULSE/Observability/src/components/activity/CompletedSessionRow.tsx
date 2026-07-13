@@ -37,12 +37,12 @@ export default function CompletedSessionRow({ session }: CompletedSessionRowProp
 
       <ModeBadge mode={mode as "minimal" | "native" | "algorithm"} size="micro" />
 
-      <span className="text-sm text-zinc-400 truncate flex-1 min-w-0 uppercase tracking-wide">
+      <span className="text-sm text-ink-2 truncate flex-1 min-w-0 uppercase tracking-wide">
         {sessionName}
       </span>
 
       {totalCount > 0 && (
-        <span className="text-xs font-mono text-zinc-500 shrink-0">
+        <span className="text-xs font-mono text-ink-3 shrink-0">
           {completedCount}/{totalCount}
         </span>
       )}
@@ -54,12 +54,12 @@ export default function CompletedSessionRow({ session }: CompletedSessionRowProp
       />
 
       {(session.summary || session.rawTask) && (
-        <span className="text-xs text-zinc-600 truncate max-w-48">
+        <span className="text-xs text-ink-3 truncate max-w-48">
           {session.summary || session.rawTask}
         </span>
       )}
 
-      <span className="text-xs text-zinc-600 font-mono shrink-0">
+      <span className="text-xs text-ink-3 font-mono shrink-0">
         {completedAt ? formatRelative(completedAt) : ""}
       </span>
     </div>

@@ -1,6 +1,7 @@
 ---
 name: CreateSkill
-description: "MANDATORY for ALL skill work — you MUST invoke this skill BEFORE creating, modifying, adding a workflow/tool to, renaming, validating, or canonicalizing ANY skill. Handrolling skill files (writing SKILL.md or Workflows/Tools/References by hand) is FORBIDDEN per skills/CLAUDE.md — ALWAYS spawn this first and let it orchestrate; reading its workflows and doing the steps yourself is the exact anti-pattern it prevents. Owns the LifeOS skill lifecycle: scaffold (public TitleCase vs private _ALLCAPS, flat 2-level, mandatory Gotchas + Examples, BPE check), validate, canonicalize, test, improve, optimize descriptions. USE WHEN create skill, new skill, make a skill, build a skill, set up a skill, private skill, make a X skill, add a workflow, add a tool, edit/change/update/rename a skill, skill frontmatter, validate skill, check skill, canonicalize, scaffold skill, test skill, improve skill, optimize description, skill not triggering, overtriggering. NOT FOR TypeScript CLI generation (use CreateCLI)."
+version: 1.1.23
+description: "Mandatory orchestrator for all LifeOS skill work — creating, editing, adding a workflow or tool, renaming, validating, or canonicalizing any skill. Handrolling skill files is forbidden; owns the full lifecycle: scaffold, validate, canonicalize, test, improve. USE WHEN create skill, new skill, make a skill, build a skill, set up a skill, private skill, make a X skill, add a workflow, add a tool, edit/change/update/rename a skill, skill frontmatter, validate skill, check skill, canonicalize, scaffold skill, test skill, improve skill, optimize description, skill not triggering, overtriggering. NOT FOR TypeScript CLI generation (use CreateCLI)."
 effort: medium
 ---
 
@@ -382,6 +383,10 @@ Populate with:
 
 **Gotchas accumulate over time.** After every skill failure, add the lesson.
 
+### Ideal-State Prompting (WHAT, not HOW) — MANDATORY authoring style
+
+**Write every new skill body and workflow ideal-state style: articulate WHAT a done deliverable looks like (as testable outcomes), the CONSTRAINTS, and the TOOLS — then trust the model to find HOW.** Numbered step-lists that choreograph the model's reasoning for open-ended cognitive work are BPE-violating scaffolding: they cap a capable model and rot as models improve. Four keep-classes ARE legitimate HOW and belong in skills: **safety-gate**, **verified-gotcha** (this is what `## Gotchas` is for), **tool-contract** (exact invocation recipes in Workflows), **output-format-contract**. Deterministic Tools (`*.ts`) are exempt. When writing or improving a skill, cut methodology narration and keep only the ideal state, the constraints, the tools, and the four keep-classes. Full standard: `LIFEOS/DOCUMENTATION/Skills/SkillSystem.md` § Authoring Standard.
+
 ### BPE (Bitter-Pilled Engineering) Check
 
 Before finalizing any skill, ask: **"Would a smarter model make this skill unnecessary?"**
@@ -417,6 +422,22 @@ Skills can include hooks that activate only when invoked, remaining effective fo
 - `/audit` — Log all tool calls for session review
 
 *All guidance above derived from Thariq Shihipar's "Lessons from Building Claude Code" (Mar 2026), Anthropic's official skill guide, and platform documentation.*
+
+## Versioning
+
+Every skill carries its own `version:` semver in SKILL.md frontmatter (`MAJOR.MINOR.PATCH`), independent of the OS version and of other skills. A new skill scaffolds at `version: 1.0.0`. A skill change is ALSO an OS change — `skills/` is part of the core-file surface the LifeOS version system watches — so editing a skill moves both the skill's own version AND (rolled up) the canonical `LIFEOS/VERSION`. The two lines are separate: the skill's `version:` is its own lineage; `LIFEOS/VERSION` is the umbrella. CreateSkill never edits `LIFEOS/VERSION` itself.
+
+Classify the change so the bump level is right (the SAME rubric applies to the per-skill bump and the roll-up):
+
+- **patch** — gotcha added, typo, description tweak, doc sync. No new capability.
+- **feature** — a new workflow or a new tool (a brand-new skill starts at 1.0.0, not a feature bump on itself). Additive, non-breaking.
+- **major** — renaming or removing the skill, or breaking its public contract or routing behavior. Human gate: stop and confirm before any major bump; never decide major on your own.
+
+**When the per-skill bump fires:** at private-sync time, not at edit time. The `<your-release-skill>` `UpdateKaiRepo` ship flow runs `BumpSkillVersions.ts` — for every `skills/<name>/` that changed since the last OS tag it scopes `ClassifyChange --path skills/<name>` and bumps that skill's `version:` (major held for confirm), recording each in the SYSTEMUPDATES registry. This catches workflow-body edits that never route through CreateSkill. You do NOT hand-bump `version:` here; the ship flow owns it. A skill edit is a **private-sync** change — never a release **cut** (staging only) or **publish** (public repo). Keep those three operations distinct.
+
+Public skills do not carry a separate version line — the release/emit carries each skill's private `version:` forward unchanged.
+
+(Concrete commands/paths for this install layer in via the Customization block above, if present.)
 
 ## Examples
 

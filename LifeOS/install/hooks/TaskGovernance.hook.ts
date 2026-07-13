@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 /**
+ * @version 1.2.2
  * TaskGovernance.hook.ts - Subagent Task Creation Governance (TaskCreated)
  *
  * PURPOSE:

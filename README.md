@@ -1,6 +1,6 @@
 <p align="center">
   <br />
-  <img src="./lifeos-logo-full.png" alt="LifeOS" width="460">
+  <img src="./images/lifeos-logo-full.png" alt="LifeOS" width="460">
   <br />
 </p>
 
@@ -24,8 +24,8 @@
 
 <!-- Content -->
 [![Get Started](https://img.shields.io/badge/🚀_Get_Started-Install-22C55E?style=flat)](#install)
-[![Release](https://img.shields.io/badge/Release-v6.0.5-8B5CF6?style=flat)](Releases/v6.0.5/)
-[![Algorithm](https://img.shields.io/badge/Algorithm-v6.24.0-D97706?style=flat)](Releases/v6.0.5/README.md)
+[![Release](https://img.shields.io/badge/Release-v7.1.1-8B5CF6?style=flat)](https://github.com/danielmiessler/LifeOS/releases)
+[![Algorithm](https://img.shields.io/badge/Algorithm-v8.4.0-D97706?style=flat)](https://github.com/danielmiessler/LifeOS/releases)
 [![Pulse](https://img.shields.io/badge/Pulse-included-3B82F6?style=flat)](https://ourlifeos.ai)
 [![Contributors](https://img.shields.io/github/contributors/danielmiessler/LifeOS?style=flat&logo=githubsponsors&logoColor=white&label=Contributors&color=EC4899)](https://github.com/danielmiessler/LifeOS/graphs/contributors)
 
@@ -35,13 +35,29 @@
 [![Bun](https://img.shields.io/badge/Bun-000000?style=flat&logo=bun&logoColor=white)](https://bun.sh)
 [![Community](https://img.shields.io/badge/Community-5865F2?style=flat&logo=discord&logoColor=white)](https://discord.gg/danielmiessler)
 
-**[Visit the Website](https://ourlifeos.ai)** · **[Watch the walkthrough](https://youtu.be/Le0DLrn7ta0)**  ·  **[Releases](Releases/)**  ·  **[Docs](https://docs.ourlifeos.ai)**
+**[Visit the Website](https://ourlifeos.ai)** · **[Watch the walkthrough](https://youtu.be/Le0DLrn7ta0)**  ·  **[Releases](https://github.com/danielmiessler/LifeOS/releases)**  ·  **[Docs](https://docs.ourlifeos.ai)**
 
 </div>
 
 ---
 
-LifeOS is a Life Operating System. It captures who you are, what you care about, and where you're trying to go, then uses AI that knows you to help you get there. Everything runs on one loop: move from your current state to your ideal state through steps you can verify.
+https://github.com/user-attachments/assets/31668ca9-25bf-4823-a7d2-85df9140ecf6
+
+**LifeOS** is a General Purpose AI Harness for doing anything you want to do in life and work with AI. It captures who you are, what you care about, and where you're trying to go, then uses AI that knows you to help you get there. 
+
+And because it has your full context, it makes everything you do more efficient and effective, from building apps, to starting a business, to creative projects…_basically anything_.
+
+The whole system works on one central concept: moving from your Current State to your Ideal State in pursuit of Euphoric Surprise.
+
+<div align="center">
+
+### ⭐ If LifeOS is useful to you, star the repo
+
+Stars help more people find the project and keep it moving. It takes one click.
+
+[![Star LifeOS on GitHub](https://img.shields.io/github/stars/danielmiessler/LifeOS?style=for-the-badge&logo=github&logoColor=white&label=Star%20LifeOS&color=8B5CF6)](https://github.com/danielmiessler/LifeOS)
+
+</div>
 
 ## Install
 
@@ -65,7 +81,7 @@ Either path needs a capable AI coding harness — we build and run on [Claude Co
 
 **The unique features** — the parts you won't find anywhere else, plus the subsystems underneath. See them live and click through on **[ourlifeos.ai](https://ourlifeos.ai)**.
 
-[![LifeOS core components — Current→Ideal State, General Hill Climbing, TELOS, the Algorithm, the ISA, the Skill System, the Hook System, the Router System, Pulse, custom spinner verbs and tooltips, plus the supporting subsystems: Memory, Agents, Voice, Learning, Security. Click to explore them live on ourlifeos.ai.](images/lifeos-core-components.png)](https://ourlifeos.ai)
+<a href="https://ourlifeos.ai"><img src="images/lifeos-core-components.png" width="100%" alt="LifeOS core components — Current→Ideal State, General Hill Climbing, Euphoric Surprise, TELOS, the Algorithm, the ISA, the Skill System, the Hook System, Pulse, custom spinner verbs and tooltips, plus the supporting subsystems: Memory, Agents, Voice, Learning, Security. Click to explore them live on ourlifeos.ai." /></a>
 
 ---
 
@@ -207,23 +223,32 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 <br/>
 
-**v6.0.5 (2026-07-04) — Rename in the Code, New Harvest Skill**
-- **PAI→LifeOS rename reaches the code** — code identifiers and doc prose now read LifeOS throughout; runtime-critical paths and regexes were left byte-identical on purpose, so the prose is clean and nothing breaks.
-- **New Harvest skill** — mine any URL, video, or article for what's genuinely useful to your LifeOS, ranked and mapped against your whole system. Report-only; adoption is a separate step.
-- **Algorithm v6.24.0** — motion verification: an ISC about animation, transition, or a multi-step flow closes on a frame-scrub gallery, never a single screenshot.
-- **Installer fix** — the bootstrap `install.sh` now fetches the version it advertises.
-- [Full release notes](Releases/v6.0.5/README.md)
+**v7.1.1 — Install Awareness**
+- **Doctor** — `bun LIFEOS/TOOLS/Doctor.ts` reports the real state of every optional capability (live, broken, declined, stale) and reconciles hooks on disk against what's registered.
+- **Capability-aware install** — the installer asks now/later/never per optional capability and records the choice; failure-aware nudges surface the exact fix command when a broken capability trips.
+- **System Health in Pulse** — capability states, fix commands, and heartbeats on the hooks page.
+- **Algorithm v8.4.0** — plain-language depth steering registers before a run opens; nudges bounded to a single line.
+- **Community fixes** — #1450, #1456, #1463, #1470, #1471. Thanks to the contributors.
+- [Full release notes](https://github.com/danielmiessler/LifeOS/releases)
+
+**v7.0.0 — The Bitter Pill Release**
+- **Bitter Pill Engineering** — scaffolding cut across the whole system on one test: would a smarter model make this rule unnecessary? Reasoning choreography, self-scores, and duplicated routing are gone; the verification kernel stays.
+- **Context roughly two-thirds smaller** — the always-loaded doctrine plus its old capabilities file went from ~88KB to ~28KB, so every turn is faster and sharper.
+- **Modes and tiers retired** — one adaptive response format and one Algorithm loop that scales spend to what the work reveals, discovered not predicted.
+- **The Algorithm v8.3.0** — the ISA is both the hill and the instrument; claims close only on tool evidence, and a single deterministic AlgorithmNudge layer keeps a run on track.
+- **Hook layer consolidated** — ~16 hooks folded into per-event dispatchers, plus community fixes for a work-events race, DA-name de-hardcoding, and config-driven identity.
+- [Full release notes](https://github.com/danielmiessler/LifeOS/releases)
 
 **v6.0.3 (2026-07-04) — Comprehensive AI-native install**
 - Comprehensive component menu — INSTALL.md lays out the full two-tier model: Core plus à-la-carte enhancements (hooks, statusline, tooltips, spinner verbs, agents, Pulse, background jobs)
 - The `lifeos` launch alias wires `--append-system-prompt-file` so the constitutional layer actually loads
 - One canonical INSTALL.md rendered at ourlifeos.ai/install for humans and AIs
-- [Full release notes](Releases/v6.0.3/README.md)
+- [Full release notes](https://github.com/danielmiessler/LifeOS/releases)
 
 **v6.0.2 (2026-07-03) — .md-first AI-native install**
 - Skill-only distribution with an AI-native, `.md`-first install
 - The shipped install.sh pins v6.0.2 and points at danielmiessler/LifeOS
-- [Full release notes](Releases/v6.0.2/README.md)
+- [Full release notes](https://github.com/danielmiessler/LifeOS/releases)
 
 **v6.0.0 (2026-07-02) — One Skill, One Install**
 - **Skill-based distribution** — the whole system now ships as a single self-contained skill (`LifeOS/`): the orchestrator (SKILL.md + Workflows + Tools) plus a complete install payload (system prompt, Algorithm, 49 skills, hooks, agents, Pulse, statusline, USER + MEMORY scaffolds). One directory, one install.
@@ -232,7 +257,7 @@ MIT License - see [LICENSE](LICENSE) for details.
 - **Full Pulse on first boot** — the installer stands up the Life Dashboard and menu-bar app, ships generic TELOS templates so the dashboard renders on a fresh install, and runs the setup interview to seed it.
 - **Algorithm v6.23.0** — Current State → Ideal State across seven phases, classifier-driven mode + tier, cross-vendor verification at E4/E5.
 - **Clean by construction** — nothing personal ships; the USER tree is a blank template you populate. Release gates + a cross-vendor audit run before every publish.
-- [Full release notes](Releases/v6.0.0/README.md)
+- [Full release notes](https://github.com/danielmiessler/LifeOS/releases)
 
 **v5.0.0 (2026-04-30) — Life Operating System**
 - **Pulse** — unified daemon (port 31337): voice, hooks, observability, cron, Life Dashboard, wiki API, optional Telegram/iMessage bridges. Replaces every previous loose service.
@@ -241,23 +266,23 @@ MIT License - see [LICENSE](LICENSE) for details.
 - **The ISA** — Ideal State Artifact primitive. One document, twelve sections, five identities. Owned by the **ISA skill**.
 - **Containment + release tooling** — privacy is structural. Security gates run on every public release; two-stage release (stage → publish) never auto-chains.
 - **Memory v7.6** — structured by purpose: WORK, KNOWLEDGE (typed graph), LEARNING, RELATIONSHIP, OBSERVABILITY, STATE.
-- [Full release notes + migration guide](Releases/v5.0.0/README.md)
+- [Full release notes + migration guide](https://github.com/danielmiessler/LifeOS/releases)
 
 **v4.0.3 (2026-03-01) — Community PR Patch**
 - JSON array parsing fix in Inference.ts, 29 dead references removed, portability fixes, user context migration
-- [Release Notes](Releases/v4.0.3/README.md)
+- [Release Notes](https://github.com/danielmiessler/LifeOS/releases)
 
 **v4.0.0 (2026-02-27) — Lean and Mean**
 - 38 flat skill directories → 12 hierarchical categories, dead systems removed, CLAUDE.md template system, comprehensive security sanitization
-- [Release Notes](Releases/v4.0.0/README.md)
+- [Release Notes](https://github.com/danielmiessler/LifeOS/releases)
 
 **v3.0.0 (2026-02-15) — The Algorithm Matures**
 - Algorithm v1.4.0, persistent PRDs and parallel loop execution, full installer with GUI wizard, agent teams/swarm, voice personality system
-- [Release Notes](Releases/v3.0/README.md)
+- [Release Notes](https://github.com/danielmiessler/LifeOS/releases)
 
 **v2.4.0 (2026-01-23) — The Algorithm**
 - Universal problem-solving system with ISC tracking, Euphoric Surprise as the outcome metric
-- [Release Notes](Releases/v2.4/README.md)
+- [Release Notes](https://github.com/danielmiessler/LifeOS/releases)
 
 **v2.0.0 (2025-12-28) — v2 Launch**
 - Modular architecture with independent skills, Claude Code native design

@@ -35,41 +35,15 @@ Concept maps come from Joseph Novak's work on meaningful learning (Cornell, 1972
 
 ## Execution
 
-### Step 1: Define the Focus Question
+A done map fills the output block below and answers one focus question. The probes and tests:
 
-Every concept map answers a question. Without the question, the map becomes a disorganized bag of concepts.
+**Focus question.** Every map answers one specific question — without it the map is a disorganized bag of concepts. "How does authentication flow through our platform?" works; "What is authentication?" (too broad) and "Show me the auth architecture" (not a question) don't.
 
-```
-FOCUS QUESTION: [Specific question the map should answer]
-```
+**Concepts.** 10-30 nouns or noun phrases at roughly the same abstraction level (don't mix "cloud computing" with "HTTP header"), each concrete enough to have relationships ("good architecture" is too vague). Re-noun any verbs — "Deployment," not "deploying."
 
-Good examples:
-- "How does authentication flow through our platform?"
-- "What are the components of the LifeOS Algorithm, and how do they relate?"
-- "What does H3 consist of, and how do the pieces depend on each other?"
+**Hierarchy.** Arrange general (top) to specific (bottom); this gives the map spatial structure. No hierarchy emerging is a signal — either the concepts are all one level (flat map is fine) or you're missing organizing concepts to add.
 
-Bad examples:
-- "What is authentication?" (too broad)
-- "Show me the auth architecture" (not a question)
-
-### Step 2: List Key Concepts
-
-Extract 10-30 concepts from the domain. Order by generality — most general first, most specific last.
-
-Concepts should be:
-- **Nouns or noun phrases** — "User session," "JWT token," "OAuth provider"
-- **At roughly similar levels of abstraction** — don't mix "cloud computing" with "HTTP header"
-- **Concrete enough to have relationships** — "good architecture" is too vague to map
-
-### Step 3: Draft the Hierarchy
-
-Arrange concepts from general (top) to specific (bottom). This is the **conceptual hierarchy** — it gives the map spatial structure.
-
-If no hierarchy emerges, that's a signal: either the concepts are all at the same level (flat map, no hierarchy needed), or you're missing organizing concepts (add them).
-
-### Step 4: Draw Labeled Links
-
-For each pair of related concepts, draw a link labeled with the relationship. Common link types:
+**Labeled links.** Every link is a labeled proposition that reads as a valid statement concept-link-concept ("User session [uses] JWT token"). An unlabeled arrow is just "somehow related" — the label is the entire value. Common labels:
 
 ```
 "contains", "has", "is a", "is part of"
@@ -83,26 +57,11 @@ For each pair of related concepts, draw a link labeled with the relationship. Co
 "precedes", "follows", "parallels"
 ```
 
-**Every link must form a valid proposition when read concept-link-concept.** If "User session [uses] JWT token" is true, the link is valid.
+**Cross-links.** Links between different regions of the map — the highest-value output. They reveal non-obvious dependencies and interactions invisible from the hierarchy (e.g. "database connection pool" [feeds back into] "request timeout policy" — pool exhaustion affects timeout behavior). A map with no cross-links usually missed the interesting relationships.
 
-### Step 5: Find Cross-Links
+**Review.** Answer the focus question aloud walking the map; check every proposition reads as a grammatical statement, no concept is an orphan, and granularity is 10-30 concepts.
 
-Cross-links connect concepts in different regions of the map — relationships that aren't obvious from the hierarchy.
-
-Cross-links are **the highest-value output** of concept mapping. They reveal non-obvious relationships, hidden dependencies, and unexpected interactions.
-
-Example cross-link in a software architecture map: between "database connection pool" (bottom of data layer) and "request timeout policy" (middle of application layer). The cross-link "feeds back into" reveals that pool exhaustion affects timeout behavior — non-obvious unless the map is drawn.
-
-### Step 6: Review for Completeness
-
-Check:
-- **Focus question answered?** Walk through the map trying to answer the focus question aloud.
-- **Propositions make sense?** Read each link triplet; they should form grammatically valid statements.
-- **No orphan concepts?** Every concept should have at least one link. Orphans suggest missing relationships.
-- **Cross-links present?** If none, you may be missing the valuable non-obvious connections.
-- **Appropriate granularity?** 10-30 concepts for most maps. Under 5 is too thin; over 50 is unreadable.
-
-### Step 7: Render
+## Rendering
 
 Concept maps benefit enormously from visual rendering. Use the Art skill:
 

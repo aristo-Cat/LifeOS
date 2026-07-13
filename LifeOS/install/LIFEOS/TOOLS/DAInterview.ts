@@ -893,7 +893,7 @@ function main(): void {
   println(`    ${join(daDir, "diary.jsonl")}`);
   println(`    ${REGISTRY_PATH} (updated)`);
   println();
-  println(`  Your DA "${data.daName}" is ready. Welcome to PAI.`);
+  println(`  Your DA "${data.daName}" is ready. Welcome to LifeOS.`);
   println();
 }
 

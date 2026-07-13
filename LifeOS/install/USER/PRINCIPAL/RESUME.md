@@ -1,3 +1,7 @@
+---
+provenance: template
+---
+
 # Resume
 
 > Your professional background — compact, dated, and current.

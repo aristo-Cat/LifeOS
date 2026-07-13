@@ -1,25 +1,25 @@
 #!/usr/bin/env bun
 /**
- * pai - Personal AI CLI Tool
+ * lifeos — the LifeOS launcher CLI (aliased as `k`)
  *
  * Comprehensive CLI for managing Claude Code with dynamic MCP loading,
  * updates, version checking, and profile management.
  *
  * Usage:
- *   pai                  Launch Claude (default profile)
- *   pai -m bd            Launch with Bright Data MCP
- *   pai -m bd,ap         Launch with multiple MCPs
- *   pai -r / --resume    Resume last session
- *   pai --local          Stay in current directory (don't cd to ~/.claude)
- *   pai update           Update Claude Code
- *   pai version          Show version info
- *   pai profiles         List available profiles
- *   pai mcp list         List available MCPs
- *   pai mcp set <profile>  Set MCP profile
+ *   k                  Launch Claude (default profile)
+ *   k -m bd            Launch with Bright Data MCP
+ *   k -m bd,ap         Launch with multiple MCPs
+ *   k -r / --resume    Resume a session (picker, or pass a session ID)
+ *   k --local          Stay in current directory (don't cd to ~/.claude)
+ *   k update           Update Claude Code
+ *   k version          Show version info
+ *   k profiles         List available profiles
+ *   k mcp list         List available MCPs
+ *   k mcp set <profile>  Set MCP profile
  */
 
 import { spawn, spawnSync } from "bun";
-import { getIdentity, getStartupCatchphrase } from "../../../.claude/hooks/lib/identity";
+import { getIdentity, getStartupCatchphrase } from "../../hooks/lib/identity";
 import { existsSync, readFileSync, writeFileSync, readdirSync, symlinkSync, unlinkSync, lstatSync } from "fs";
 import { homedir } from "os";
 import { join, basename } from "path";
@@ -74,7 +74,7 @@ function log(message: string, emoji = "") {
 }
 
 
-function error(message: string) {
+function error(message: string): never {
   console.error(`❌ ${message}`);
   process.exit(1);
 }
@@ -125,7 +125,19 @@ function displayBanner() {
   }
 }
 
+// The launcher wraps the Claude Code CLI. On machines without it (e.g. an
+// OpenCode-driven install, #1448) fail with directions, not a bare ENOENT.
+function requireClaudeCli() {
+  if (Bun.which("claude")) return;
+  console.error("❌ Claude Code CLI not found on PATH — `lifeos` wraps the `claude` binary.");
+  console.error("   Either install Claude Code (https://claude.com/claude-code), or launch your");
+  console.error("   own harness with its system-prompt flag pointed at LIFEOS/LIFEOS_SYSTEM_PROMPT.md");
+  console.error("   (see INSTALL.md step 7 for the non-Claude-Code launch shape).");
+  process.exit(1);
+}
+
 function getCurrentVersion(): string | null {
+  if (!Bun.which("claude")) return null;
   const result = spawnSync(["claude", "--version"]);
   const output = result.stdout.toString();
   const match = output.match(/([0-9]+\.[0-9]+\.[0-9]+)/);
@@ -180,8 +192,6 @@ function getCurrentProfile(): string | null {
   try {
     const stats = lstatSync(ACTIVE_MCP);
     if (stats.isSymbolicLink()) {
-      const target = readFileSync(ACTIVE_MCP, "utf-8");
-      // For symlink, we need the real target name
       const realpath = Bun.spawnSync(["readlink", ACTIVE_MCP]).stdout.toString().trim();
       return basename(realpath).replace(".mcp.json", "");
     }
@@ -388,11 +398,12 @@ function cmdWallpaper(args: string[]) {
 // Commands
 // ============================================================================
 
-async function cmdLaunch(options: { mcp?: string; resume?: boolean; skipPerms?: boolean; local?: boolean; systemPrompt?: string }) {
+async function cmdLaunch(options: { mcp?: string; resume?: boolean; resumeId?: string; local?: boolean; systemPrompt?: string }) {
   // CLAUDE.md is now static — no build step needed.
   // Algorithm spec is loaded on-demand when Algorithm mode triggers.
   // (InstantiatePAI.ts is retired — kept for reference only)
 
+  requireClaudeCli();
   displayBanner();
   const args = ["claude"];
 
@@ -415,6 +426,10 @@ async function cmdLaunch(options: { mcp?: string; resume?: boolean; skipPerms?: 
   // Use --dangerous flag explicitly if you really need to skip all permission checks.
   if (options.resume) {
     args.push("--resume");
+    // Forward a specific session ID when given; bare --resume opens the picker.
+    if (options.resumeId) {
+      args.push(options.resumeId);
+    }
   }
 
   // Change to LifeOS directory unless --local flag is set
@@ -570,7 +585,15 @@ async function cmdPrompt(prompt: string) {
   // NOTE: No --dangerously-skip-permissions - rely on settings.json permissions
   // BILLING: subscription, not API. Removed --bare (forces ANTHROPIC_API_KEY),
   // strip the key from inherited env.
+  requireClaudeCli();
   const args = ["claude", "-p", prompt];
+
+  // Same constitutional layer as interactive launches — without this, one-shots
+  // ran bare Claude Code (CLAUDE.md only, no output format, no security protocol).
+  const systemPromptFile = join(CLAUDE_DIR, "LIFEOS", "LIFEOS_SYSTEM_PROMPT.md");
+  if (existsSync(systemPromptFile)) {
+    args.push("--append-system-prompt-file", systemPromptFile);
+  }
 
   process.chdir(CLAUDE_DIR);
 
@@ -588,13 +611,13 @@ async function cmdPrompt(prompt: string) {
 
 function cmdHelp() {
   console.log(`
-pai - Personal AI CLI Tool (v2.0.0)
+lifeos — LifeOS launcher CLI (v2.1.0)
 
 USAGE:
   k                        Launch Claude (no MCPs, max performance)
   k -m <mcp>               Launch with specific MCP(s)
   k -m bd,ap               Launch with multiple MCPs
-  k -r, --resume           Resume last session
+  k -r, --resume [id]      Resume a session (interactive picker, or a specific session ID)
   k -s, --system-prompt    System prompt file to append (default: LIFEOS_SYSTEM_PROMPT.md)
   k -l, --local            Stay in current directory (don't cd to ~/.claude)
 
@@ -623,7 +646,7 @@ EXAMPLES:
   k                        Start with current profile
   k -m bd                  Start with Bright Data
   k -m bd,ap               Start with multiple MCPs
-  k -r                     Resume last session
+  k -r                     Resume a session (picker), or 'k -r <id>' for a specific one
   k mcp set research       Switch to research profile
   k update                 Update Claude Code
   k prompt "What time is it?"   One-shot prompt
@@ -648,7 +671,7 @@ async function main() {
   // Parse arguments
   let mcp: string | undefined;
   let resume = false;
-  let skipPerms = true;
+  let resumeId: string | undefined;
   let local = false;
   let systemPrompt: string | undefined;
   let command: string | undefined;
@@ -675,9 +698,11 @@ async function main() {
       case "-r":
       case "--resume":
         resume = true;
-        break;
-      case "--safe":
-        skipPerms = false;
+        // Optional session ID: `k -r <session-id>` resumes that session
+        // directly; bare `k -r` opens the interactive picker.
+        if (args[i + 1] && !args[i + 1].startsWith("-")) {
+          resumeId = args[++i];
+        }
         break;
       case "-s":
       case "--system-prompt":
@@ -762,7 +787,7 @@ async function main() {
       break;
     default:
       // Launch with options
-      await cmdLaunch({ mcp, resume, skipPerms, local, systemPrompt });
+      await cmdLaunch({ mcp, resume, resumeId, local, systemPrompt });
   }
 }
 

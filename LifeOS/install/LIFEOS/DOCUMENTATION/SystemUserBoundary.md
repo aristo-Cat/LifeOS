@@ -3,6 +3,7 @@ last_updated: 2026-06-13T00:00:00Z
 last_updated_by: LifeOS docs reframe wave (refs re-verified against live tree)
 convention: pai-freshness-v1
 applies_to: LifeOS v6.0.0+ (proposed)
+version: 1.1.4
 ---
 
 # System / User Boundary
@@ -53,7 +54,7 @@ Private, user-owned data that ships in the user's own private repo and is mounte
 |------|--------|
 | `~/.claude/.env`, `.env.*` | USER (secrets) |
 | `~/.claude/LIFEOS/USER/**` (symlink → `~/.config/LIFEOS/USER/**`) | USER (identity, TELOS, projects, integrations, contacts, finances, health, business, customizations) |
-| `~/.claude/LIFEOS/MEMORY/**` (symlink → `~/.config/LIFEOS/USER/MEMORY/**`, post-Phase-G.2, 2026-05-23) | USER (work history, knowledge graph, learning signals, observability logs, research, reflections, relationships). Durable subset (KNOWLEDGE, WORK/<slug>/ISA.md, RELATIONSHIP, WISDOM, PLANS, RESEARCH, STATE/work.json, BOOKMARKS, REFERENCE, SKILLS, PROJECT, TEAMS, PAISYSTEMUPDATES, VERIFICATION) is git-tracked in the user's private USER-data repo; ephemeral subset (OBSERVABILITY JSONLs, _BROWSER_STATE, LEARNING signals, SECURITY artifacts, VOICE event log, STATE caches, _AIRGRADIENT, _NETWORK, _HELIOS, PULSE_DATA, SCRATCHPAD, RAW, AUTO, CALLS, INBOX, ARCHIVE, DATA, WORK/<slug>/* intermediates) gitignored from the private repo, local-only. |
+| `~/.claude/LIFEOS/MEMORY/**` (symlink → `~/.config/LIFEOS/USER/MEMORY/**`, post-Phase-G.2, 2026-05-23) | USER (work history, knowledge graph, learning signals, observability logs, research, reflections, relationships). Durable subset (KNOWLEDGE, WORK/<slug>/ISA.md, RELATIONSHIP, WISDOM, PLANS, RESEARCH, STATE/work.json, BOOKMARKS, REFERENCE, SKILLS, PROJECT, TEAMS, SYSTEMUPDATES, VERIFICATION) is git-tracked in the user's private USER-data repo; ephemeral subset (OBSERVABILITY JSONLs, _BROWSER_STATE, LEARNING signals, SECURITY artifacts, VOICE event log, STATE caches, _AIRGRADIENT, _NETWORK, _HELIOS, PULSE_DATA, SCRATCHPAD, RAW, AUTO, CALLS, INBOX, ARCHIVE, DATA, WORK/<slug>/* intermediates) gitignored from the private repo, local-only. |
 | `~/.claude/LIFEOS/ARBOL/**` | USER (private cloud worker code) |
 | `~/.claude/LIFEOS/Backups/**` | USER (backup state) |
 | `~/.claude/skills/_<name>/**` (underscore-prefixed) | USER (private/proprietary skills) |

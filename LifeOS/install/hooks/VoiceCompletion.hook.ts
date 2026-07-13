@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 /**
+ * @version 1.4.5
  * VoiceCompletion.hook.ts — Send completion voice line to TTS server
  *
  * PURPOSE:

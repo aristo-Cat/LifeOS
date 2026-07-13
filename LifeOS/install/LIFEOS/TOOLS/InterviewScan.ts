@@ -1,4 +1,11 @@
 #!/usr/bin/env bun
+// Normalize env path vars Claude Code may inject unexpanded — literal $HOME/${HOME}
+// in LIFEOS_DIR/LIFEOS_CONFIG_DIR/PROJECTS_DIR resolves to a shadow dir (#1404 / PR #1451, author jbmml).
+for (const __k of ["LIFEOS_DIR", "LIFEOS_CONFIG_DIR", "PROJECTS_DIR"]) {
+  const __v = process.env[__k];
+  if (__v && /^\$\{?HOME\}?(\/|$)/.test(__v)) process.env[__k] = __v.replace(/^\$\{?HOME\}?/, process.env.HOME ?? "~");
+}
+
 
 /**
  * InterviewScan — comprehensive completeness scanner across unified TELOS
@@ -19,6 +26,13 @@
 import { readFileSync, existsSync } from "fs";
 import { join } from "path";
 import { readTelosFreshness, sectionSlug, type SectionFreshness } from "./TelosFreshness";
+
+// Normalize env path vars that Claude Code injects without shell expansion (LifeOS#1404)
+for (const k of ["LIFEOS_DIR", "LIFEOS_CONFIG_DIR", "PROJECTS_DIR"]) {
+  const v = process.env[k];
+  if (v && /^\$\{?HOME\}?(\/|$)/.test(v)) process.env[k] = v.replace(/^\$\{?HOME\}?/, process.env.HOME ?? "~");
+}
+
 
 const HOME = process.env.HOME || "";
 const LIFEOS_DIR = process.env.LIFEOS_DIR || join(HOME, ".claude", "LIFEOS");
@@ -70,12 +84,12 @@ type RegistryTarget = Omit<Target, "content_length" | "tbd_count" | "seed_marker
 
 const REGISTRY: RegistryTarget[] = [
   // ─── Phase 0: First-run setup (the bootstrap that makes Pulse work) ───
-  { phase: 0, path: join(USER_DIR, "DA_IDENTITY.md"), name: "DA_IDENTITY", category: "setup", leverage: 10,
+  { phase: 0, path: join(USER_DIR, "DIGITAL_ASSISTANT", "DA_IDENTITY.md"), name: "DA_IDENTITY", category: "setup", leverage: 10,
     prompts: ["What's your DA's name? (default: LifeOS)",
               "Full name and a one-line origin story?",
               "Display color in hex (e.g. #3B82F6)?",
               "One-paragraph personality summary — direct, peer, opinionated, etc.?"] },
-  { phase: 0, path: join(USER_DIR, "PRINCIPAL_IDENTITY.md"), name: "PRINCIPAL_IDENTITY/setup", category: "setup", leverage: 10,
+  { phase: 0, path: join(USER_DIR, "PRINCIPAL", "PRINCIPAL_IDENTITY.md"), name: "PRINCIPAL_IDENTITY/setup", category: "setup", leverage: 10,
     prompts: ["Your name (with pronunciation if uncommon)?",
               "Location and timezone (e.g. San Francisco Bay Area, America/Los_Angeles)?",
               "One-line role / what you do?",
@@ -89,7 +103,7 @@ const REGISTRY: RegistryTarget[] = [
               "ELEVENLABS_API_KEY — required for voice notifications. Skip if you don't want voice.",
               "GH_TOKEN — optional, only if you want the work pipeline. Skip if not using GitHub issues.",
               "Any other API keys you want stored (Stripe, OpenAI, etc.)?"] },
-  { phase: 0, path: join(USER_DIR, "PROJECTS", "PROJECTS.md"), name: "PROJECTS/setup", category: "setup", leverage: 8,
+  { phase: 0, path: join(USER_DIR, "PROJECTS.md"), name: "PROJECTS/setup", category: "setup", leverage: 8,
     prompts: ["At least one project so routing works — name, local path, public URL (or blank), deploy command, stack?",
               "What aliases would you use to refer to it conversationally? (e.g. \"my blog\", \"the site\")"] },
   { phase: 0, path: join(USER_DIR, "WORK", "config.yaml"), name: "WORK/config", category: "setup", leverage: 7,
@@ -208,7 +222,7 @@ const REGISTRY: RegistryTarget[] = [
               "What framing should guide recommendations when priorities conflict?"] },
 
   // ─── Phase 4: Current-state snapshot + identity ───
-  { phase: 4, path: join(USER_DIR, "PRINCIPAL_IDENTITY.md"), name: "PRINCIPAL_IDENTITY", category: "identity", leverage: 8,
+  { phase: 4, path: join(USER_DIR, "PRINCIPAL", "PRINCIPAL_IDENTITY.md"), name: "PRINCIPAL_IDENTITY", category: "identity", leverage: 8,
     prompts: ["Anything in the identity file that's out-of-date or needs refinement?",
               "Aspects of how you want to be represented that aren't captured yet?"] },
   { phase: 4, path: `${TELOS_PATH}#${sectionSlug("Current State")}`, name: "Current State", category: "current_state", leverage: 5,

@@ -4,6 +4,7 @@ last_updated_by: kai
 convention: pai-freshness-v1
 last_reviewed: 2026-05-20T20:50:00Z
 last_reviewed_by: kai
+version: 1.0.2
 ---
 
 # npm Supply-Chain Rapid Response

@@ -1,12 +1,13 @@
 ---
 name: Harvest
-description: "Mine a single piece of content (URL, YouTube video, article, raw text, or file) for anything genuinely useful to LifeOS, judged against the whole system — TELOS, the Algorithm, skills, hooks, memory, Pulse, routing, doctrine. Fetches it, extracts candidate ideas/techniques/patterns/tools/framings, tags each with a Prior Status (NEW/PARTIAL/DONE/REJECTED), ranks by usefulness × novelty × effort, and reports where each maps and how we would use it. Report-only; adopting anything is a separate approved step. USE WHEN harvest, harvest this, harvest <URL>, harvest <YouTube>, harvest this video, harvest this article, /harvest, /ha, mine this for the system, anything useful in this for us, what can LifeOS take from this, analyze this for LifeOS-usefulness, should we adopt anything from this. NOT FOR ingesting content into the Knowledge Archive (use _HARVEST), broad multi-source upgrade or bookmark scans (use Upgrade / pu), or general research synthesis (use Research)."
+version: 1.0.1
+description: "Mines a single piece of content (URL, YouTube, article, text, file) for anything useful to LifeOS, ranks the findings, then ingests the content into the Knowledge Archive. USE WHEN harvest, harvest this, harvest <URL>, harvest <YouTube>, harvest this video, harvest this article, /harvest, /ha, mine this for the system, anything useful in this for us, what can LifeOS take from this, analyze this for LifeOS-usefulness, should we adopt anything from this. NOT FOR ingestion-only saves with no system-mining (use _HARVEST directly), broad multi-source upgrade or bookmark scans (use Upgrade / pu), or general research synthesis (use Research)."
 license: public
 ---
 
 # Harvest
 
-Take one piece of content and ask a single question: **is there anything in here worth pulling into LifeOS?** Read it, hold every candidate idea against what the system already is and already has, and report what is worth adopting, where it maps, and how we would use it. Report-only. Adoption is a separate, approved step.
+Take one piece of content and ask a single question: **is there anything in here worth pulling into LifeOS?** Read it, hold every candidate idea against what the system already is and already has, and report what is worth adopting, where it maps, and how we would use it. System adoption is report-only — changing the system is a separate, approved step. Then, always as the final step, ingest the content into the Knowledge Archive via the `_HARVEST` pipeline so the source itself is preserved.
 
 ## Workflow Routing
 
@@ -24,24 +25,25 @@ Take one piece of content and ask a single question: **is there anything in here
 
 ## Relationship to neighbors
 
-- **`_HARVEST`** ingests a signal into the Knowledge Archive (a note gets written). Harvest writes nothing; it evaluates content *for the system*.
+- **`_HARVEST`** ingests a signal into the Knowledge Archive (a note gets written). Harvest calls it as its mandatory final step — mining first, then ingestion. Use `_HARVEST` directly only when {{PRINCIPAL_NAME}} wants a save with no system-mining.
 - **`Upgrade` / `pu`** scans many sources (Anthropic releases, YouTube channels, GitHub, bookmarks) for upgrades. Harvest is the focused single-input cousin: you hand it one thing, it mines that one thing.
 - **`Research`** answers a question from many sources. Harvest starts from a source you already have and asks what LifeOS should take from it.
 
 ## Gotchas
 
 - **YouTube needs `fabric -y` first.** Never parse the YouTube page HTML — it's nav and JS. `fabric -y <url>` returns the transcript; analyze that.
-- **Report-only. Never edit the system from inside a harvest.** The output is a proposal set. Changing an Algorithm file, a hook, a skill, or doctrine happens only after {{PRINCIPAL_NAME}} approves a specific item.
+- **System adoption is report-only. Never edit the system from inside a harvest.** The mining output is a proposal set. Changing an Algorithm file, a hook, a skill, or doctrine happens only after {{PRINCIPAL_NAME}} approves a specific item. The ONE write a harvest always performs is the Knowledge Archive ingestion (final step).
 - **Name the surface or drop the finding.** "This is a cool idea" is not a harvest hit. "This maps to a new PostToolUse hook that would catch X" is. Vague usefulness gets cut.
 - **Prior Status prevents re-surfacing solved work.** Before tagging NEW, check whether LifeOS already does it (grep skills/hooks, recall recent ISAs). Re-pitching something already built is the main failure mode.
 - **Be honest about empty content.** A lot of content has nothing to harvest. Say that. Manufacturing three weak findings to look thorough is worse than one true "nothing here."
-- **Not the Knowledge Archive.** If {{PRINCIPAL_NAME}} actually wants the content *saved* as a note, that's `_HARVEST`, not this.
+- **KB ingestion is not optional and not skippable on a thin harvest.** Even a "nothing here" mining verdict still ends with the `_HARVEST` ingestion — the note preserves the source regardless of system usefulness. If ingestion fails (Arbol down, classifier error), report the failure explicitly; never claim the harvest is complete without a written note or a named failure.
 
 ## Examples
 
 ```
 harvest https://youtu.be/VIDEO_ID
 # → fabric -y transcript → extract candidates → map to LifeOS surfaces → ranked table + verdict
+# → ALWAYS finishes: bun ~/.claude/skills/_HARVEST/Tools/harvest.ts <url> → KNOWLEDGE note written
 
 harvest https://someblog.com/post-on-agent-memory
 # → WebFetch body → same analysis

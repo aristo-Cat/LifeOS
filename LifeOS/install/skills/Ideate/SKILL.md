@@ -1,6 +1,7 @@
 ---
 name: Ideate
-description: "Evolutionary ideation engine — loop-controlled multi-cycle idea generation through 9 phases (CONSUME, DREAM at noise=0.9, DAYDREAM at 0.5, CONTEMPLATE at 0.1, STEAL cross-domain borrowing, MATE recombination, TEST fitness scoring, EVOLVE selection, META-LEARN Lamarckian strategy adjustment). Loop Controller drives adaptive continue/pivot/stop logic; strategies evolve across cycles based on what worked. Produces ranked novel solution candidates with full provenance. Six workflows: FullCycle (default), QuickCycle, Dream, Steal, Mate, Test. USE WHEN ideate, id8, novel ideas, evolve ideas, dream up solutions, innovate, breakthrough ideas, idea evolution, multi-cycle creativity, need genuinely new approaches. NOT FOR quick single-pass brainstorming (use BeCreative)."
+version: 1.0.16
+description: "Evolutionary ideation engine — loop-controlled multi-cycle idea generation through phases of dreaming, cross-domain stealing, recombination, fitness testing, selection, and Lamarckian meta-learning, producing ranked novel solution candidates with provenance. USE WHEN ideate, id8, novel ideas, evolve ideas, dream up solutions, innovate, breakthrough ideas, idea evolution, multi-cycle creativity, need genuinely new approaches. NOT FOR quick single-pass brainstorming (use BeCreative)."
 effort: high
 context: fork
 ---
@@ -40,19 +41,19 @@ The 9 workflow phases expand these into a richer human-legible system. DREAM, DA
 
 ## The 9 Phases (Summary)
 
-| # | Phase | Noise | What it does | Agent |
-|---|-------|-------|--------------|-------|
-| 1 | **CONSUME** | — | Multi-domain research, atomic idea extraction | The Glutton |
-| 2 | **DREAM** | 0.9 | Free-association on random input subsets, no problem awareness | The Dreamer |
-| 3 | **DAYDREAM** | 0.5 | Tangential wandering with the problem held loosely | The Wanderer |
-| 4 | **CONTEMPLATE** | 0.1 | Structured analysis via 4 lenses (mandatory; checkpoint A gates) | The Sage |
-| 5 | **STEAL** | — | Cross-domain pattern borrowing via weighted random domain lottery | The Thief |
-| 6 | **MATE** | — | Genetic recombination via Fisher-Yates shuffle + 8 mutation operations | The Matchmaker |
-| 7 | **TEST** | — | Multi-judge scoring on Feasibility/Novelty/Impact/Elegance (checkpoint B gates) | The Judge |
-| 8 | **EVOLVE** | — | Selection: kill bottom 50%, elite top 10%, mutate the rest, immigrant injection | The Curator |
-| 9 | **META-LEARN** | — | Lamarckian strategy adjustment + next-cycle question generation | The Scientist |
+| # | Phase | Noise | What it does |
+|---|-------|-------|--------------|
+| 1 | **CONSUME** | — | Multi-domain research, atomic idea extraction |
+| 2 | **DREAM** | 0.9 | Free-association on random input subsets, no problem awareness |
+| 3 | **DAYDREAM** | 0.5 | Tangential wandering with the problem held loosely |
+| 4 | **CONTEMPLATE** | 0.1 | Structured analysis via 4 lenses (mandatory; checkpoint A gates) |
+| 5 | **STEAL** | — | Cross-domain pattern borrowing via weighted random domain lottery |
+| 6 | **MATE** | — | Genetic recombination via Fisher-Yates shuffle + 8 mutation operations |
+| 7 | **TEST** | — | Multi-judge scoring on Feasibility/Novelty/Impact/Elegance (checkpoint B gates) |
+| 8 | **EVOLVE** | — | Selection: kill bottom 50%, elite top 10%, mutate the rest, immigrant injection |
+| 9 | **META-LEARN** | — | Lamarckian strategy adjustment + next-cycle question generation |
 
-Post-loop: **The Historian** runs the Insight Extractor for cross-cycle pattern analysis.
+Post-loop: the Insight Extractor runs for cross-cycle pattern analysis.
 
 Full phase mechanics live in `Workflows/FullCycle.md`.
 
@@ -246,7 +247,7 @@ ideate/
 | IterativeDepth | CONTEMPLATE | 4-lens analysis (Literal, Failure, Analogical, Constraint Inversion) |
 | FirstPrinciples | CONTEMPLATE | Decompose to axioms, challenge assumptions |
 | RedTeam | TEST | Adversarial attack on candidates to find fatal flaws |
-| Agents | ALL | ComposeAgent for unique cognitive personalities per phase |
+| Custom agents | ALL | Inline briefs (name + role + stance) for unique cognitive personalities per phase, launched with `general-purpose` |
 | Council | MATE (optional) | Debate between ideas before breeding |
 
 ## Algorithm Integration

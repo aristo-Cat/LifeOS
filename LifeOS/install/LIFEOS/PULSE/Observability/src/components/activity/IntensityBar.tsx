@@ -17,7 +17,7 @@ function getContrastColor(hex: string): string {
   const g = parseInt(hex.slice(3, 5), 16);
   const b = parseInt(hex.slice(5, 7), 16);
   const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  return luminance > 0.5 ? "#1a1b26" : "#ffffff";
+  return luminance > 0.5 ? "var(--ground)" : "#ffffff";
 }
 
 export default function IntensityBar({
@@ -38,7 +38,7 @@ export default function IntensityBar({
       </div>
 
       {/* Intensity bar */}
-      <div className="relative flex-1 h-1 bg-[#1a1b26] overflow-hidden rounded-sm">
+      <div className="relative flex-1 h-1 bg-[var(--ground)] overflow-hidden rounded-sm">
         <div
           className="absolute top-0 left-0 h-full rounded-sm transition-all duration-500 ease-out"
           style={{
@@ -66,7 +66,7 @@ export default function IntensityBar({
               key={range}
               onClick={() => onSetTimeRange(range)}
               className={`px-3 py-1 text-sm font-bold rounded cursor-pointer transition-all ${
-                timeRange === range ? "shadow-md" : "bg-transparent text-[#565f89] hover:text-[#9aa5ce] hover:bg-[#1a1b26]"
+                timeRange === range ? "shadow-md" : "bg-transparent text-[var(--ink-3)] hover:text-[var(--ink-2)] hover:bg-[var(--ground)]"
               }`}
               style={
                 timeRange === range

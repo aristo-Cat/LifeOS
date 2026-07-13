@@ -98,14 +98,14 @@ export default function SatisfactionPulseMonitor() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-[200px]">
-        <div className="w-full h-full bg-zinc-800/50 rounded animate-pulse" />
+        <div className="w-full h-full bg-[rgba(20,28,56,0.5)] rounded animate-pulse" />
       </div>
     );
   }
 
   if (reflections.length === 0) {
     return (
-      <div className="flex items-center justify-center h-[200px] text-zinc-600 text-xs">
+      <div className="flex items-center justify-center h-[200px] text-ink-3 text-xs">
         No reflection data yet
       </div>
     );
@@ -234,7 +234,7 @@ export default function SatisfactionPulseMonitor() {
             x={PAD_LEFT - 8}
             y={toY(v) + 4}
             textAnchor="end"
-            fill="#71717a"
+            fill="var(--ink-3)"
             fontSize={11}
           >
             {v}
@@ -248,7 +248,7 @@ export default function SatisfactionPulseMonitor() {
           y1={toY(7)}
           x2={SVG_WIDTH - PAD_RIGHT}
           y2={toY(7)}
-          stroke="#52525b"
+          stroke="var(--line-1)"
           strokeWidth={0.5}
           strokeDasharray="4 4"
         />
@@ -292,7 +292,7 @@ export default function SatisfactionPulseMonitor() {
         <polyline
           points={avgPolyline}
           fill="none"
-          stroke="#a1a1aa"
+          stroke="var(--ink-2)"
           strokeWidth={2.5}
           strokeLinejoin="round"
           strokeLinecap="round"
@@ -343,7 +343,7 @@ export default function SatisfactionPulseMonitor() {
             x={label.x}
             y={SVG_HEIGHT - 4}
             textAnchor="middle"
-            fill="#71717a"
+            fill="var(--ink-3)"
             fontSize={10}
           >
             {formatDate(label.timestamp)}
@@ -354,14 +354,14 @@ export default function SatisfactionPulseMonitor() {
       {/* Tooltip */}
       {tooltip && (
         <div
-          className="fixed z-50 px-2.5 py-1.5 rounded-md bg-zinc-800 border border-white/[0.08] shadow-lg pointer-events-none max-w-[240px]"
+          className="fixed z-50 px-2.5 py-1.5 rounded-md bg-surface-2 border border-white/[0.08] shadow-lg pointer-events-none max-w-[240px]"
           style={{
             left: tooltip.x,
             top: tooltip.y - 44,
             transform: "translateX(-50%)",
           }}
         >
-          <p className="text-xs text-zinc-200 font-medium truncate">
+          <p className="text-xs text-ink-1 font-medium truncate">
             {tooltip.task}
           </p>
           <p className="text-[13px] font-mono" style={{ color: getSegmentColor(tooltip.sentiment) }}>

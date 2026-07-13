@@ -1,3 +1,7 @@
+---
+provenance: template
+---
+
 # Creating Your DA Identity
 
 1. Copy this `_example/` directory and rename it (e.g., `{da-name}/`, `aria/`, `max/`)

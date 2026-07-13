@@ -1,4 +1,11 @@
 #!/usr/bin/env bun
+// Normalize env path vars Claude Code may inject unexpanded — literal $HOME/${HOME}
+// in LIFEOS_DIR/LIFEOS_CONFIG_DIR/PROJECTS_DIR resolves to a shadow dir (#1404 / PR #1451, author jbmml).
+for (const __k of ["LIFEOS_DIR", "LIFEOS_CONFIG_DIR", "PROJECTS_DIR"]) {
+  const __v = process.env[__k];
+  if (__v && /^\$\{?HOME\}?(\/|$)/.test(__v)) process.env[__k] = __v.replace(/^\$\{?HOME\}?/, process.env.HOME ?? "~");
+}
+
 
 /**
  * DaemonAggregator — Reads LifeOS system data sources and produces
@@ -18,6 +25,13 @@
 import { readFileSync, existsSync, writeFileSync, readdirSync, statSync } from "fs";
 import { join, resolve } from "path";
 import { filterContent, filterDaemonData, loadSecurityOverrides } from "./SecurityFilter.ts";
+
+// Normalize env path vars that Claude Code injects without shell expansion (LifeOS#1404)
+for (const k of ["LIFEOS_DIR", "LIFEOS_CONFIG_DIR", "PROJECTS_DIR"]) {
+  const v = process.env[k];
+  if (v && /^\$\{?HOME\}?(\/|$)/.test(v)) process.env[k] = v.replace(/^\$\{?HOME\}?/, process.env.HOME ?? "~");
+}
+
 
 // ─── Path Resolution ───
 
@@ -79,8 +93,20 @@ function readFileIfExists(path: string): string | null {
   return readFileSync(path, "utf-8");
 }
 
+// TELOS.md is the single source of truth; the legacy per-topic files
+// (MISSION.md, GOALS.md, WISDOM.md) no longer exist on TELOS.md-only setups, so
+// the daemon read them as empty. Fall back to the matching TELOS.md section.
+// Uses the guarded readFileIfExists so the isExcluded check still applies.
+function readTelosSection(heading: string): string | null {
+  const telos = readFileIfExists(join(TELOS_DIR, "TELOS.md"));
+  if (!telos) return null;
+  const re = new RegExp(`(?:^|\\n)##\\s*${heading}\\b[^\\n]*\\n([\\s\\S]*?)(?=\\n##\\s|\\n---|$)`, "i");
+  const match = telos.match(re);
+  return match ? match[1].trim() : null;
+}
+
 function readMissions(): string {
-  const content = readFileIfExists(join(TELOS_DIR, "MISSION.md"));
+  const content = readFileIfExists(join(TELOS_DIR, "MISSION.md")) ?? readTelosSection("Mission");
   if (!content) return "";
 
   const lines = content.split("\n");
@@ -103,7 +129,7 @@ function readMissions(): string {
 }
 
 function readGoals(): string {
-  const content = readFileIfExists(join(TELOS_DIR, "GOALS.md"));
+  const content = readFileIfExists(join(TELOS_DIR, "GOALS.md")) ?? readTelosSection("GOALS");
   if (!content) return "";
 
   const lines = content.split("\n");
@@ -149,7 +175,7 @@ function readMovies(): string[] {
 }
 
 function readWisdom(): string[] {
-  const content = readFileIfExists(join(TELOS_DIR, "WISDOM.md"));
+  const content = readFileIfExists(join(TELOS_DIR, "WISDOM.md")) ?? readTelosSection("Wisdom");
   if (!content) return [];
 
   // Split by double newlines to get individual quotes

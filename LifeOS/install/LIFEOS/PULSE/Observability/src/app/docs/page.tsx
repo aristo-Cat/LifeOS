@@ -14,9 +14,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { wikiPageUrl } from "@/lib/wiki-links";
-
-const FONT_HEADING = { fontFamily: "'advocate-c14', sans-serif" } as const;
-const FONT_BODY = { fontFamily: "'concourse-t3', sans-serif" } as const;
+import { PageShell, PageHeader, Panel, StatTile, Pill } from "@/components/ui/chrome";
+import type { LucideIcon } from "lucide-react";
 
 interface TreeNode {
   label: string;
@@ -58,6 +57,10 @@ interface PageDetail {
   group?: string;
 }
 
+// The card look, matching chrome Panel + hover, applied to Link elements.
+const CARD_CLASS =
+  "flex flex-col gap-2 bg-surface-2 border border-line-2 rounded-xl p-5 transition-colors duration-200 hover:bg-surface-3 hover:border-line-3";
+
 const START_HERE_SLUGS = [
   {
     slug: "PAISystemArchitecture",
@@ -73,13 +76,6 @@ const START_HERE_SLUGS = [
   },
 ];
 
-function qualityClass(quality: number | undefined): "rec-high" | "rec-med" | "rec-low" {
-  if (quality === undefined) return "rec-low";
-  if (quality < 0.5) return "rec-high";
-  if (quality < 0.8) return "rec-med";
-  return "rec-low";
-}
-
 function qualityLabel(quality: number | undefined): string {
   if (quality === undefined) return "quality n/a";
   return `${Math.round(quality * 100)}% quality`;
@@ -93,6 +89,18 @@ function flattenTree(nodes: TreeNode[] | undefined): TreeNode[] {
     if (n.children) out.push(...flattenTree(n.children));
   }
   return out;
+}
+
+function SectionHeading({ icon: Icon, children }: { icon: LucideIcon; children: React.ReactNode }) {
+  return (
+    <h2
+      className="flex items-center gap-2 mb-4 text-[12px] font-semibold uppercase tracking-[0.12em] text-ink-3"
+      style={{ fontFamily: "'concourse-c3', 'concourse-t3', sans-serif" }}
+    >
+      <Icon className="w-4 h-4" />
+      {children}
+    </h2>
+  );
 }
 
 function DocsLanding({ data }: { data: WikiIndex }) {
@@ -122,192 +130,126 @@ function DocsLanding({ data }: { data: WikiIndex }) {
   });
 
   return (
-    <div className="p-6 max-w-6xl mx-auto space-y-10">
-      <div className="telos-card goal-card dim-rhythms" style={{ cursor: "default" }}>
-        <div className="goal-title" style={FONT_HEADING}>
-          <BookOpen className="w-4 h-4 shrink-0" style={{ color: "var(--rhythms)" }} />
-          <span>DOCUMENTATION</span>
-          <span className="pill pill-rhythms">search</span>
-        </div>
-        <p className="text-base mt-1" style={{ ...FONT_BODY, color: "#D6E1F5" }}>
-          LifeOS subsystem architecture, algorithm, and reference
-        </p>
-        <div className="progress-bar">
-          <div className="progress-fill" style={{ width: "100%" }} />
-        </div>
-        <div className="goal-foot">
-          <div className="goal-dims">
-            <span className="pill pill-rhythms">search index</span>
-            <span className="pill pill-freedom">browse</span>
-            <span className="pill pill-relationships">backlinks</span>
-          </div>
-          <span className="goal-delta green-up">recently updated</span>
-        </div>
-      </div>
+    <div className="h-full overflow-y-auto">
+      <PageShell>
+        <PageHeader
+          title="Docs"
+          subtitle="LifeOS subsystem architecture, algorithm, and reference"
+          icon={BookOpen}
+        />
 
-      <div className="flex items-center gap-6">
-        <div className="telos-card metric" style={{ cursor: "default" }}>
-          <div className="metric-top">
-            <BookOpen className="w-5 h-5" style={{ color: "var(--rhythms)" }} />
-            <span className="metric-label muted">Documents</span>
-          </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <StatTile icon={BookOpen} label="Documents" value={data.stats.totalSystem} dim="rhythms" />
+          <StatTile icon={Folder} label="Sections" value={groups.length} dim="relationships" />
+        </div>
+
+        {startHere.length > 0 && (
           <div>
-            <div className="metric-val mono" style={FONT_BODY}>
-              {data.stats.totalSystem}
-            </div>
-          </div>
-        </div>
-        <div className="telos-card metric" style={{ cursor: "default" }}>
-          <div className="metric-top">
-            <Folder className="w-5 h-5" style={{ color: "var(--relationships)" }} />
-            <span className="metric-label muted">Sections</span>
-          </div>
-          <div>
-            <div className="metric-val mono" style={FONT_BODY}>
-              {groups.length}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {startHere.length > 0 && (
-        <div>
-          <h2
-            className="text-base font-medium uppercase tracking-[0.25em] mb-4 flex items-center gap-2"
-            style={{ ...FONT_HEADING, color: "var(--creative)" }}
-          >
-            <Sparkles className="w-4 h-4" />
-            Start Here
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            {startHere.map((entry) => (
-              <Link
-                key={entry.slug}
-                href={wikiPageUrl(entry.category ?? "system-doc", entry.slug)}
-                className="telos-card group"
-                style={{ cursor: "pointer" }}
-              >
-                <div
-                  className="text-base font-semibold transition-colors"
-                  style={FONT_BODY}
-                >
-                  {entry.title}
-                </div>
-                <div className="text-[13px] leading-relaxed muted" style={FONT_BODY}>
-                  {entry.tagline}
-                </div>
-                <div className="mt-auto flex items-center gap-2 pt-2">
-                  <span className="pill pill-creative">start here</span>
-                  <span className="text-[13px] uppercase tracking-[0.2em]" style={{ color: "var(--creative)" }}>
-                  Open
-                  <ArrowRight className="w-3 h-3 transition-transform group-hover:translate-x-0.5" />
-                  </span>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {groups.length > 0 && (
-        <div>
-          <h2
-            className="text-base font-medium uppercase tracking-[0.25em] mb-4 flex items-center gap-2"
-            style={{ ...FONT_HEADING, color: "var(--freedom)" }}
-          >
-            <Compass className="w-4 h-4" />
-            Browse by Section
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {groups.map((group) => {
-              const firstChild = group.children?.find((c) => c.slug);
-              const href =
-                firstChild && firstChild.slug
-                  ? wikiPageUrl(firstChild.category ?? "system-doc", firstChild.slug)
-                  : "#";
-
-              return (
+            <SectionHeading icon={Sparkles}>Start Here</SectionHeading>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {startHere.map((entry) => (
                 <Link
-                  key={group.label}
-                  href={href}
-                  className="telos-card group"
-                  style={{ cursor: "pointer" }}
+                  key={entry.slug}
+                  href={wikiPageUrl(entry.category ?? "system-doc", entry.slug)}
+                  className={`${CARD_CLASS} group`}
                 >
-                  <div className="flex items-center justify-between">
-                    <div
-                      className="text-sm font-semibold transition-colors uppercase tracking-[0.15em]"
-                      style={FONT_HEADING}
-                    >
-                      {group.label}
-                    </div>
-                    {group.count !== undefined && (
-                      <span
-                        className="pill pill-freedom tabular-nums"
-                        style={FONT_BODY}
-                      >
-                        {group.count}
-                      </span>
-                    )}
-                  </div>
-                  <div
-                    className="text-[13px] muted leading-relaxed line-clamp-2"
-                    style={FONT_BODY}
-                  >
-                    {(group.children ?? [])
-                      .filter((c) => c.slug)
-                      .slice(0, 3)
-                      .map((c) => c.label)
-                      .join(" · ")}
-                    {(group.children?.length ?? 0) > 3 && " · …"}
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {data.recentChanges.length > 0 && (
-        <div>
-          <h2
-            className="text-base font-medium uppercase tracking-[0.25em] mb-4 flex items-center gap-2"
-            style={{ ...FONT_HEADING, color: "var(--relationships)" }}
-          >
-            <Sparkles className="w-4 h-4" />
-            Recently Updated
-          </h2>
-          <div className="recs-list">
-            {data.recentChanges.slice(0, 6).map((page, index) => (
-              <Link
-                key={page.slug}
-                href={wikiPageUrl(page.category, page.slug)}
-                className={`telos-card rec ${qualityClass(page.quality)}`}
-                style={{ cursor: "pointer" }}
-              >
-                <div className="rec-n mono green-up">{index + 1}</div>
-                <div className="rec-body">
-                  <div className="rec-action" style={FONT_BODY}>{page.title}</div>
-                  <div className="rec-because muted" style={FONT_BODY}>
-                    {page.category} · {page.wordCount.toLocaleString()} words
-                  </div>
-                  <div className="rec-trace">
-                    <span className="pill pill-rhythms">updated</span>
-                    <span className="green-up">
-                      {new Date(page.lastModified).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                      })}
+                  <div className="text-base font-semibold text-ink-1">{entry.title}</div>
+                  <div className="text-[13px] leading-relaxed text-ink-3">{entry.tagline}</div>
+                  <div className="mt-auto flex items-center gap-2 pt-2">
+                    <Pill dim="creative">start here</Pill>
+                    <span className="flex items-center gap-1 text-[13px] uppercase tracking-[0.2em] text-dim-creative">
+                      Open
+                      <ArrowRight className="w-3 h-3 transition-transform group-hover:translate-x-0.5" />
                     </span>
                   </div>
-                </div>
-                <div className="rec-meta">
-                  <span className="pill pill-relationships">{qualityLabel(page.quality)}</span>
-                </div>
-              </Link>
-            ))}
+                </Link>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+
+        {groups.length > 0 && (
+          <div>
+            <SectionHeading icon={Compass}>Browse by Section</SectionHeading>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {groups.map((group) => {
+                const firstChild = group.children?.find((c) => c.slug);
+                const href =
+                  firstChild && firstChild.slug
+                    ? wikiPageUrl(firstChild.category ?? "system-doc", firstChild.slug)
+                    : "#";
+
+                return (
+                  <Link key={group.label} href={href} className={CARD_CLASS}>
+                    <div className="flex items-center justify-between gap-2">
+                      <div
+                        className="text-[12px] font-semibold uppercase tracking-[0.12em] text-ink-3"
+                        style={{ fontFamily: "'concourse-c3', 'concourse-t3', sans-serif" }}
+                      >
+                        {group.label}
+                      </div>
+                      {group.count !== undefined && (
+                        <Pill dim="freedom" className="tabular-nums">
+                          {group.count}
+                        </Pill>
+                      )}
+                    </div>
+                    <div className="text-[13px] text-ink-3 leading-relaxed line-clamp-2">
+                      {(group.children ?? [])
+                        .filter((c) => c.slug)
+                        .slice(0, 3)
+                        .map((c) => c.label)
+                        .join(" · ")}
+                      {(group.children?.length ?? 0) > 3 && " · …"}
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {data.recentChanges.length > 0 && (
+          <div>
+            <SectionHeading icon={Sparkles}>Recently Updated</SectionHeading>
+            <Panel className="p-0">
+              <div className="divide-y divide-line-1">
+                {data.recentChanges.slice(0, 6).map((page, index) => (
+                  <Link
+                    key={page.slug}
+                    href={wikiPageUrl(page.category, page.slug)}
+                    className="flex items-center gap-4 px-5 py-3 hover:bg-surface-3 transition-colors"
+                  >
+                    <div className="mono text-ink-3 tabular-nums shrink-0" style={{ fontSize: 13 }}>
+                      {index + 1}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-ink-1" style={{ fontSize: 14 }}>
+                        {page.title}
+                      </div>
+                      <div className="text-ink-3" style={{ fontSize: 13 }}>
+                        {page.category} · {page.wordCount.toLocaleString()} words
+                      </div>
+                    </div>
+                    <div className="hidden sm:flex items-center gap-2 shrink-0">
+                      <Pill dim="rhythms">updated</Pill>
+                      <span className="text-ink-3 tabular-nums" style={{ fontSize: 12 }}>
+                        {new Date(page.lastModified).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                        })}
+                      </span>
+                    </div>
+                    <Pill dim="relationships" className="shrink-0">
+                      {qualityLabel(page.quality)}
+                    </Pill>
+                  </Link>
+                ))}
+              </div>
+            </Panel>
+          </div>
+        )}
+      </PageShell>
     </div>
   );
 }
@@ -341,7 +283,8 @@ function DocsPageInner() {
   if (isViewing && docDetail) {
     return (
       <div className="flex h-full">
-        <div className="flex-1 overflow-y-auto p-6 max-w-4xl">
+        {/* inline flex: `flex-1` here loses its grow to an unlayered CSS rule and collapses the body to width 0 — inline restores it */}
+        <div className="flex-1 overflow-y-auto p-6 max-w-4xl" style={{ flex: "1 1 auto", minWidth: 0 }}>
           <MarkdownRenderer content={docDetail.content} />
         </div>
         <WikiMeta
@@ -364,9 +307,7 @@ function DocsPageInner() {
 
   return (
     <div className="flex items-center justify-center h-full">
-      <div className="text-base text-slate-600" style={FONT_BODY}>
-        Loading...
-      </div>
+      <div className="text-sm text-ink-3">Loading...</div>
     </div>
   );
 }
@@ -376,9 +317,7 @@ export default function DocsPage() {
     <Suspense
       fallback={
         <div className="flex items-center justify-center h-full">
-          <div className="text-base text-slate-600" style={FONT_BODY}>
-            Loading...
-          </div>
+          <div className="text-sm text-ink-3">Loading...</div>
         </div>
       }
     >

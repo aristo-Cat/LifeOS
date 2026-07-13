@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 /**
+ * @version 1.1.4
  * EgressClassGuard.hook.ts — PreToolUse Bash gate for the LifeOS data-class
  * routing matrix (LIFEOS/DOCUMENTATION/Security/DataClassification.md).
  *
@@ -65,20 +66,23 @@ function denyMessage(d: { route?: { source?: string; model?: string }; ceiling?:
   ].join("\n");
 }
 
-function main(): never {
-  let input: HookInput;
-  try {
-    input = JSON.parse(readFileSync(0, "utf-8")) as HookInput;
-  } catch {
-    process.exit(0); // can't parse → not our concern
-  }
-
+/**
+ * Pure check for PreToolGuard dispatch. Returns a block decision or null (allow).
+ * FAIL-CLOSED when classification throws on a command matching the Tier-2
+ * signature (OpenRouter.ts/Cerberus.ts) — the OPPOSITE of the other guards, and
+ * MUST be preserved through consolidation. NOTE: normal data-class routing
+ * (detectRoute/GENE_EXEC in egress-class-core) currently recognizes only the
+ * `bun|bunx … OpenRouter.ts` shape; a well-formed Cerberus.ts call that does not
+ * throw is not class-gated yet (pre-existing core gap, Forge audit 2026-07-11).
+ * For everything else (non-Tier-2, parse error) it allows. Owns its own logging.
+ */
+export function check(input: HookInput): { block: true; message: string } | null {
   const cmd = input?.tool_input?.command;
-  if (typeof cmd !== "string" || !cmd) process.exit(0);
+  if (typeof cmd !== "string" || !cmd) return null;
 
   try {
     const decision = evaluateEgress(cmd);
-    if (!decision.route) process.exit(0); // not a Tier-2 inference call
+    if (!decision.route) return null; // not a Tier-2 inference call
 
     if (decision.block) {
       logEvent({
@@ -86,8 +90,7 @@ function main(): never {
         source: decision.route.source, model: decision.route.model,
         ceiling: decision.ceiling, payload_class: decision.payloadClass, reason: decision.reason,
       });
-      process.stderr.write(denyMessage(decision));
-      process.exit(2);
+      return { block: true, message: denyMessage(decision) };
     }
 
     logEvent({
@@ -95,17 +98,29 @@ function main(): never {
       source: decision.route.source, model: decision.route.model,
       ceiling: decision.ceiling, payload_class: decision.payloadClass,
     });
-    process.exit(0);
+    return null;
   } catch (err) {
     // Error during evaluation. If it LOOKS like a Tier-2 call, fail CLOSED.
     if (/\bOpenRouter\.ts\b|\bCerberus\.ts\b/.test(cmd)) {
       logEvent({ action: "fail-closed", error: String(err) });
-      process.stderr.write("\n  EgressClassGuard: classification error on a Tier-2 call — BLOCKED (fail-closed).\n");
-      process.exit(2);
+      return { block: true, message: "\n  EgressClassGuard: classification error on a Tier-2 call — BLOCKED (fail-closed).\n" };
     }
     logEvent({ action: "fail-open", error: String(err) });
-    process.exit(0);
+    return null;
   }
 }
 
-main();
+if (import.meta.main) {
+  let input: HookInput;
+  try {
+    input = JSON.parse(readFileSync(0, "utf-8")) as HookInput;
+  } catch {
+    process.exit(0); // can't parse → not our concern
+  }
+  const result = check(input);
+  if (result?.block) {
+    process.stderr.write(result.message);
+    process.exit(2);
+  }
+  process.exit(0);
+}

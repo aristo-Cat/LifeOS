@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { wikiPageUrl } from "@/lib/wiki-links";
 import KnowledgeGraph from "@/components/wiki/KnowledgeGraph";
 import { Network } from "lucide-react";
+import { PageShell, Pill } from "@/components/ui/chrome";
 
 interface GraphData {
   nodes: Array<{
@@ -40,7 +41,7 @@ export default function GraphPage() {
   if (isLoading || !data) {
     return (
       <div className="flex items-center justify-center h-full">
-        <div className="text-xs text-slate-600" style={{ fontFamily: "'concourse-t3', sans-serif" }}>
+        <div className="text-xs text-ink-3" style={{ fontFamily: "'concourse-t3', sans-serif" }}>
           Loading graph...
         </div>
       </div>
@@ -48,34 +49,32 @@ export default function GraphPage() {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <PageShell fullBleed className="h-full">
       {/* Header bar */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-800/50 bg-slate-950/80 shrink-0">
-        <Network className="w-4 h-4 text-violet-400" />
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-line-2 bg-surface-1 shrink-0">
+        <Network className="w-4 h-4 text-dim-relationships" />
         <h1
-          className="text-sm font-medium text-white tracking-wide"
-          style={{ fontFamily: "'advocate-c14', sans-serif" }}
+          className="text-[12px] font-semibold uppercase tracking-[0.12em] text-ink-3"
+          style={{ fontFamily: "'concourse-c3', 'concourse-t3', sans-serif" }}
         >
           KNOWLEDGE GRAPH
         </h1>
-        <span className="text-[13px] text-slate-600 ml-2" style={{ fontFamily: "'concourse-t3', sans-serif" }}>
+        <span className="text-[13px] text-ink-3 ml-2" style={{ fontFamily: "'concourse-t3', sans-serif" }}>
           {data.nodes.length} nodes · {data.edges.length} edges
         </span>
 
-        {/* Legend */}
-        <div className="ml-auto flex items-center gap-4">
+        {/* Legend — dot colors are the graph node color scale (intentional) */}
+        <div className="ml-auto flex items-center gap-1.5">
           {[
             { label: "System", color: "#22d3ee" },
             { label: "People", color: "#38bdf8" },
             { label: "Companies", color: "#fbbf24" },
             { label: "Ideas", color: "#a78bfa" },
           ].map((item) => (
-            <div key={item.label} className="flex items-center gap-1.5">
-              <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
-              <span className="text-[13px] text-slate-500" style={{ fontFamily: "'concourse-t3', sans-serif" }}>
-                {item.label}
-              </span>
-            </div>
+            <Pill key={item.label} dim="neutral">
+              <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+              {item.label}
+            </Pill>
           ))}
         </div>
       </div>
@@ -88,6 +87,6 @@ export default function GraphPage() {
           onNodeClick={handleNodeClick}
         />
       </div>
-    </div>
+    </PageShell>
   );
 }

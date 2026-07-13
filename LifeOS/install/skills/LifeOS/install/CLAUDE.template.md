@@ -14,7 +14,7 @@
 
 ## Constitutional layer
 
-Constitutional rules, mode architecture, mode templates (NATIVE / ALGORITHM / MINIMAL field structures), effort overrides (`/e1`–`/e5`), verification doctrine, hard prohibitions, security protocol, and operational rules all live in the system prompt: `LIFEOS/LIFEOS_SYSTEM_PROMPT.md`. When this file and the system prompt disagree, the system prompt wins.
+Constitutional rules, the unified response format, verification doctrine, hard prohibitions, security protocol, and operational rules all live in the system prompt: `LIFEOS/LIFEOS_SYSTEM_PROMPT.md`. When this file and the system prompt disagree, the system prompt wins.
 
 This file is the **routing table** — it tells you where everything lives. The only mandatory startup `@`-import shipped with public LifeOS is `ARCHITECTURE_SUMMARY`. The five identity files (`PRINCIPAL_TELOS`, `PRINCIPAL_IDENTITY`, `DA_IDENTITY`, `PROJECTS`, `OPERATIONAL_RULES`) are commented out above — the agentic `/lifeos-setup` (via `Tools/ActivateImports.ts`) uncomments them once the principal's USER scaffold is populated. Claude Code does not follow transitive `@`-imports from inside imported files, so each identity file must be listed here at top level. Everything below is **on-demand** lookup. Paths are relative to `~/.claude/` unless noted.
 
@@ -22,11 +22,10 @@ This file is the **routing table** — it tells you where everything lives. The 
 
 - **Life OS thesis** — `LifeOs/LifeOsThesis.md` (canonical source of truth)
 - **Life OS schema** — `LifeOs/LifeOsSchema.md` (biography-flat, PascalCase, frontmatter contract)
-- **System prompt** — `LIFEOS/LIFEOS_SYSTEM_PROMPT.md` (loaded via `--append-system-prompt-file`; home of mode templates and constitutional rules)
+- **System prompt** — `LIFEOS/LIFEOS_SYSTEM_PROMPT.md` (loaded via `--append-system-prompt-file`; home of the constitutional rules and response format)
 - **System architecture** — `LifeosSystemArchitecture.md` (master doc)
 - **Architecture summary** — `ARCHITECTURE_SUMMARY.md` (loaded via @-import)
-- Algorithm — `Algorithm/AlgorithmSystem.md`
-- Algorithm modes (canonical) — `LIFEOS/ALGORITHM/modes/README.md`
+- Algorithm (the unified thinking system) — `Algorithm/AlgorithmSystem.md`
 - Memory — `Memory/MemorySystem.md`
 - Skills — `Skills/SkillSystem.md`
 - Hooks — `Hooks/HookSystem.md`
@@ -53,7 +52,7 @@ This file is the **routing table** — it tells you where everything lives. The 
 - Testing doctrine — `Testing/TestingDoctrine.md`
 - System/user boundary — `SystemUserBoundary.md` (which files are SYSTEM, which are USER, how the boundary is enforced)
 - AI writing patterns (system-level reference) — `Writing/AIWritingPatterns.md`
-- Browser automation — `Skill("Browser")` batch scraping; `Skill("Interceptor")` verification (mandatory)
+- Browser automation — `Skill("Interceptor")` (real Chrome, mandatory for verification)
 - Claude Code knowledge — `Agent(subagent_type="claude-code-guide")`
 
 ## Principal — Identity & Voice (paths under `LIFEOS/USER/`)

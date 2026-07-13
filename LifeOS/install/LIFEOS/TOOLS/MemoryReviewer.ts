@@ -46,6 +46,7 @@ import { add as memoryAdd, type AddResult } from "./MemorySystem";
 import { read as memoryWriterRead } from "./MemoryWriter";
 import { isKnownType, type TypedItem } from "./MemoryTypes";
 import { inference } from "./Inference";
+import { getPrincipalName, getDAName } from "../../hooks/lib/identity";
 import {
   applyProposalEdit,
   markProposal,
@@ -334,6 +335,34 @@ export function buildReviewerUserPrompt(exchanges: Exchange[], currentMemory?: C
   return lines.join("\n");
 }
 
+/**
+ * Resolve {{PRINCIPAL_NAME}} / {{DA_NAME}} placeholders to the installed identity.
+ *
+ * The release scrubber (ShadowRelease's identity map) rewrites the author's names
+ * to these placeholders in every shipped file, so a fresh install's reviewer
+ * prompts arrive full of literal `{{…}}` braces that nothing substituted — the
+ * model was handed raw placeholders. Substitute them at prompt-build time from the
+ * canonical loader (PRINCIPAL_IDENTITY.md core.name / settings.json daidentity.name),
+ * guarding against empty or still-braced values with a neutral fallback so an
+ * un-interviewed install never leaks a placeholder into the prompt. No-op in the
+ * live tree, where the prompt carries real names and no placeholders.
+ */
+export function renderNames(text: string): string {
+  const safe = (fn: () => string, fallback: string): string => {
+    try {
+      const n = (fn() || "").trim();
+      return n.length > 0 && !n.includes("{{") && !n.includes("}}") ? n : fallback;
+    } catch {
+      return fallback;
+    }
+  };
+  const principal = safe(getPrincipalName, "the principal");
+  const assistant = safe(getDAName, "the assistant");
+  return text
+    .replace(/\{\{\s*PRINCIPAL_NAME\s*\}\}/g, principal)
+    .replace(/\{\{\s*DA_NAME\s*\}\}/g, assistant);
+}
+
 // ── Output parsing ──
 
 export interface ReviewerOutput {
@@ -527,9 +556,13 @@ export async function review(opts: ReviewOptions = {}): Promise<ReviewResult> {
   // 3. Build prompt — inject CURRENT memory state so the reviewer curates
   //    against reality (the op:"set" path REPLACES, so it must see what's there).
   const snapshot = readCurrentMemorySnapshot();
-  const userPrompt = buildReviewerUserPrompt(exchanges, snapshot);
+  // Resolve {{PRINCIPAL_NAME}} / {{DA_NAME}} placeholders (present in shipped
+  // installs after the release scrubber) to the configured identity before the
+  // prompts reach the model. No-op in the live tree.
+  const systemPrompt = renderNames(REVIEWER_SYSTEM_PROMPT);
+  const userPrompt = renderNames(buildReviewerUserPrompt(exchanges, snapshot));
   writeRunDebug(runId, {
-    "prompt.system.md": REVIEWER_SYSTEM_PROMPT,
+    "prompt.system.md": systemPrompt,
     "prompt.user.md": userPrompt,
     "transcript.txt": `Source: ${transcript}\nExchanges: ${exchanges.length}\n`,
   });
@@ -543,7 +576,7 @@ export async function review(opts: ReviewOptions = {}): Promise<ReviewResult> {
   } else {
     const startedAt = Date.now();
     const result = await inference({
-      systemPrompt: REVIEWER_SYSTEM_PROMPT,
+      systemPrompt,
       userPrompt,
       level: "medium",
       expectJson: false,         // we parse ourselves for tolerance

@@ -1,6 +1,12 @@
+---
+version: 1.5.11
+---
+
 > **LifeOS 6.0.0** --- This system is under active development. APIs, configuration formats, and features may change without notice.
 
 # Arbol System
+
+> **Private infrastructure — not included in the public LifeOS release.** This document describes cloud infrastructure the maintainer runs privately. No Arbol implementation (workers, flows, actions) ships with the OSS release; it's reference documentation for how the architecture works, and a blueprint if you want to build your own.
 
 > Arbol is the LifeOS running while you sleep. The hill-climb (`LifeOs/LifeOsThesis.md`) doesn't pause when the laptop closes — scheduled flows watch sources, transform signals, and push state changes from the edge, so the OS's picture of current state keeps refreshing without a session open.
 

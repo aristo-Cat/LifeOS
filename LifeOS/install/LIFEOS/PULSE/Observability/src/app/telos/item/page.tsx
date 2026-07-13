@@ -277,7 +277,7 @@ function ItemView() {
 
 export default function TelosItemPage() {
   return (
-    <Suspense fallback={<div style={{ padding: 40, color: "#E8EFFF" }}>Loading…</div>}>
+    <Suspense fallback={<div style={{ padding: 40, color: "var(--ink-1)" }}>Loading…</div>}>
       <ItemView />
     </Suspense>
   );

@@ -53,7 +53,7 @@ export default function EventTimeline({
       )}
 
       {/* Column Headers */}
-      <div className="flex items-center justify-between gap-3 px-4 py-2 text-xs font-medium text-[#565f89] uppercase tracking-wide">
+      <div className="flex items-center justify-between gap-3 px-4 py-2 text-xs font-medium text-[var(--ink-3)] uppercase tracking-wide">
         <div className="flex items-center gap-2.5 flex-1 min-w-0">
           <span className="w-20">Agent</span>
           <span className="w-24">Hook</span>
@@ -68,13 +68,13 @@ export default function EventTimeline({
         {sortedEvents.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16">
             <div className="bg-white/[0.03] p-6 rounded-2xl mb-4">
-              <Box size={40} className="text-[#414868]" />
+              <Box size={40} className="text-[var(--line-2)]" />
             </div>
-            <p className="text-base font-medium text-[#9aa5ce] mb-1">No events yet</p>
-            <p className="text-sm text-[#414868]">Events will appear here as they stream in</p>
+            <p className="text-base font-medium text-[var(--ink-2)] mb-1">No events yet</p>
+            <p className="text-sm text-[var(--line-2)]">Events will appear here as they stream in</p>
           </div>
         ) : (
-          <div className="space-y-1.5 divide-y divide-[#565f89]/10">
+          <div className="space-y-1.5 divide-y divide-[rgba(107,128,171,0.1)]">
             {sortedEvents.map((event) => (
               <EventRow key={`${event.id}-${event.timestamp}`} event={event} />
             ))}

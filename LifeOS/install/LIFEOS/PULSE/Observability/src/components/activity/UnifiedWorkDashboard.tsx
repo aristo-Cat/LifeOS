@@ -472,7 +472,7 @@ function PhaseGrid({ item }: { item: UnifiedWorkItem }) {
     return (
       <div className="flex items-center gap-2 py-2">
         <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
-        <span className="text-sm text-zinc-500">Active session — awaiting phase data</span>
+        <span className="text-sm text-ink-3">Active session — awaiting phase data</span>
       </div>
     );
   }
@@ -493,10 +493,10 @@ function PhaseGrid({ item }: { item: UnifiedWorkItem }) {
       {item.isActive && totalCriteria > 0 && (
         <div className="flex items-center gap-2">
           <Target className="w-5 h-5 text-blue-400 shrink-0" />
-          <span className="text-base text-zinc-400 font-medium">ISC</span>
-          <span className="text-base font-mono text-zinc-300">
+          <span className="text-base text-ink-2 font-medium">ISC</span>
+          <span className="text-base font-mono text-ink-1">
             {passingCriteria}
-            <span className="text-zinc-600">/{totalCriteria}</span>
+            <span className="text-ink-3">/{totalCriteria}</span>
             {failedCriteria > 0 && <span className="text-red-400 ml-1">({failedCriteria} failed)</span>}
           </span>
           <div className="flex-1 max-w-32">
@@ -599,19 +599,19 @@ function PhaseGrid({ item }: { item: UnifiedWorkItem }) {
 
               {/* Phase hover tooltip */}
               {hasTooltipData && (
-                <div className="absolute z-10 hidden group-hover/phase:block bottom-full left-0 mb-2 w-64 p-3 rounded-lg bg-zinc-900 border border-white/[0.08] shadow-xl pointer-events-none">
+                <div className="absolute z-10 hidden group-hover/phase:block bottom-full left-0 mb-2 w-64 p-3 rounded-lg bg-surface-1 border border-white/[0.08] shadow-xl pointer-events-none">
                   <div className="text-xs space-y-1.5">
                     {/* Phase name + duration */}
                     <div className="flex items-center gap-2 mb-2">
                       <Icon className="w-4 h-4" style={{ color }} />
-                      <span className="font-semibold text-zinc-200" style={{ color }}>{meta?.label}</span>
+                      <span className="font-semibold text-ink-1" style={{ color }}>{meta?.label}</span>
                       {entry?.completedAt && (
-                        <span className="ml-auto font-mono text-zinc-400">
+                        <span className="ml-auto font-mono text-ink-2">
                           {formatElapsed(entry.completedAt - entry.startedAt)}
                         </span>
                       )}
                       {isCurrent && state && (
-                        <span className="ml-auto font-mono text-zinc-400">
+                        <span className="ml-auto font-mono text-ink-2">
                           {formatElapsed(Date.now() - (state.phaseStartedAt || Date.now()))}
                         </span>
                       )}
@@ -619,41 +619,41 @@ function PhaseGrid({ item }: { item: UnifiedWorkItem }) {
 
                     {/* Phase narrative */}
                     {entry?.phaseNarrative && (
-                      <p className="text-zinc-400 leading-relaxed italic">{entry.phaseNarrative}</p>
+                      <p className="text-ink-2 leading-relaxed italic">{entry.phaseNarrative}</p>
                     )}
 
                     {/* Criteria summary */}
                     {phaseCriteria.length > 0 && (
-                      <div className="text-zinc-400">
+                      <div className="text-ink-2">
                         Criteria:{" "}
                         <span className="text-emerald-400 font-medium">{passedInPhase}</span>
                         {failedInPhase > 0 && (
-                          <><span className="text-zinc-600"> / </span><span className="text-red-400 font-medium">{failedInPhase} failed</span></>
+                          <><span className="text-ink-3"> / </span><span className="text-red-400 font-medium">{failedInPhase} failed</span></>
                         )}
-                        <span className="text-zinc-600"> / </span>
-                        <span className="text-zinc-300">{phaseCriteria.length} total</span>
+                        <span className="text-ink-3"> / </span>
+                        <span className="text-ink-1">{phaseCriteria.length} total</span>
                       </div>
                     )}
 
                     {/* Agents in this phase */}
                     {phaseAgents.length > 0 && (
-                      <div className="text-zinc-400">
-                        <span className="text-zinc-500">Agents:</span>{" "}
-                        <span className="text-zinc-300">{phaseAgents.map((a: any) => `${a.name} (${a.agentType})`).join(", ")}</span>
+                      <div className="text-ink-2">
+                        <span className="text-ink-3">Agents:</span>{" "}
+                        <span className="text-ink-1">{phaseAgents.map((a: any) => `${a.name} (${a.agentType})`).join(", ")}</span>
                       </div>
                     )}
                     {/* Fallback: show agentCount from history entry */}
                     {phaseAgents.length === 0 && (entry?.agentCount ?? 0) > 0 && (
-                      <div className="text-zinc-400">
-                        Agents: <span className="text-zinc-300">{entry!.agentCount} used</span>
+                      <div className="text-ink-2">
+                        Agents: <span className="text-ink-1">{entry!.agentCount} used</span>
                       </div>
                     )}
 
                     {/* Capabilities (show session capabilities for active phase) */}
                     {isCurrent && (state?.capabilities?.length ?? 0) > 0 && (
-                      <div className="text-zinc-400">
-                        <span className="text-zinc-500">Capabilities:</span>{" "}
-                        <span className="text-zinc-300">{state!.capabilities.join(", ")}</span>
+                      <div className="text-ink-2">
+                        <span className="text-ink-3">Capabilities:</span>{" "}
+                        <span className="text-ink-1">{state!.capabilities.join(", ")}</span>
                       </div>
                     )}
                   </div>
@@ -687,7 +687,7 @@ function InteractiveExpandedView({ item }: { item: UnifiedWorkItem }) {
         transition={{ duration: 0.2, ease: "easeInOut" }}
         className="overflow-hidden border-b border-white/[0.06]"
       >
-        <div className="flex items-center gap-3 p-6 text-zinc-400">
+        <div className="flex items-center gap-3 p-6 text-ink-2">
           <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
           <span className="text-sm">Session is actively working — phase tracking starts on next algorithm cycle</span>
         </div>
@@ -722,14 +722,14 @@ function InteractiveExpandedView({ item }: { item: UnifiedWorkItem }) {
               return (
                 <div key={idx} className="flex items-center gap-3 px-2 py-1.5 rounded bg-white/[0.02]">
                   <CheckCircle2 className="w-3 h-3 text-emerald-500/60 shrink-0" />
-                  <span className="text-sm text-zinc-400 truncate flex-1">
+                  <span className="text-sm text-ink-2 truncate flex-1">
                     {prev.taskDescription}
                   </span>
-                  <span className="text-xs font-mono text-zinc-500 shrink-0">
+                  <span className="text-xs font-mono text-ink-3 shrink-0">
                     {prevPassing}/{prevTotal}
                   </span>
                   {prev.summary && (
-                    <span className="text-xs text-zinc-600 truncate max-w-48">
+                    <span className="text-xs text-ink-3 truncate max-w-48">
                       {prev.summary}
                     </span>
                   )}
@@ -781,14 +781,14 @@ function InteractiveExpandedView({ item }: { item: UnifiedWorkItem }) {
                       );
                     })}
                   </div>
-                  <span className="text-xs font-mono text-zinc-500 shrink-0">
+                  <span className="text-xs font-mono text-ink-3 shrink-0">
                     {cyclePassing}/{cycleTotal}
                   </span>
-                  <span className="text-xs text-zinc-600 font-mono shrink-0">
+                  <span className="text-xs text-ink-3 font-mono shrink-0">
                     {cycleDuration}
                   </span>
                   {cycle.summary && (
-                    <span className="text-xs text-zinc-600 truncate max-w-48">
+                    <span className="text-xs text-ink-3 truncate max-w-48">
                       {cycle.summary}
                     </span>
                   )}
@@ -806,7 +806,7 @@ function InteractiveExpandedView({ item }: { item: UnifiedWorkItem }) {
           <span className="text-xs text-amber-400/60">
             {compactionTimes.length} context compaction{compactionTimes.length > 1 ? "s" : ""} during this session
           </span>
-          <span className="text-xs text-zinc-600 ml-auto font-mono">
+          <span className="text-xs text-ink-3 ml-auto font-mono">
             {compactionTimes.map(t => {
               const d = new Date(t);
               return `${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
@@ -873,10 +873,10 @@ function InteractiveExpandedView({ item }: { item: UnifiedWorkItem }) {
                   {meta?.label}
                 </span>
                 {isPast && !isCurrent && (
-                  <CheckCircle2 className="w-3 h-3 text-zinc-600 ml-auto shrink-0" />
+                  <CheckCircle2 className="w-3 h-3 text-ink-3 ml-auto shrink-0" />
                 )}
                 {columnCriteria.length > 0 && (
-                  <span className="text-xs text-zinc-500 ml-auto bg-white/[0.06] px-1.5 py-0.5 rounded shrink-0">
+                  <span className="text-xs text-ink-3 ml-auto bg-white/[0.06] px-1.5 py-0.5 rounded shrink-0">
                     {columnCriteria.length}
                   </span>
                 )}
@@ -886,7 +886,7 @@ function InteractiveExpandedView({ item }: { item: UnifiedWorkItem }) {
               <div className="px-2.5 py-2 border-b border-white/[0.03]">
                 <p
                   className={`text-sm leading-relaxed ${
-                    isCurrent ? "text-zinc-400" : isPast ? "text-zinc-600" : "text-zinc-700"
+                    isCurrent ? "text-ink-2" : isPast ? "text-ink-3" : "text-ink-3"
                   }`}
                 >
                   {meta?.narrative}
@@ -896,8 +896,8 @@ function InteractiveExpandedView({ item }: { item: UnifiedWorkItem }) {
               {/* Timing */}
               {histEntry && (
                 <div className="px-2.5 py-1.5 border-b border-white/[0.03] flex items-center gap-1.5">
-                  <Clock className="w-3.5 h-3.5 text-zinc-600 shrink-0" />
-                  <span className="text-xs text-zinc-600 font-mono">
+                  <Clock className="w-3.5 h-3.5 text-ink-3 shrink-0" />
+                  <span className="text-xs text-ink-3 font-mono">
                     {histEntry.completedAt
                       ? formatElapsed(histEntry.completedAt - histEntry.startedAt)
                       : `${formatElapsed(Date.now() - histEntry.startedAt)}\u2026`}
@@ -908,7 +908,7 @@ function InteractiveExpandedView({ item }: { item: UnifiedWorkItem }) {
               {/* Task context for Observe column when no criteria */}
               {phase === "OBSERVE" && columnCriteria.length === 0 && (state.rawTask || state.taskDescription) && (
                 <div className="px-2.5 py-2">
-                  <p className="text-xs text-zinc-500 leading-relaxed italic line-clamp-4">
+                  <p className="text-xs text-ink-3 leading-relaxed italic line-clamp-4">
                     {state.rawTask || state.taskDescription}
                   </p>
                 </div>
@@ -933,7 +933,7 @@ function InteractiveExpandedView({ item }: { item: UnifiedWorkItem }) {
                               ? "bg-blue-500 animate-pulse"
                               : c.status === "failed"
                               ? "bg-red-500"
-                              : "bg-zinc-500"
+                              : "bg-ink-3"
                           }`}
                         />
                         <span
@@ -948,9 +948,9 @@ function InteractiveExpandedView({ item }: { item: UnifiedWorkItem }) {
                           <CheckCircle2 className="w-3 h-3 text-emerald-500 ml-auto" />
                         )}
                       </div>
-                      <p className="text-sm text-zinc-300 leading-snug">{c.description}</p>
+                      <p className="text-sm text-ink-1 leading-snug">{c.description}</p>
                       {c.evidence && (
-                        <p className="text-xs text-zinc-500 mt-1.5 leading-snug italic line-clamp-3">
+                        <p className="text-xs text-ink-3 mt-1.5 leading-snug italic line-clamp-3">
                           {c.evidence}
                         </p>
                       )}
@@ -965,11 +965,11 @@ function InteractiveExpandedView({ item }: { item: UnifiedWorkItem }) {
                   {phaseAgents.map((a) => (
                     <div
                       key={a.name}
-                      className="text-xs text-zinc-500 flex items-center gap-1.5"
+                      className="text-xs text-ink-3 flex items-center gap-1.5"
                     >
                       <div
                         className={`w-2 h-2 rounded-full shrink-0 ${
-                          a.status === "active" ? "bg-blue-500 animate-pulse" : "bg-zinc-600"
+                          a.status === "active" ? "bg-blue-500 animate-pulse" : "bg-line-3"
                         }`}
                       />
                       <span className="truncate">{a.name}</span>
@@ -1040,23 +1040,23 @@ function WorkerExpandedView({ item }: { item: UnifiedWorkItem }) {
             <span className="text-sm font-medium text-sky-300">{msgCount}</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-xs text-zinc-500">Cost</span>
+            <span className="text-xs text-ink-3">Cost</span>
             <span className="text-sm font-mono text-emerald-400">{cost}</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-xs text-zinc-500">Model</span>
-            <span className="text-sm font-mono text-zinc-300">{model}</span>
+            <span className="text-xs text-ink-3">Model</span>
+            <span className="text-sm font-mono text-ink-1">{model}</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-xs text-zinc-500">Origin</span>
+            <span className="text-xs text-ink-3">Origin</span>
             <span className="flex items-center gap-1 text-sm text-sky-400">
               <Zap className="w-3.5 h-3.5" /> Telegram
             </span>
           </div>
           {state.algorithmStartedAt && (
             <div className="flex items-center gap-2">
-              <Clock className="w-3.5 h-3.5 text-zinc-500" />
-              <span className="text-sm font-mono text-zinc-400">
+              <Clock className="w-3.5 h-3.5 text-ink-3" />
+              <span className="text-sm font-mono text-ink-2">
                 {formatElapsed(Date.now() - state.algorithmStartedAt)}
               </span>
             </div>
@@ -1074,7 +1074,7 @@ function WorkerExpandedView({ item }: { item: UnifiedWorkItem }) {
 
         {/* Summary if completed */}
         {state.summary && (
-          <p className="mt-3 text-xs text-zinc-500 leading-relaxed italic">
+          <p className="mt-3 text-xs text-ink-3 leading-relaxed italic">
             {state.summary}
           </p>
         )}
@@ -1132,7 +1132,7 @@ function WorkRow({
         <span className="text-sm font-medium uppercase tracking-wide text-blue-400/80 truncate flex-1">
           {item.title}
         </span>
-        <span className="text-xs text-zinc-600 shrink-0 tabular-nums">
+        <span className="text-xs text-ink-3 shrink-0 tabular-nums">
           {item.startedAt ? formatElapsed(Date.now() - item.startedAt) : ""}
         </span>
       </div>
@@ -1162,7 +1162,7 @@ function WorkRow({
           </span>
         </div>
         {hasTask && (
-          <p className="text-xs text-zinc-500 truncate pl-[30px]">
+          <p className="text-xs text-ink-3 truncate pl-[30px]">
             {rawTask.length > 120 ? rawTask.slice(0, 120) + "…" : rawTask}
           </p>
         )}
@@ -1187,7 +1187,7 @@ function WorkRow({
       <div className="flex items-center gap-2.5 w-full min-w-0">
         {/* Expand chevron */}
         <motion.div animate={{ rotate: isExpanded ? 90 : 0 }} transition={{ duration: 0.15 }} className="shrink-0">
-          <ChevronRight className="w-4 h-4 text-zinc-500" />
+          <ChevronRight className="w-4 h-4 text-ink-3" />
         </motion.div>
 
         {/* Status indicator */}
@@ -1200,9 +1200,9 @@ function WorkRow({
             <Loader2 className="w-4 h-4 text-blue-400 animate-spin shrink-0" />
           )
         ) : item.isComplete ? (
-          <CheckCircle2 className="w-4 h-4 text-zinc-600 shrink-0" />
+          <CheckCircle2 className="w-4 h-4 text-ink-3 shrink-0" />
         ) : (
-          <div className="w-2 h-2 rounded-full bg-zinc-600 shrink-0" />
+          <div className="w-2 h-2 rounded-full bg-line-3 shrink-0" />
         )}
 
         {/* Title: session name (ALL CAPS) | current action for active */}
@@ -1215,8 +1215,8 @@ function WorkRow({
               : item.isActive
               ? "bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-300 bg-clip-text text-transparent"
               : item.isComplete
-              ? "text-zinc-500"
-              : "text-zinc-200"
+              ? "text-ink-3"
+              : "text-ink-1"
           }`}>
             {item.title}
           </span>
@@ -1228,7 +1228,7 @@ function WorkRow({
             </span>
           )}
           {item.algorithmState?.currentAction && item.isActive && !item.isComplete && !isWorker && !isNative && (
-            <span className="text-xs text-zinc-500 truncate whitespace-nowrap">
+            <span className="text-xs text-ink-3 truncate whitespace-nowrap">
               | {item.algorithmState.currentAction}
             </span>
           )}
@@ -1258,9 +1258,9 @@ function WorkRow({
           <>
             {/* Criteria progress */}
             <div className="flex items-center gap-2 shrink-0">
-              <span className="text-xs font-mono text-zinc-400">
+              <span className="text-xs font-mono text-ink-2">
                 {item.criteriaPassing}
-                <span className="text-zinc-600">/{item.criteriaTotal}</span>
+                <span className="text-ink-3">/{item.criteriaTotal}</span>
               </span>
               <div className="w-14">
                 <Progress
@@ -1270,7 +1270,7 @@ function WorkRow({
                       ? "[&>div]:bg-emerald-500"
                       : item.isActive
                       ? "[&>div]:bg-blue-400"
-                      : "[&>div]:bg-zinc-600"
+                      : "[&>div]:bg-line-3"
                   }`}
                 />
               </div>
@@ -1278,11 +1278,11 @@ function WorkRow({
 
             {/* Loop iterations */}
             {item.type === "loop" && item.iteration !== undefined && (
-              <div className="flex items-center gap-1 text-xs text-zinc-500 shrink-0">
+              <div className="flex items-center gap-1 text-xs text-ink-3 shrink-0">
                 <Repeat className="w-3 h-3" />
                 <span className="font-mono">
                   {item.iteration}
-                  <span className="text-zinc-700">/</span>
+                  <span className="text-ink-3">/</span>
                   {item.maxIterations}
                 </span>
               </div>
@@ -1322,7 +1322,7 @@ function WorkRow({
         )}
 
         {/* Elapsed */}
-        <span className="text-xs text-zinc-600 shrink-0 tabular-nums w-14 text-right">
+        <span className="text-xs text-ink-3 shrink-0 tabular-nums w-14 text-right">
           {item.type === "interactive" && item.startedAt
             ? formatElapsed(Date.now() - item.startedAt)
             : item.updatedAgo || ""}
@@ -1345,30 +1345,30 @@ function WorkRow({
                   <span
                     className={`text-xs font-medium uppercase tracking-wide transition-colors ${
                       isActive
-                        ? `${EFFORT_TEXT_COLORS[level] ?? "text-zinc-300"} font-bold`
-                        : "text-zinc-700"
+                        ? `${EFFORT_TEXT_COLORS[level] ?? "text-ink-1"} font-bold`
+                        : "text-ink-3"
                     }`}
                   >
                     {eLevel && <span className="opacity-60 mr-0.5">{eLevel}</span>}
                     {level}
                   </span>
-                  {level === "Native" && <span className="text-zinc-700 text-xs">|</span>}
+                  {level === "Native" && <span className="text-ink-3 text-xs">|</span>}
                 </Fragment>
               );
             })}
           </div>
 
-          <span className="text-zinc-700 text-xs">|</span>
+          <span className="text-ink-3 text-xs">|</span>
 
           {/* Mode — Interactive / Loop */}
           <div className="flex items-center gap-1.5">
             <span className={`text-xs font-medium uppercase tracking-wide ${
-              item.type === "interactive" ? "text-blue-400 font-bold" : "text-zinc-700"
+              item.type === "interactive" ? "text-blue-400 font-bold" : "text-ink-3"
             }`}>
               Interactive
             </span>
             <span className={`text-xs font-medium uppercase tracking-wide ${
-              item.type === "loop" ? "text-cyan-400 font-bold" : "text-zinc-700"
+              item.type === "loop" ? "text-cyan-400 font-bold" : "text-ink-3"
             }`}>
               Loop
             </span>
@@ -1376,7 +1376,7 @@ function WorkRow({
 
           {item.type === "loop" && item.loopStatus === "running" && (
             <>
-              <span className="text-zinc-700 text-xs">|</span>
+              <span className="text-ink-3 text-xs">|</span>
               <RunningIndicator />
             </>
           )}
@@ -1392,7 +1392,7 @@ function WorkRow({
               <span className="text-xs text-sky-400/60">Active conversation via Telegram</span>
             </div>
           ) : item.summary ? (
-            <span className="text-xs text-zinc-500 truncate block">{item.summary}</span>
+            <span className="text-xs text-ink-3 truncate block">{item.summary}</span>
           ) : null
         ) : isNative ? (
           <div className="flex flex-col gap-0.5 py-0.5">
@@ -1405,7 +1405,7 @@ function WorkRow({
               </div>
             )}
             {item.algorithmState?.rawTask && (
-              <span className={`text-xs truncate ${item.isActive ? "text-zinc-500" : "text-zinc-600"}`}>
+              <span className={`text-xs truncate ${item.isActive ? "text-ink-3" : "text-ink-3"}`}>
                 {item.algorithmState.rawTask}
               </span>
             )}
@@ -1413,7 +1413,7 @@ function WorkRow({
         ) : item.type === "interactive" && item.algorithmState && item.isActive && !item.isComplete ? (
           <PhaseGrid item={item} />
         ) : item.summary ? (
-          <span className="text-xs text-zinc-500 truncate block">{item.summary}</span>
+          <span className="text-xs text-ink-3 truncate block">{item.summary}</span>
         ) : null}
       </div>
     </button>
@@ -1492,8 +1492,8 @@ function LoopExpandedView({
         {isa.statusTable && Object.keys(isa.statusTable).length > 0 && (
           <div className="ml-auto flex items-center gap-2">
             {Object.entries(isa.statusTable).slice(0, 4).map(([key, value]) => (
-              <span key={key} className="text-xs font-mono text-zinc-500 bg-zinc-800/50 px-2 py-0.5 rounded">
-                {key}: <span className="text-zinc-400">{value}</span>
+              <span key={key} className="text-xs font-mono text-ink-3 bg-[rgba(20,28,56,0.5)] px-2 py-0.5 rounded">
+                {key}: <span className="text-ink-2">{value}</span>
               </span>
             ))}
           </div>
@@ -1506,19 +1506,19 @@ function LoopExpandedView({
           {isa.problem && (
             <div className="space-y-1.5">
               <div className="flex items-center gap-1.5">
-                <Target className="w-3 h-3 text-zinc-600" />
-                <span className="text-xs text-zinc-600 uppercase tracking-wider font-medium">Problem</span>
+                <Target className="w-3 h-3 text-ink-3" />
+                <span className="text-xs text-ink-3 uppercase tracking-wider font-medium">Problem</span>
               </div>
-              <p className="text-sm text-zinc-400 leading-relaxed pl-[18px]">{isa.problem}</p>
+              <p className="text-sm text-ink-2 leading-relaxed pl-[18px]">{isa.problem}</p>
             </div>
           )}
           {isa.approach && (
             <div className="space-y-1.5">
               <div className="flex items-center gap-1.5">
-                <Zap className="w-3 h-3 text-zinc-600" />
-                <span className="text-xs text-zinc-600 uppercase tracking-wider font-medium">Approach</span>
+                <Zap className="w-3 h-3 text-ink-3" />
+                <span className="text-xs text-ink-3 uppercase tracking-wider font-medium">Approach</span>
               </div>
-              <p className="text-sm text-zinc-400 leading-relaxed pl-[18px]">{isa.approach}</p>
+              <p className="text-sm text-ink-2 leading-relaxed pl-[18px]">{isa.approach}</p>
             </div>
           )}
         </div>
@@ -1529,9 +1529,9 @@ function LoopExpandedView({
         {/* Criteria */}
         <div className="px-4 py-3">
           <div className="flex items-center gap-1.5 mb-3">
-            <BookOpen className="w-3 h-3 text-zinc-600" />
-            <span className="text-xs text-zinc-600 uppercase tracking-wider font-medium">Criteria</span>
-            <span className="text-xs font-mono text-zinc-600 ml-auto">
+            <BookOpen className="w-3 h-3 text-ink-3" />
+            <span className="text-xs text-ink-3 uppercase tracking-wider font-medium">Criteria</span>
+            <span className="text-xs font-mono text-ink-3 ml-auto">
               {passingCriteria}/{totalCriteria}
             </span>
           </div>
@@ -1547,13 +1547,13 @@ function LoopExpandedView({
                   className={`shrink-0 w-4 h-4 rounded mt-0.5 flex items-center justify-center ${
                     c.passing
                       ? "bg-emerald-500/20 border border-emerald-500/40"
-                      : "bg-zinc-800 border border-zinc-700"
+                      : "bg-surface-2 border border-line-2"
                   }`}
                 >
                   {c.passing && <Check className="w-2.5 h-2.5 text-emerald-400" strokeWidth={3} />}
                 </div>
-                <span className={`text-sm leading-relaxed ${c.passing ? "text-zinc-300" : "text-zinc-500"}`}>
-                  <span className="font-mono text-xs text-zinc-600 mr-1.5">{c.id}</span>
+                <span className={`text-sm leading-relaxed ${c.passing ? "text-ink-1" : "text-ink-3"}`}>
+                  <span className="font-mono text-xs text-ink-3 mr-1.5">{c.id}</span>
                   {c.text}
                 </span>
               </div>
@@ -1564,24 +1564,24 @@ function LoopExpandedView({
         {/* Log */}
         <div className="px-4 py-3">
           <div className="flex items-center gap-1.5 mb-3">
-            <Activity className="w-3 h-3 text-zinc-600" />
-            <span className="text-xs text-zinc-600 uppercase tracking-wider font-medium">Activity Log</span>
+            <Activity className="w-3 h-3 text-ink-3" />
+            <span className="text-xs text-ink-3 uppercase tracking-wider font-medium">Activity Log</span>
           </div>
           {isa.logEntries && isa.logEntries.length > 0 ? (
             <div className="relative">
-              <div className="absolute left-[7px] top-2 bottom-2 w-px bg-zinc-800" />
+              <div className="absolute left-[7px] top-2 bottom-2 w-px bg-surface-2" />
               <div className="space-y-3">
                 {isa.logEntries.map((entry, i) => (
                   <div key={i} className="flex items-start gap-3 relative">
                     <div
                       className={`shrink-0 w-[15px] h-[15px] rounded-full border-2 mt-0.5 z-10 ${
-                        i === 0 ? "bg-blue-500/20 border-blue-400" : "bg-zinc-900 border-zinc-700"
+                        i === 0 ? "bg-blue-500/20 border-blue-400" : "bg-surface-1 border-line-2"
                       }`}
                     />
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-zinc-300 leading-snug">{entry.title}</p>
+                      <p className="text-sm font-medium text-ink-1 leading-snug">{entry.title}</p>
                       {entry.content && (
-                        <p className="text-xs text-zinc-500 leading-relaxed mt-0.5 line-clamp-2">{entry.content}</p>
+                        <p className="text-xs text-ink-3 leading-relaxed mt-0.5 line-clamp-2">{entry.content}</p>
                       )}
                     </div>
                   </div>
@@ -1589,11 +1589,11 @@ function LoopExpandedView({
               </div>
             </div>
           ) : isa.lastLogEntry ? (
-            <pre className="text-sm text-zinc-500 whitespace-pre-wrap leading-relaxed font-mono px-2">
+            <pre className="text-sm text-ink-3 whitespace-pre-wrap leading-relaxed font-mono px-2">
               {isa.lastLogEntry}
             </pre>
           ) : (
-            <p className="text-sm text-zinc-600 italic px-2">No log entries yet</p>
+            <p className="text-sm text-ink-3 italic px-2">No log entries yet</p>
           )}
         </div>
       </div>
@@ -1615,8 +1615,8 @@ function IdleContent() {
         />
       </div>
       <div className="px-6 py-5 border-b border-white/[0.04]">
-        <h2 className="text-lg font-bold text-zinc-300 mb-1">The LifeOS Algorithm</h2>
-        <p className="text-sm text-zinc-500 leading-relaxed max-w-2xl">
+        <h2 className="text-lg font-bold text-ink-1 mb-1">The LifeOS Algorithm</h2>
+        <p className="text-sm text-ink-3 leading-relaxed max-w-2xl">
           A 7-phase scientific loop that hill-climbs from current state to ideal state.
           Every task is decomposed into Ideal State Criteria (ISC) {"\u2014"} granular, binary, testable conditions
           that become the verification criteria. No ambiguity. No hand-waving. Just evidence.
@@ -1637,14 +1637,14 @@ function IdleContent() {
                     {phase.name}
                   </span>
                 </div>
-                <p className="text-sm text-zinc-600 leading-relaxed flex-1">{phase.description}</p>
+                <p className="text-sm text-ink-3 leading-relaxed flex-1">{phase.description}</p>
               </div>
             );
           })}
         </div>
       </div>
       <div className="px-6 py-3 border-t border-white/[0.04] text-center">
-        <p className="text-sm text-zinc-600">
+        <p className="text-sm text-ink-3">
           Waiting for algorithm runs or loops. Active work will appear as rows above.
         </p>
       </div>
@@ -1892,7 +1892,7 @@ export default function UnifiedWorkDashboard() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-full text-zinc-500">
+      <div className="flex items-center justify-center h-full text-ink-3">
         <Loader2 className="w-4 h-4 animate-spin mr-2" />
         <span className="text-sm">Loading work...</span>
       </div>
@@ -1930,18 +1930,18 @@ export default function UnifiedWorkDashboard() {
           {completeCount > 0 && (
             <div className="flex items-center gap-1.5 text-xs">
               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-              <span className="font-medium text-zinc-400">{completeCount}</span>
-              <span className="text-zinc-500">done</span>
+              <span className="font-medium text-ink-2">{completeCount}</span>
+              <span className="text-ink-3">done</span>
             </div>
           )}
 
-          <Separator orientation="vertical" className="h-4 bg-zinc-800" />
+          <Separator orientation="vertical" className="h-4 bg-surface-2" />
 
           <div className="flex items-center gap-2 text-xs">
-            <span className="text-zinc-500">Criteria:</span>
-            <span className="font-mono text-zinc-300">{passingCriteria}/{totalCriteria}</span>
+            <span className="text-ink-3">Criteria:</span>
+            <span className="font-mono text-ink-1">{passingCriteria}/{totalCriteria}</span>
             <div className="w-20">
-              <Progress value={overallPct} className="h-1.5 [&>div]:bg-zinc-400" />
+              <Progress value={overallPct} className="h-1.5 [&>div]:bg-ink-2" />
             </div>
           </div>
         </div>
@@ -1957,7 +1957,7 @@ export default function UnifiedWorkDashboard() {
           </button>
           <button
             onClick={fetchISAs}
-            className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300 transition-colors px-2 py-1 rounded-md hover:bg-white/[0.04]"
+            className="flex items-center gap-1.5 text-xs text-ink-3 hover:text-ink-1 transition-colors px-2 py-1 rounded-md hover:bg-white/[0.04]"
           >
             <RefreshCw className="w-3.5 h-3.5" />
             Refresh
@@ -1971,14 +1971,14 @@ export default function UnifiedWorkDashboard() {
           <button
             key={opt.value}
             onClick={() => setActivityFilter(opt.value)}
-            className={`px-2.5 py-1 rounded text-sm font-medium transition-colors ${
+            className={`px-3 py-1 rounded-full text-[13px] font-medium transition-colors border ${
               activityFilter === opt.value
                 ? opt.value === "algorithm"
-                  ? "bg-purple-500/15 text-purple-400 border border-purple-500/25"
+                  ? "bg-[rgba(183,148,244,0.14)] text-dim-relationships border-[rgba(183,148,244,0.3)]"
                   : opt.value === "native"
-                  ? "bg-blue-500/15 text-blue-400 border border-blue-500/25"
-                  : "bg-white/[0.06] text-zinc-300 border border-white/[0.08]"
-                : "text-zinc-500 hover:text-zinc-400 hover:bg-white/[0.03] border border-transparent"
+                  ? "bg-[rgba(59,130,246,0.15)] text-ink-1 border-[rgba(154,203,255,0.3)]"
+                  : "bg-[rgba(168,165,200,0.10)] text-ink-1 border-[rgba(168,165,200,0.22)]"
+                : "bg-[rgba(168,165,200,0.05)] text-ink-3 hover:text-ink-2 border-transparent"
             }`}
           >
             {opt.label}
@@ -2095,7 +2095,7 @@ export default function UnifiedWorkDashboard() {
                   <div className="px-4 py-1.5 flex items-center gap-2 border-b border-white/[0.06] bg-white/[0.02]">
                     <Loader2 className="w-3.5 h-3.5 text-blue-400 animate-spin" />
                     <span className="text-sm font-semibold uppercase tracking-wider text-blue-400">Active</span>
-                    <span className="text-xs text-zinc-600 ml-auto">{filteredAlgo.length}</span>
+                    <span className="text-xs text-ink-3 ml-auto">{filteredAlgo.length}</span>
                   </div>
                   {filteredAlgo.map(renderAlgorithmItem)}
                 </div>
@@ -2123,8 +2123,8 @@ export default function UnifiedWorkDashboard() {
                   <div className="px-4 py-1.5 flex items-center gap-2 border-b border-white/[0.04] bg-white/[0.01]">
                     <CheckCircle2 className="w-3 h-3 text-emerald-600" />
                     <span className="text-sm font-semibold uppercase tracking-wider text-emerald-500/70">Completed</span>
-                    <span className="text-xs text-zinc-600 ml-1">last 24h</span>
-                    <span className="text-xs text-zinc-700 ml-auto">{filteredCompleted.length}</span>
+                    <span className="text-xs text-ink-3 ml-1">last 24h</span>
+                    <span className="text-xs text-ink-3 ml-auto">{filteredCompleted.length}</span>
                   </div>
                   {filteredCompleted.map(renderCompletedItem)}
                 </div>

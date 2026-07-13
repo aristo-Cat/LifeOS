@@ -6,7 +6,7 @@ Open Chrome's dedicated non-default profile in its own window for Interceptor li
 
 - Any live-testing command (VerifyDeploy, Reproduce, TestForm, ReadAndExtract, RecordFlow, MultiPageCompare, OverrideXhr) that touches a page.
 - Default for everything the agent does in a browser.
-- Especially anything that needs to be signed in to the operator's services (blog admin, Cloudflare dashboard, Gmail, GitHub, ULAdmin, etc.) — that's why this isn't a `--user-data-dir` sandbox.
+- Especially anything that needs to be signed in to the operator's services (blog admin, Cloudflare dashboard, Gmail, GitHub, your admin dashboards, etc.) — that's why this isn't a `--user-data-dir` sandbox.
 
 ## Why not a `--user-data-dir` sandbox
 
@@ -31,7 +31,7 @@ Chrome creates a new profile directory inside the existing user-data-dir, typica
 In the new profile window:
 
 - Sign into Google with the operator's account (or a delegated account that has access to whatever you need to test).
-- Sign into other services the agent will be verifying: GitHub, Cloudflare, Substack, Beehiiv, blog admin, ULAdmin, etc.
+- Sign into other services the agent will be verifying: GitHub, Cloudflare, Substack, Beehiiv, blog admin, your admin dashboards, etc.
 - 2FA each one once — sessions persist in this profile thereafter.
 
 This is the **one-time auth tax**. After this, the agent's testing has the same access as the operator's Default profile, without ever opening tabs there.

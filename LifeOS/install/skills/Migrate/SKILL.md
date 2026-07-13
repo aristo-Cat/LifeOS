@@ -1,6 +1,8 @@
 ---
 name: Migrate
+version: 1.0.10
 description: "Intakes external content, classifies chunks against LifeOS taxonomy, commits with provenance. Sources: .md/.txt, stdin, LifeOS dirs, CLAUDE.md/Cursor/OpenAI Custom Instructions, Obsidian/Notion/Apple Notes exports. MigrateScan classifies → routing table. MigrateApprove with --approve-all/--approve-target/--review/--dry-run. Confidence ≥70% auto, 40-70% confirm, <40% walk-through. USE WHEN /migrate, migrate content, import from other LifeOS, bring in old notes, import Cursor rules, import CLAUDE.md, bulk import, Obsidian/Notion/Apple Notes import. NOT FOR single-file edits, conversational interviews, identity edits."
+disable-model-invocation: true
 ---
 
 # Migrate — external-content intake and classification
@@ -20,7 +22,7 @@ Migrate intakes external content, classifies each chunk against the LifeOS taxon
 
 ## The Problem
 
-When you adopt LifeOS you usually arrive with years of accumulated notes — a CLAUDE.md, a vault of markdown, journal dumps, rules from another tool — and none of it maps cleanly onto LifeOS's structure. Sorting hundreds of chunks into TELOS sections, knowledge notes, and feedback rules by hand is the kind of tedious work that never gets done, so the old material just sits there unused. Migrate does the sorting: it reads the content you already have, proposes a destination for every chunk with a confidence score, and lets you approve in bulk or review the uncertain ones, attaching provenance so nothing lands in TELOS without attribution.
+When you adopt LifeOS you usually arrive with years of accumulated notes — a CLAUDE.md, a vault of markdown, journal dumps, rules from another tool — and none of it maps cleanly onto LifeOS's structure. Sorting hundreds of chunks into TELOS sections, knowledge notes, and operational rules by hand is the kind of tedious work that never gets done, so the old material just sits there unused. Migrate does the sorting: it reads the content you already have, proposes a destination for every chunk with a confidence score, and lets you approve in bulk or review the uncertain ones, attaching provenance so nothing lands in TELOS without attribution.
 
 ## How It Works
 
@@ -43,7 +45,7 @@ Migrates content into the LifeOS structure from external sources. Unlike `/inter
 | **Preference files** | BOOKS, AUTHORS, MOVIES, BANDS, RESTAURANTS, FOOD_PREFERENCES, LEARNING, MEETUPS, CIVIC |
 | **Identity** | USER/PRINCIPAL/PRINCIPAL_IDENTITY.md |
 | **Knowledge** | MEMORY/KNOWLEDGE/{Ideas,People,Companies,Research} |
-| **AI collaboration rules** | `memory/feedback_*.md` (for "always do X", "never Y" patterns) |
+| **AI collaboration rules** | Walk-through to a constitutional surface — CLAUDE.md operational rules, a hook, `settings.json`, or the relevant skill's Gotchas ("always do X" / "never Y" patterns are system patches, never harness `memory/feedback_*.md` memos) |
 | **Unclear** | Flagged for the user's manual routing |
 
 ## Workflow Routing
@@ -96,7 +98,7 @@ Found 47 chunks from 3 files. Proposed routing:
   📂 TELOS/WISDOM.md              8 chunks  (65% avg confidence)
   📂 TELOS/BELIEFS.md             6 chunks  (71% avg confidence)
   📂 MEMORY/KNOWLEDGE/Ideas      15 chunks  (52% avg confidence)
-  🧠 memory/feedback              4 chunks  (85% avg confidence)
+  🧠 AI collaboration rules       4 chunks  (walk-through: CLAUDE.md / hook / skill)
   ❓ UNCLEAR                      2 chunks  (needs your call)
 
 Options:
@@ -153,7 +155,7 @@ After approval pass:
 - **Ask before touching identity.** PRINCIPAL_IDENTITY.md commits always prompt — that file is load-bearing.
 - **Don't duplicate.** If the same content already exists in the target (substring match), flag it and ask before appending.
 - **Respect private paths.** Never migrate content into IDEAL_STATE/ without the user's per-dimension call (Decision #3: IDEAL_STATE is fully private and curated).
-- **Feedback memories get new files.** Each `memory/feedback` chunk becomes its own `feedback_migrated_<slug>_<id>.md` file — not appended to an existing memory.
+- **Rules never go to harness memory.** AI collaboration rule chunks are always walked through one by one and routed to a constitutional surface: an operational rule in CLAUDE.md, a hook, a `settings.json` permission, or the relevant skill's Gotchas. Writing them to the harness `memory/feedback_*.md` directory is forbidden — every feedback memo is a missed system patch (see the system prompt's "Override of harness auto-memory").
 - **Knowledge gets new files too.** Each `MEMORY/KNOWLEDGE/*` chunk becomes a new typed note with source metadata.
 
 ## Examples
@@ -164,11 +166,11 @@ the DA scans the old TELOS directory, classifies every chunk, presents the routi
 
 ### User: `/migrate` (then pastes CLAUDE.md content)
 
-the DA reads from stdin, classifies the rules as `memory/feedback` (most) plus maybe PRINCIPAL_IDENTITY (if identity lines are mixed in), walks through approval.
+the DA reads from stdin, classifies most chunks as AI collaboration rules (walked through to CLAUDE.md / hooks / skill Gotchas) plus maybe PRINCIPAL_IDENTITY (if identity lines are mixed in), walks through approval.
 
 ### User: "migrate my Cursor rules at ~/.cursor/rules"
 
-the DA scans the rules dir, surfaces likely-feedback classifications, walks through with extra care (Cursor rules often have tool-specific stuff that doesn't translate to LifeOS).
+the DA scans the rules dir, surfaces likely rule classifications, walks each through to its constitutional destination with extra care (Cursor rules often have tool-specific stuff that doesn't translate to LifeOS).
 
 ### User: "import the stuff I dumped in /tmp/journal.md"
 

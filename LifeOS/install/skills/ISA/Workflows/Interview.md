@@ -4,9 +4,9 @@ Adaptive question-and-answer that fills in or deepens an ISA's prose sections. U
 
 ## When to invoke
 
-- **NEW v6.5.0:** From Scaffold preflight (Step 3.5) when the density × tier gate fires — `INTERVIEW_ELIGIBLE: true` AND `density_score < 0.5`. Max 3 questions, `proceed` override available, partial-fill written back to ISA per question.
+- From Scaffold's Ambiguity check (Step 3.5, Algorithm v7.0.0 R3) when the goal is materially ambiguous and `INTERVIEW_ELIGIBLE: true`. Max 3 targeted questions, `proceed` override available, partial-fill written back to ISA per question.
 - After Scaffold at E5 (mandatory before BUILD per the tier completeness gate).
-- After Scaffold at any tier if CheckCompleteness flags thin sections.
+- After Scaffold at any tier if CheckCompleteness reports gaps.
 - User directly: `Skill("ISA", "interview me on <isa-path>")`
 - User directly with a specific section: `Skill("ISA", "interview me on the Vision section of <isa-path>")`
 

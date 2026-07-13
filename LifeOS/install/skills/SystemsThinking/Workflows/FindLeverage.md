@@ -166,67 +166,15 @@ Ordered from **least** leverage (12) to **most** (1). Reversed from how you'd in
 
 ## Execution
 
-### Step 1: Establish the System and Goal
+A done analysis fills the output block below. The probes and tests:
 
-```
-SYSTEM: [what you're trying to change]
-CURRENT GOAL (implicit or explicit): [what is the system optimizing for now?]
-DESIRED BEHAVIOR: [what you want instead]
-```
+**System and goal.** State what you're changing, the current goal, and the desired behavior. The goal is often implicit — inferred from where resources flow, what metrics are watched, what behaviors are rewarded. Make it explicit; many interventions fail because they don't realize they're fighting the actual goal.
 
-Often the current goal is implicit — inferred from where resources flow, what metrics are watched, what behaviors are rewarded. Make it explicit. Many interventions fail because they don't realize they're fighting the actual goal.
+**Map candidates to levels.** For each intervention under consideration, identify which Meadows level it targets. Usually 3-6 candidates, many clustered at the bottom (parameters, buffers) because those are easiest to propose.
 
-### Step 2: Map the Candidate Interventions to Leverage Points
+**Rank by effective leverage = Meadows leverage × feasibility.** A Level 2 paradigm intervention you can't execute is zero effective leverage; a Level 12 parameter you can actually push is non-zero. Prefer the highest level feasible within the time and political budget — don't spend cycles on parameter changes when a rule change is feasible — and bundle a low-level tactical intervention (buys time) with a high-level structural one (changes the generator).
 
-For each intervention under consideration, identify which level of Meadows' list it targets:
-
-```
-CANDIDATES:
-- [Intervention A]: Level [N] — [why]
-- [Intervention B]: Level [N] — [why]
-- [Intervention C]: Level [N] — [why]
-```
-
-Usually there will be 3-6 candidates. Many will cluster at the bottom (parameters, buffers) because those are the easiest to propose.
-
-### Step 3: Rank by Effective Leverage
-
-**Effective leverage = Meadows leverage × feasibility** — the theoretical leverage of the level times your ability to actually execute.
-
-A Level 2 (paradigm) intervention you can't make is zero effective leverage. A Level 12 (parameter) that you can actually push is non-zero effective leverage.
-
-```
-RANKING:
-| Candidate | Meadows level | Feasibility (H/M/L) | Effective leverage |
-|-----------|---------------|---------------------|---------------------|
-| A         | 5 (Rules)     | M                   | High                 |
-| B         | 12 (Parameter)| H                   | Low                  |
-| C         | 3 (Goal)      | L (political)       | Medium (if achievable)|
-```
-
-### Step 4: Pick the Highest Feasible Leverage
-
-**Rule of thumb:** Prefer the *highest* Meadows level that is feasible within the time and political budget. Don't waste cycles on parameter changes when a rule change is feasible.
-
-Also: **bundle a low-level tactical intervention with a high-level structural one.** The low-level one buys time; the high-level one changes the generator.
-
-### Step 5: Name Second-Order Effects
-
-Every leverage-point push has second-order effects. At higher levels, these are larger.
-
-```
-INTERVENTION: [chosen]
-LEVEL: [N]
-
-INTENDED: [primary effect]
-SECOND-ORDER:
-- [Other variables that will shift]
-- [Which loops are now stronger/weaker]
-- [Which archetypes might activate]
-THIRD-ORDER:
-- [Behavioral adaptations]
-- [Possible policy resistance]
-```
+**Name second-order effects.** Higher leverage means larger unintended consequences. For the chosen intervention: which other variables shift, which loops strengthen or weaken, which archetypes might activate, and what behavioral adaptation or policy resistance to expect. Run them through CausalLoop before committing.
 
 ## Output
 

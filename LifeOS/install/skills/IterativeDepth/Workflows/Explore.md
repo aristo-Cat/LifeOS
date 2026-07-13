@@ -15,81 +15,22 @@ This workflow is invoked:
 
 - **Problem/Request:** The original user request or problem statement
 - **Context:** Any available context (conversation history, codebase state, prior work)
-- **Depth:** Determined by SLA or explicit user request
+- **Lenses:** drawn from `TheLenses.md` — pick the ones the problem calls for
 
 ## Execution
 
-### Step 1: Determine Depth
+Read `TheLenses.md` and select the lenses that fit the problem. Explore the problem through each in turn, carrying the criteria found so far into the next lens so later passes build on earlier ones. Every pass should surface genuinely new criteria; stop adding lenses once a pass only restates what earlier ones found. Lenses can run inline or as parallel background agents.
 
-```
-IF SLA = Instant → SKIP (return immediately, no iterative depth)
-IF SLA = Fast → N = 2 (Literal + Failure)
-IF SLA = Standard → N = 4 (Literal + Stakeholder + Failure + Experiential)
-IF SLA = Deep → N = 8 (All lenses)
-IF user specifies a number → N = that number (2-8)
-```
+## Synthesize
 
-### Step 2: Load Lenses
+After the passes:
 
-Read `TheLenses.md` for the lens definitions being used this run.
+1. **Deduplicate:** remove criteria that are semantically identical across lenses.
+2. **Merge refinements:** when multiple lenses refined the same criterion, keep the most specific version.
+3. **Prioritize:** a criterion surfaced by several lenses ranks higher.
+4. **Format:** every criterion in ISC form — 8-12 words, state not action, binary testable.
 
-For domain-specific tasks, the ordering may be overridden:
-- Security tasks: Failure, Stakeholder, Temporal, Constraint Inversion
-- UX tasks: Experiential, Stakeholder, Literal, Analogical
-- Architecture tasks: Temporal, Constraint Inversion, Analogical, Meta
-- Ambiguous requests: Meta, Stakeholder, Literal, Failure
-
-### Step 3: Execute Passes
-
-**For each lens (1 through N):**
-
-```
-┌─────────────────────────────────────────────┐
-│ 🔍 ITERATIVE DEPTH — Pass {i}/{N}: {LENS_NAME}                      │
-│                                                                       │
-│ Lens Question: "{The lens's core question}"                          │
-│                                                                       │
-│ Exploring from this angle...                                         │
-│                                                                       │
-│ Findings:                                                            │
-│ - [Finding 1 — potential ISC criterion]                              │
-│ - [Finding 2 — potential ISC criterion]                              │
-│ - [Finding 3 — refinement of existing criterion]                     │
-│                                                                       │
-│ New/Refined ISC:                                                     │
-│ + C{N}: [new criterion, 8-12 words, state not action]               │
-│ ~ C{M}: [refined criterion, was X, now Y]                           │
-│ + A{N}: [new anti-criterion]                                         │
-└─────────────────────────────────────────────┘
-```
-
-**Execution modes by SLA:**
-
-- **Fast (2 lenses):** Run both lenses inline as structured thought. No agents spawned. Output directly into the Algorithm's OBSERVE phase.
-
-- **Standard (4 lenses):** Run lenses 1-2 inline, then spawn 2 background agents for lenses 3-4 in parallel. Merge results.
-
-- **Deep (8 lenses):** Spawn 4 pairs of background agents (or 8 individual agents) for maximum parallelization. Each agent gets:
-  - The original problem/request
-  - Their assigned lens definition
-  - Current ISC criteria so far (from earlier lenses)
-  - Instruction: "Return 2-5 new ISC criteria or refinements from this lens"
-  - SLA: "Complete within 30 seconds"
-
-### Step 4: Synthesize
-
-After all passes complete:
-
-1. **Deduplicate:** Remove criteria that are semantically identical across lenses
-2. **Merge refinements:** If multiple lenses refined the same criterion, take the most specific version
-3. **Prioritize:** Order criteria by how many lenses surfaced them (consensus = high priority)
-4. **Format:** Output all new/refined criteria in ISC format (8-12 words, state not action, binary testable)
-
-### Step 5: Integrate
-
-Return the enriched criteria to the calling context:
-- If called from Algorithm OBSERVE: Feed directly into TaskCreate calls
-- If called standalone: Present the enriched criteria set to the user
+Return the enriched criteria to the calling context: feed directly into TaskCreate calls when called from Algorithm OBSERVE, or present the set to the user when called standalone.
 
 ## Output Format
 
@@ -114,45 +55,6 @@ Return the enriched criteria to the calling context:
 💡 Key Insight: [The most surprising finding across all lenses — the thing single-pass analysis would have missed]
 ```
 
-## Agent Prompt Template (for Deep SLA)
-
-When spawning agents for individual lenses:
-
-```
-CONTEXT: You are performing Iterative Depth analysis — examining a problem from a specific structured angle to discover requirements that other angles miss.
-
-PROBLEM: {original user request / problem statement}
-
-YOUR LENS: {lens name} — {lens description}
-YOUR QUESTION: {lens core question}
-
-CURRENT ISC (from prior lenses):
-{list of criteria already discovered}
-
-TASK: Explore this problem EXCLUSIVELY through your assigned lens. Do NOT repeat criteria already found. Find what only YOUR lens can see.
-
-OUTPUT FORMAT:
-- 2-5 new ISC criteria (8-12 words each, state not action, binary testable)
-- 0-3 refinements to existing criteria (what changed and why)
-- 0-2 anti-criteria (what must NOT happen)
-
-SLA: Complete within 30 seconds.
-```
-
 ## Integration with Algorithm OBSERVE Phase
 
-When the Capability Audit selects IterativeDepth (#4 Skills match), it runs AFTER the initial Reverse Engineering block but BEFORE ISC CREATION. The flow becomes:
-
-```
-OBSERVE Phase:
-1. Reverse Engineering (standard — what they said/implied/don't want)
-2. Capability Audit (standard — 20/20 scan)
-3. >>> ITERATIVE DEPTH (if selected) <<<
-   - Takes Reverse Engineering output as input
-   - Runs N lenses over it
-   - Produces enriched requirement understanding
-4. ISC CREATION (now informed by iterative depth findings)
-5. ISC Quality Gate (standard)
-```
-
-This means ISC criteria benefit from multi-angle exploration BEFORE they're created, rather than being corrected after the fact.
+When the Capability Audit selects IterativeDepth, it runs after Reverse Engineering and before ISC CREATION, so ISC criteria are informed by multi-angle exploration before they're written rather than corrected after the fact.

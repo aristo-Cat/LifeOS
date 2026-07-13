@@ -2,21 +2,21 @@
 /**
  * CrossVendorAudit.ts — Forge audit-mode tool (cross-vendor audit; formerly Cato)
  *
- * Bundles ISA + artifacts + tool-activity tail + Advisor verdict, pipes to
- * codex exec (GPT-5.5, read-only, --ephemeral), with the verdict JSON
+ * Bundles ISA + artifacts + tool-activity tail, pipes to
+ * codex exec (gpt-5.6-sol, read-only, --ephemeral), with the verdict JSON
  * schema-enforced via codex --output-schema (strict: additionalProperties:false,
  * all props required). Runs a `codex doctor --json` preflight. Parses the JSON
  * response, appends to MEMORY/VERIFICATION/cato-findings.jsonl (filename kept for
  * track-record continuity), emits parsed JSON to stdout.
  *
  * Usage:
- *   bun CrossVendorAudit.ts --slug <slug> --advisor-verdict "<text>"
+ *   bun CrossVendorAudit.ts --slug <slug>
  *
  * Algorithm v3.27 Rule 2a. E4/E5 VERIFY phase only.
  */
 
 import { spawn } from "node:child_process";
-import { readFile, writeFile, readdir, appendFile, mkdir, stat } from "node:fs/promises";
+import { readFile, writeFile, appendFile, mkdir, stat } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
@@ -44,7 +44,7 @@ const VERDICT_SCHEMA_PATH = join(LIFEOS_DIR, "MEMORY", "VERIFICATION", "audit-ve
 const VERDICT_SCHEMA = {
   type: "object",
   additionalProperties: false,
-  required: ["verdict", "criticality", "findings", "blind_spots_surfaced", "agrees_with_advisor", "model_used", "tokens_used"],
+  required: ["verdict", "criticality", "findings", "blind_spots_surfaced", "model_used", "tokens_used"],
   properties: {
     verdict: { type: "string", enum: ["pass", "concerns", "fail"] },
     criticality: { type: ["string", "null"], enum: ["high", "medium", "low", null] },
@@ -63,28 +63,26 @@ const VERDICT_SCHEMA = {
       },
     },
     blind_spots_surfaced: { type: "array", items: { type: "string" } },
-    agrees_with_advisor: { type: "string", enum: ["yes", "no", "partial"] },
     model_used: { type: "string" },
     tokens_used: { type: "integer" },
   },
 } as const;
 
-const AUDIT_PROMPT = `You are an independent cross-vendor auditor. The executor (Claude Sonnet) and reviewer (Claude Opus via the Advisor) have already signed off on this work. Your job is to find what THEY missed — specifically Anthropic-family blind spots they share (format conventions, API contract readings, RLHF preferences, constitutional biases).
+const AUDIT_PROMPT = `You are an independent cross-vendor auditor. The Claude-family executor and reviewer have already signed off on this work. Your job is to find what THEY missed — specifically Anthropic-family blind spots they share (format conventions, API contract readings, RLHF preferences, constitutional biases).
 
 Audit this ISA against its ISC criteria. For each criterion:
  1. Is there concrete evidence of completion in the artifacts?
  2. Is the evidence consistent with the stated claim?
  3. Are there failure modes the same-family reviewers would share that are present here?
 
-Signal over noise. If the Advisor was right and there is nothing to flag, say so explicitly with "agrees_with_advisor": "yes" and "findings": []. Do not manufacture concerns. Your credibility depends on surfacing real Anthropic-family blind spots, not on inflating finding counts.
+Signal over noise. If there is nothing to flag, say so explicitly with "findings": []. Do not manufacture concerns. Your credibility depends on surfacing real Anthropic-family blind spots, not on inflating finding counts.
 
 Output ONLY this JSON on one line, no markdown, no prose, no preamble:
 
-{"verdict":"pass|concerns|fail","criticality":"high|medium|low","findings":[{"severity":"critical|warning|info","isc_ref":"ISC-N or null","issue":"...","evidence":"..."}],"blind_spots_surfaced":["..."],"agrees_with_advisor":"yes|no|partial","model_used":"gpt-5.5","tokens_used":0}`;
+{"verdict":"pass|concerns|fail","criticality":"high|medium|low","findings":[{"severity":"critical|warning|info","isc_ref":"ISC-N or null","issue":"...","evidence":"..."}],"blind_spots_surfaced":["..."],"model_used":"gpt-5.6-sol","tokens_used":0}`;
 
 interface Args {
   slug: string;
-  advisorVerdict: string;
 }
 
 interface AuditResponse {
@@ -92,7 +90,6 @@ interface AuditResponse {
   criticality?: "high" | "medium" | "low";
   findings?: Array<{ severity: string; isc_ref: string | null; issue: string; evidence: string }>;
   blind_spots_surfaced?: string[];
-  agrees_with_advisor?: "yes" | "no" | "partial";
   model_used?: string;
   tokens_used?: number;
   cost_usd_est?: number;
@@ -103,10 +100,8 @@ function parseArgs(argv: string[]): Args {
   const args: Partial<Args> = {};
   for (let i = 2; i < argv.length; i++) {
     if (argv[i] === "--slug") args.slug = argv[++i];
-    else if (argv[i] === "--advisor-verdict") args.advisorVerdict = argv[++i];
   }
   if (!args.slug) throw new Error("--slug required");
-  if (!args.advisorVerdict) args.advisorVerdict = "(not provided)";
   return args as Args;
 }
 
@@ -166,7 +161,7 @@ async function readToolActivityTail(slug: string): Promise<string> {
 
 // v6.6.0: extract principal_stated_goal from ISA frontmatter as a leading section
 // in every bundle path, so Cato reads the literal anchor before the ISA, artifacts,
-// tool tail, or advisor verdict. Returns formatted section or empty string when absent.
+// or tool tail. Returns formatted section or empty string when absent.
 function extractGoalSection(isa: string): string {
   const frontmatterMatch = isa.match(/^---\n([\s\S]*?)\n---/);
   if (!frontmatterMatch) return "";
@@ -180,7 +175,7 @@ function extractGoalSection(isa: string): string {
   ].join("\n");
 }
 
-function assembleBundle(isa: string, artifacts: string, toolTail: string, advisorVerdict: string): string {
+function assembleBundle(isa: string, artifacts: string, toolTail: string): string {
   const goalSection = extractGoalSection(isa);
   let bundle = [
     goalSection,
@@ -192,9 +187,6 @@ function assembleBundle(isa: string, artifacts: string, toolTail: string, adviso
     "",
     "===== TOOL ACTIVITY TAIL =====",
     toolTail,
-    "",
-    "===== ADVISOR VERDICT =====",
-    advisorVerdict,
     "",
     "===== AUDIT INSTRUCTIONS =====",
     AUDIT_PROMPT,
@@ -212,9 +204,6 @@ function assembleBundle(isa: string, artifacts: string, toolTail: string, adviso
       "",
       "===== TOOL ACTIVITY TAIL =====",
       "(dropped — bundle size cap)",
-      "",
-      "===== ADVISOR VERDICT =====",
-      advisorVerdict,
       "",
       "===== AUDIT INSTRUCTIONS =====",
       AUDIT_PROMPT,
@@ -234,9 +223,6 @@ function assembleBundle(isa: string, artifacts: string, toolTail: string, adviso
       "===== TOOL ACTIVITY TAIL =====",
       "(dropped — bundle size cap)",
       "",
-      "===== ADVISOR VERDICT =====",
-      advisorVerdict,
-      "",
       "===== AUDIT INSTRUCTIONS =====",
       AUDIT_PROMPT,
     ].filter(s => s !== "").join("\n");
@@ -246,10 +232,21 @@ function assembleBundle(isa: string, artifacts: string, toolTail: string, adviso
 
 function invokeCodex(bundle: string, schemaPath: string): Promise<{ stdout: string; stderr: string; code: number | null }> {
   return new Promise((resolvePromise) => {
+    // Env scrub: codex's auth precedence puts OPENAI_API_KEY / OPENAI_BASE_URL
+    // above ~/.codex/auth.json and config.toml, so a stray key in the parent
+    // shell silently flips the audit from the user's configured codex auth
+    // (e.g. ChatGPT subscription) to direct API billing. Only scrub when a
+    // configured auth file exists — users who authenticate codex solely via
+    // OPENAI_API_KEY keep working unchanged.
+    const env = { ...process.env };
+    if (existsSync(join(HOME, ".codex", "auth.json"))) {
+      delete env.OPENAI_API_KEY;
+      delete env.OPENAI_BASE_URL;
+    }
     const proc = spawn(
       CODEX_BIN,
-      ["exec", "--sandbox", "read-only", "--skip-git-repo-check", "--ephemeral", "--output-schema", schemaPath, "--model", "gpt-5.5", "-"],
-      { stdio: ["pipe", "pipe", "pipe"] }
+      ["exec", "--sandbox", "read-only", "--skip-git-repo-check", "--ephemeral", "--output-schema", schemaPath, "--model", "gpt-5.6-sol", "-"],
+      { stdio: ["pipe", "pipe", "pipe"], env }
     );
     let stdout = "";
     let stderr = "";
@@ -287,17 +284,15 @@ function estimateCost(tokens: number): number {
   return +(tokens * 0.000015).toFixed(4);
 }
 
-async function appendFinding(slug: string, advisorVerdict: string, response: AuditResponse, tier: string): Promise<void> {
+async function appendFinding(slug: string, response: AuditResponse, tier: string): Promise<void> {
   await mkdir(join(LIFEOS_DIR, "MEMORY", "VERIFICATION"), { recursive: true });
   const line = JSON.stringify({
     timestamp: new Date().toISOString(),
     slug,
     tier,
-    advisor_verdict: advisorVerdict.slice(0, 200),
     cato_verdict: response.verdict,
     criticality: response.criticality ?? null,
     unique_findings_count: response.findings?.length ?? 0,
-    agrees_with_advisor: response.agrees_with_advisor ?? null,
     tokens: response.tokens_used ?? 0,
     cost_usd: response.cost_usd_est ?? estimateCost(response.tokens_used ?? 0),
     skipped: response.verdict === "skipped",
@@ -351,7 +346,7 @@ async function main() {
 
   if (!existsSync(CODEX_BIN)) {
     const resp = { verdict: "skipped" as const, reason: "codex CLI not installed" };
-    await appendFinding(args.slug, args.advisorVerdict, resp, "unknown");
+    await appendFinding(args.slug, resp, "unknown");
     console.log(JSON.stringify(resp));
     process.exit(0);
   }
@@ -359,7 +354,7 @@ async function main() {
   const doctor = await codexDoctor();
   if (!doctor.healthy) {
     const resp = { verdict: "skipped" as const, reason: `codex doctor: ${doctor.summary}` };
-    await appendFinding(args.slug, args.advisorVerdict, resp, "unknown");
+    await appendFinding(args.slug, resp, "unknown");
     console.log(JSON.stringify(resp));
     process.exit(0);
   }
@@ -378,19 +373,19 @@ async function main() {
     readArtifacts(args.slug, isa),
     readToolActivityTail(args.slug),
   ]);
-  const bundle = assembleBundle(isa, artifacts, toolTail, args.advisorVerdict);
+  const bundle = assembleBundle(isa, artifacts, toolTail);
 
   const schemaPath = await writeVerdictSchema();
   const { stdout, stderr, code } = await invokeCodex(bundle, schemaPath);
   if (code === 124) {
     const resp = { verdict: "skipped" as const, reason: "codex timeout at 120s" };
-    await appendFinding(args.slug, args.advisorVerdict, resp, tier);
+    await appendFinding(args.slug, resp, tier);
     console.log(JSON.stringify(resp));
     return;
   }
   if (code !== 0) {
     const resp = { verdict: "skipped" as const, reason: `codex exit ${code}: ${stderr.slice(0, 200)}` };
-    await appendFinding(args.slug, args.advisorVerdict, resp, tier);
+    await appendFinding(args.slug, resp, tier);
     console.log(JSON.stringify(resp));
     return;
   }
@@ -399,7 +394,7 @@ async function main() {
   if (parsed.tokens_used && !parsed.cost_usd_est) {
     parsed.cost_usd_est = estimateCost(parsed.tokens_used);
   }
-  await appendFinding(args.slug, args.advisorVerdict, parsed, tier);
+  await appendFinding(args.slug, parsed, tier);
   console.log(JSON.stringify(parsed));
 }
 

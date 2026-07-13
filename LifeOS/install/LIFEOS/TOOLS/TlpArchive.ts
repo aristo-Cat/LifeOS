@@ -439,7 +439,7 @@ function buildArchiveIndex(urls: string[]): string {
       const txt = readFileSync(path, "utf-8");
       const tm = txt.match(/^title:\s*"([^"]+)"/m);
       if (tm) title = tm[1];
-      const dm = txt.match(/^post_date:\s*(\d{4}-\d{2}-\d{2})/m);
+      const dm = txt.match(/^(?:source_date|post_date):\s*(\d{4}-\d{2}-\d{2})/m);
       if (dm) date = dm[1];
     }
     if (!byYear[year]) byYear[year] = [];

@@ -1,4 +1,5 @@
 ---
+provenance: template
 dimension: rhythms
 kind: metric
 classification: private

@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 /**
+ * @version 1.3.0
  * ReminderRouter.hook.ts — UserPromptSubmit hook
  *
  * Parses the incoming prompt for narrow, precision-biased reminder/research/queue
@@ -19,6 +20,8 @@
  */
 
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "fs";
+import { getDAName } from "./lib/identity"
+
 import { createHash } from "crypto";
 import { join, dirname } from "path";
 import { loadWorkConfig } from "./lib/work-config";
@@ -178,7 +181,7 @@ function buildIssue(match: RouteMatch, prompt: string): { title: string; body: s
     "Property:internal",
     "Status:queued",
     "Priority:P3",
-    "Agent:kai",
+    `Agent:${getDAName()}`,
     "pai-sync",
   ];
 

@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import WikiSidebar from "@/components/wiki/WikiSidebar";
-import WikiSearch from "@/components/wiki/WikiSearch";
+import { openPalette } from "@/lib/palette/events";
 
 interface TreeNode {
   label: string;
@@ -21,8 +20,7 @@ function filterDocsTree(tree: TreeNode[]): TreeNode[] {
 }
 
 export default function DocsLayout({ children }: { children: React.ReactNode }) {
-  const [searchOpen, setSearchOpen] = useState(false);
-
+  // ⌘K is handled globally by CommandPalette (opens WIKI-scoped on this route).
   const { data } = useQuery<{ tree: TreeNode[] }>({
     queryKey: ["wiki-tree"],
     queryFn: async () => {
@@ -33,25 +31,12 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
     staleTime: 30_000,
   });
 
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-      e.preventDefault();
-      setSearchOpen((prev) => !prev);
-    }
-  }, []);
-
-  useEffect(() => {
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [handleKeyDown]);
-
   const docsTree = data?.tree ? filterDocsTree(data.tree) : [];
 
   return (
     <div className="flex h-[calc(100vh-3.5rem)]">
-      <WikiSidebar tree={docsTree} onSearchClick={() => setSearchOpen(true)} />
+      <WikiSidebar tree={docsTree} onSearchClick={() => openPalette("wiki")} />
       <div className="flex-1 overflow-hidden">{children}</div>
-      <WikiSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
     </div>
   );
 }

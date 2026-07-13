@@ -1,6 +1,7 @@
 ---
 name: Evals
-description: "Comprehensive AI agent evaluation framework with three grader types (code-based: deterministic; model-based: LLM rubric; human: gold standard) and pass@k / pass^k scoring. Evaluates agent transcripts, tool-call sequences, and multi-turn conversations — not just single outputs. Capability evals (~70% target) and regression evals (~99% target). Workflows: RunEval, CompareModels, ComparePrompts, CreateJudge, CreateUseCase, RunScenario, CreateScenario, ViewResults. Integrates with ALGORITHM ISC rows for automated verification. Domain patterns pre-configured for coding, conversational, research, computer-use agents. USE WHEN eval, evaluate, benchmark, regression test, compare models, create judge, test agent, pass@k, scenario simulation. NOT FOR scientific method framing (use Science)."
+version: 1.2.17
+description: "AI agent evaluation framework with three grader types (code-based, model-based, human) and pass@k/pass^k scoring over agent transcripts, tool-call sequences, and multi-turn conversations; covers capability and regression evals. USE WHEN eval, evaluate, benchmark, regression test, compare models, create judge, test agent, pass@k, scenario simulation. NOT FOR scientific method framing (use Science)."
 effort: high
 context: fork
 ---

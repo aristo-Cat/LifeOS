@@ -1,3 +1,10 @@
+// Normalize env path vars Claude Code may inject unexpanded — literal $HOME/${HOME}
+// in LIFEOS_DIR/LIFEOS_CONFIG_DIR/PROJECTS_DIR resolves to a shadow dir (#1404 / PR #1451, author jbmml).
+for (const __k of ["LIFEOS_DIR", "LIFEOS_CONFIG_DIR", "PROJECTS_DIR"]) {
+  const __v = process.env[__k];
+  if (__v && /^\$\{?HOME\}?(\/|$)/.test(__v)) process.env[__k] = __v.replace(/^\$\{?HOME\}?/, process.env.HOME ?? "~");
+}
+
 /**
  * LifeOS Pulse — Observability Module
  *
@@ -26,6 +33,13 @@ import { join, extname } from "path"
 import { readFileSync, readdirSync, existsSync, realpathSync, statSync, watch, type FSWatcher } from "fs"
 import YAML from "yaml"
 import { effortToCanonicalTierName } from "../../../hooks/lib/effort"
+
+// Normalize env path vars that Claude Code injects without shell expansion (LifeOS#1404)
+for (const k of ["LIFEOS_DIR", "LIFEOS_CONFIG_DIR", "PROJECTS_DIR"]) {
+  const v = process.env[k];
+  if (v && /^\$\{?HOME\}?(\/|$)/.test(v)) process.env[k] = v.replace(/^\$\{?HOME\}?/, process.env.HOME ?? "~");
+}
+
 // Growth is an OPTIONAL USER customization (USER/CUSTOMIZATIONS/TOOLS/Growth.ts): present on the
 // principal's machine, absent on fresh installs (private code, not shipped). It is loaded via a
 // guarded dynamic import in handleLifeGrowth so the Pulse server boots without it. A static import
@@ -1724,6 +1738,30 @@ function handleLifeHealth(): Response {
 
 // ── GET /api/life/finances ──
 
+// PLAN.md parsers. The forward-plan file is human-authored markdown; these
+// turn its `## Flywheel` ordered list into stages and any pipe-table (e.g.
+// `## Targets`) into headers+rows. All plan CONTENT lives in PLAN.md — these
+// only shape it. Reuses parseSections for the narrative sections.
+function parseFlywheelBody(body: string): { n: number; stage: string; text: string }[] {
+  const out: { n: number; stage: string; text: string }[] = []
+  for (const line of body.split("\n")) {
+    const m = line.match(/^\s*(\d+)\.\s+\*\*(.+?)\*\*\s*[—–-]\s*(.+)$/)
+    if (m) out.push({ n: parseInt(m[1], 10), stage: m[2].trim(), text: m[3].trim() })
+  }
+  return out
+}
+
+function parseMarkdownTable(body: string): { headers: string[]; rows: string[][] } | null {
+  const cells = (l: string) => l.split("|").slice(1, -1).map(c => c.replace(/\*\*/g, "").trim())
+  const isSep = (l: string) => /^\|[\s|:-]+\|?$/.test(l)
+  const lines = body.split("\n").map(l => l.trim()).filter(l => l.startsWith("|"))
+  if (lines.length < 2) return null
+  const headers = cells(lines[0])
+  const rows = lines.slice(1).filter(l => !isSep(l)).map(cells).filter(r => r.some(c => c))
+  if (!headers.length || !rows.length) return null
+  return { headers, rows }
+}
+
 function handleLifeFinances(): Response {
   try {
     const stateJson = readMd(join(FINANCES_DIR, "state.json"))
@@ -1735,6 +1773,7 @@ function handleLifeFinances(): Response {
     const accountsRaw = readMd(join(FINANCES_DIR, "ACCOUNTS.md"))
     const investmentsRaw = readMd(join(FINANCES_DIR, "INVESTMENTS.md"))
     const taxesRaw = readMd(join(FINANCES_DIR, "TAXES.md"))
+    const planRaw = readMd(join(FINANCES_DIR, "PLAN.md"))
 
     // Freshness: state.json.last_run is the authoritative statement-processing
     // timestamp; per-file content dates are a fallback for files the user
@@ -1773,7 +1812,26 @@ function handleLifeFinances(): Response {
     const freshnessTaxes = computeFreshness([
       { name: "TAXES.md", content: taxesRaw },
     ])
+    const freshnessPlan = computeFreshness([
+      { name: "PLAN.md", content: planRaw },
+    ])
     const freshnessOverall = freshness
+
+    // ── Forward financial plan (Plan tab) ──
+    // parseSections gives the narrative cards; parseFlywheelBody turns the
+    // `## Flywheel` ordered list into loop stages; the `## Targets` pipe-table
+    // becomes a structured table. Nothing here is hardcoded — all from PLAN.md.
+    const planSections = parseSections(planRaw)
+    const flywheelSection = planSections.find(s => /^flywheel$/i.test(s.heading))
+    const planFlywheel = flywheelSection ? parseFlywheelBody(flywheelSection.body) : []
+    const targetsSection = planSections.find(s => /^targets/i.test(s.heading))
+    const planTargets = targetsSection ? parseMarkdownTable(targetsSection.body) : null
+    const plan = {
+      present: planSections.length > 0,
+      flywheel: planFlywheel,
+      targets: planTargets,
+      sections: planSections,
+    }
 
     // Pull numeric flow data from the first summary table in each file.
     // INCOME.md leads with "Annual Income Estimate"; EXPENSES.md leads
@@ -1791,8 +1849,43 @@ function handleLifeFinances(): Response {
 
     const vendorsYaml = loadYaml<{ vendors?: VendorYaml[] }>(join(FINANCES_DIR, "vendors.yaml"))
     const obligationsYaml = loadYaml<{ obligations?: ObligationYaml[] }>(join(FINANCES_DIR, "obligations.yaml"))
-    const vendors = vendorsYaml?.vendors ?? []
-    const obligations = obligationsYaml?.obligations ?? []
+    // Normalize both known on-disk shapes (issue #1438). The shipped install
+    // templates use a legacy shape ({name, purpose, category, direction, match}
+    // and {vendor, amount: "$X", frequency}) with no `id`, which crashed the
+    // endpoint (`v.id.toLowerCase()` on undefined) and left the dashboard on an
+    // infinite spinner. Coerce legacy entries into the code shape; entries with
+    // no usable name are dropped rather than crashing.
+    const slugify = (s: string) => s.toLowerCase().trim().replace(/\s+/g, "_")
+    const vendors: VendorYaml[] = (vendorsYaml?.vendors ?? [])
+      .filter((v: any) => v && (typeof v.id === "string" || typeof v.name === "string"))
+      .map((v: any): VendorYaml => ({
+        ...v,
+        id: typeof v.id === "string" ? v.id : slugify(v.name),
+        name: v.name ?? v.id,
+        scope: v.scope ?? "mixed",
+        cadence: v.cadence ?? "monthly",
+        source: v.source ?? "manual",
+      }))
+    const FREQUENCY_TO_CADENCE: Record<string, ObligationYaml["cadence"]> = {
+      monthly: "monthly", annual: "annual", quarterly: "quarterly", "one-time": "one_time",
+    }
+    const obligations: ObligationYaml[] = (obligationsYaml?.obligations ?? [])
+      .filter((o: any) => o && (typeof o.id === "string" || typeof o.name === "string" || typeof o.vendor === "string"))
+      .map((o: any): ObligationYaml => {
+        const name = o.name ?? o.vendor ?? o.id
+        const amount = typeof o.amount_usd === "number"
+          ? o.amount_usd
+          : Number(String(o.amount ?? "").replace(/[^0-9.]/g, "")) || 0
+        return {
+          ...o,
+          id: typeof o.id === "string" ? o.id : slugify(name),
+          name,
+          scope: "personal",
+          cadence: o.cadence ?? FREQUENCY_TO_CADENCE[o.frequency] ?? "variable",
+          amount_usd: amount,
+          category: o.category ?? "other",
+        }
+      })
     const collectorData = readVendorCostsJsonl()
     const spendBundle = readStatementSpendJsonl()
     const spendInsights = buildSpendInsights(spendBundle.records)
@@ -1862,11 +1955,13 @@ function handleLifeFinances(): Response {
     // "Other" outbound = EXPENSES.md rows whose label doesn't match any vendor
     // or obligation. Keeps legacy subscriptions, personal lifestyle, etc.
     // Matching is case-insensitive substring in either direction.
+    // Guarded + empty-filtered: a missing id/name must neither throw nor add
+    // "" to the set (an empty known label substring-matches every expense row).
     const knownLabels = new Set<string>([
-      ...resolvedVendors.map(v => v.name.toLowerCase()),
-      ...resolvedVendors.map(v => v.id.toLowerCase()),
-      ...resolvedObligations.map(o => o.name.toLowerCase()),
-    ])
+      ...resolvedVendors.map(v => (v.name ?? v.id ?? "").toLowerCase()),
+      ...resolvedVendors.map(v => (v.id ?? v.name ?? "").toLowerCase()),
+      ...resolvedObligations.map(o => (o.name ?? o.id ?? "").toLowerCase()),
+    ].filter(Boolean))
     const otherOutbound: ResolvedLine[] = expenseCategories
       .filter(e => {
         const lower = e.label.toLowerCase()
@@ -1975,6 +2070,7 @@ function handleLifeFinances(): Response {
       goals: parseSections(readMd(join(FINANCES_DIR, "GOALS.md"))),
       taxes: parseSections(readMd(join(FINANCES_DIR, "TAXES.md"))),
       overview: parseSections(readMd(join(FINANCES_DIR, "FINANCES.md"))),
+      plan,
       incomeStreams,
       expenseCategories,
       annualIncome,
@@ -1990,6 +2086,7 @@ function handleLifeFinances(): Response {
         accounts: freshnessAccounts,
         investments: freshnessInvestments,
         taxes: freshnessTaxes,
+        plan: freshnessPlan,
       },
       state,
     })
@@ -2052,7 +2149,17 @@ async function handleLifeGrowth(): Promise<Response> {
     const growthModPath = "../../USER/CUSTOMIZATIONS/TOOLS/Growth"
     const growthMod: any = await import(growthModPath).catch(() => null)
     if (!growthMod?.fetchGrowth) {
-      return Response.json({ growth: null, installed: false, note: "Growth is an optional customization; not installed." })
+      // Match the frontend GrowthData shape so growth/page.tsx renders its
+      // "not connected" empty states instead of crashing on missing fields.
+      return Response.json({
+        generatedAt: new Date().toISOString(),
+        newsletter: null,
+        youtube: null,
+        web: null,
+        errors: [],
+        installed: false,
+        note: "Growth is an optional customization; not installed.",
+      })
     }
     const data = (await growthMod.fetchGrowth()) as GrowthData
     growthCache = { data, ts: Date.now() }
@@ -3283,24 +3390,51 @@ function handleLifeCardApi(): Response {
   return handleLifeHome()
 }
 
+// Personalization signal — mirrors the isPersonalized check in
+// handleTelosOverview: any real entry in a core TELOS section means the user
+// has moved past the template. An empty / section-header-only TELOS reads as a
+// fresh install. Cheap (one TELOS.md parse) and self-contained. #1394.
+function telosPersonalized(): boolean {
+  try {
+    const sections = parseTelosUnified()
+    const sectionOrFile = (key: string, legacyFile: string): string =>
+      sections[key] || readMd(join(TELOS_DIR, legacyFile))
+    return (
+      parseIdEntries(sectionOrFile("mission", "MISSION.md"), "M").length > 0 ||
+      parseIdEntries(sectionOrFile("goals", "GOALS.md"), "G").length > 0 ||
+      parseIdEntries(sectionOrFile("problems", "PROBLEMS.md"), "P").length > 0 ||
+      parseIdEntries(sectionOrFile("strategies", "STRATEGIES.md"), "S").length > 0 ||
+      parseIdEntries(sectionOrFile("challenges", "CHALLENGES.md"), "C").length > 0
+    )
+  } catch {
+    return false
+  }
+}
+
 // ── /api/onboarding/state ──
 //
 // Drives the TemplateOnboarding banner shown above every dashboard page on a
-// fresh install. Two signals trigger template mode:
+// fresh install. Two signals ARM template mode:
 //   1. Build-time env flag — `LIFEOS_TEMPLATE_MODE=1` set during ShadowRelease
 //      build. The flag is baked into the static export via Next.js, so
 //      releases ship banner-on regardless of runtime state.
 //   2. Runtime marker file — `~/.claude/LIFEOS/USER/.template-mode`. Written by
-//      `install.sh` on fresh install; deleted by `/interview` on completion.
-// Either signal flips templateMode → banner renders. DA name pulled from
-// USER/DIGITAL_ASSISTANT/DA_IDENTITY.md so the copy reads in the user's voice.
+//      `install.sh` on fresh install.
+// The banner DISARMS the moment the user has real TELOS content, regardless of
+// either signal. The marker was historically never deleted after
+// personalization (#1394), so a marker-only gate left the banner up forever;
+// deriving the off-switch from the same isPersonalized signal the dashboard
+// uses is self-healing and keeps the two views in agreement. DA name pulled
+// from USER/DIGITAL_ASSISTANT/DA_IDENTITY.md so the copy reads in the user's voice.
 function handleOnboardingState(): Response {
   const markerPath = join(LIFEOS_DIR, "USER", ".template-mode")
   const daIdentityPath = join(LIFEOS_DIR, "USER", "DA_IDENTITY.md")
 
   const buildTimeFlag = process.env.LIFEOS_TEMPLATE_MODE === "1"
   const markerExists = existsSafe(markerPath)
-  const templateMode = buildTimeFlag || markerExists
+  // Armed by marker/flag, disarmed by real TELOS content. Self-healing against
+  // the never-deleted marker (#1394).
+  const templateMode = (buildTimeFlag || markerExists) && !telosPersonalized()
 
   let daName = "your DA"
   try {

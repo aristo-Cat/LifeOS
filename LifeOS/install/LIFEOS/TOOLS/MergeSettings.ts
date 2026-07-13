@@ -12,6 +12,23 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import path from "node:path";
+import os from "node:os";
+
+/**
+ * Snapshot of the last merge output, written alongside every successful
+ * --output run. SettingsBackport diffs the live settings.json against THIS
+ * (three-way base), not against a freshly computed merge — so source-file
+ * edits that haven't been merged yet never read as "drift" and never get
+ * clobbered back into the overlay (the 2026-07-11 hooks-BPE incident).
+ */
+export const MERGE_SNAPSHOT_PATH = path.join(
+  os.homedir(),
+  ".claude",
+  "LIFEOS",
+  "MEMORY",
+  "STATE",
+  "settings-merge-snapshot.json",
+);
 
 type CliMode =
   | { kind: "output"; path: string }
@@ -116,6 +133,40 @@ export function mergeSettings(system: any, user: any): any {
   }
 
   return cloneJsonValue(user);
+}
+
+/**
+ * Expand a LEADING $HOME / ${HOME} / ~ token in a string to the real home dir.
+ * Only the prefix is expanded, and only when the token is a whole path segment
+ * ($HOMEFOO is left untouched). Returns the string unchanged if no match.
+ */
+function expandLeadingHome(value: string, home: string): string {
+  if (value === "${HOME}") return home;
+  if (value.startsWith("${HOME}/")) return home + value.slice("${HOME}".length);
+  if (value === "$HOME") return home;
+  if (value.startsWith("$HOME/")) return home + value.slice("$HOME".length);
+  if (value === "~") return home;
+  if (value.startsWith("~/")) return home + value.slice(1);
+  return value;
+}
+
+/**
+ * Expand leading $HOME/${HOME}/~ references in settings `env` values to the real
+ * home directory, in place. The Claude Code harness sets `env` values verbatim —
+ * it does NOT expand shell variables — so a shipped value like
+ * "$HOME/.claude/LIFEOS" would be exported literally, making LIFEOS_DIR resolve
+ * to the string "$HOME/…" and breaking every downstream path (worst on fresh
+ * installs and Linux). Issues #1404 / #1422.
+ */
+export function expandEnvHomeReferences(settings: any, home: string): void {
+  const env = settings?.env;
+  if (!isObjectRecord(env) || !home) return;
+  for (const key of Object.keys(env)) {
+    const value = env[key];
+    if (typeof value === "string") {
+      env[key] = expandLeadingHome(value, home);
+    }
+  }
 }
 
 /**
@@ -474,6 +525,10 @@ async function runCli(argv: string[]): Promise<number> {
     const user = await parseJsonFileOrThrow(options.userPath);
     const merged = mergeSettings(system, user);
 
+    // The harness exports env values verbatim — expand leading $HOME/${HOME}/~ so
+    // LIFEOS_DIR et al. resolve to real paths on a fresh install (#1404 / #1422).
+    expandEnvHomeReferences(merged, process.env.HOME || "");
+
     const dropped = prunePermissionRules(merged);
     if (dropped.length > 0) {
       process.stderr.write(
@@ -496,6 +551,15 @@ async function runCli(argv: string[]): Promise<number> {
         throw new Error(
           `Failed to write merged settings to ${options.mode.path}: ${formatErrorMessage(error)}`,
         );
+      }
+
+      // Record the merge base for SettingsBackport's three-way diff.
+      // Best-effort: a failed snapshot write must never fail the merge itself
+      // (backport skips safely when the snapshot is missing/stale).
+      try {
+        await writeFile(MERGE_SNAPSHOT_PATH, outputJson, "utf8");
+      } catch {
+        process.stderr.write(`⚠️  could not write merge snapshot to ${MERGE_SNAPSHOT_PATH}\n`);
       }
 
       process.stdout.write(

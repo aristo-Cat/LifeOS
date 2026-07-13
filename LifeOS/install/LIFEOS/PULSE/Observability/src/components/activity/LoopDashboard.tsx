@@ -15,7 +15,7 @@ export default function LoopDashboard() {
   if (isLoading) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <div className="animate-pulse text-zinc-500 text-sm">Loading...</div>
+        <div className="animate-pulse text-ink-3 text-sm">Loading...</div>
       </div>
     );
   }
@@ -25,10 +25,10 @@ export default function LoopDashboard() {
       <div className="flex-1 flex items-center justify-center">
         <div className="text-center">
           <div className="bg-white/[0.03] p-6 rounded-2xl mb-4 inline-block">
-            <RefreshCw size={40} className="text-zinc-600" />
+            <RefreshCw size={40} className="text-ink-3" />
           </div>
-          <p className="text-base font-medium text-zinc-400 mb-1">No loop sessions</p>
-          <p className="text-sm text-zinc-600">Iterative loop runs will appear here</p>
+          <p className="text-base font-medium text-ink-2 mb-1">No loop sessions</p>
+          <p className="text-sm text-ink-3">Iterative loop runs will appear here</p>
         </div>
       </div>
     );

@@ -345,12 +345,32 @@ async function main() {
 
   // ── Cron Heartbeat Loop ──
 
+  // Preflight: a script job whose referenced script file doesn't exist on this
+  // install (e.g. a private module stripped from the public release payload)
+  // is disabled up front with one warning — it must not run, fail repeatedly,
+  // and leave /healthz permanently degraded on an otherwise healthy install
+  // (public issue #1392).
+  const missingScriptJobs = new Set<string>()
+  for (const job of config.jobs) {
+    if (!job.enabled || job.type === "claude" || !job.command) continue
+    const scriptRefs = job.command.match(/[^\s'"]+\.(?:ts|js|sh)\b/g) ?? []
+    const missing = scriptRefs.filter((p) => !existsSync(p.startsWith("/") ? p : join(PULSE_DIR, p)))
+    if (missing.length > 0) {
+      missingScriptJobs.add(job.name)
+      log("warn", `Disabling cron job ${job.name}: script not present on this install`, {
+        missing,
+        subsystem: "cron",
+      })
+    }
+  }
+
   while (!shuttingDown) {
     const tickStart = Date.now()
     const now = new Date()
 
     for (const job of config.jobs) {
       if (!job.enabled) continue
+      if (missingScriptJobs.has(job.name)) continue
       if (shuttingDown) break
 
       const jobState = state.jobs[job.name]

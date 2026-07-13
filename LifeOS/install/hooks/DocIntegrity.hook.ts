@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 /**
+ * @version 1.3.2
  * DocIntegrity.hook.ts — Check cross-refs if system docs/hooks were modified
  *
  * PURPOSE:
@@ -7,7 +8,7 @@
  * files (hooks, LifeOS docs, skills, components) were modified during the session.
  * Self-gating: returns instantly when no system files changed.
  *
- * TRIGGER: Stop
+ * TRIGGER: SessionEnd
  *
  * NEEDS TRANSCRIPT: Yes (to detect which files were modified via tool_use entries)
  *

@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 /**
  * ============================================================================
- * INFERENCE - Unified inference tool with four run levels + advisor escalation
+ * INFERENCE - Unified inference tool with four run levels
  * ============================================================================
  *
  * PURPOSE:
@@ -11,16 +11,13 @@
  * - low:    quick tasks, simple generation, basic classification
  * - medium: balanced reasoning, typical analysis
  * - high:   deep reasoning, strategic decisions, complex analysis
- * - max:    keystone decisions — the Advisor + Algorithm E4/E5 dispatch (max=Fable, 2026-07-01; the TheRouter classifier moved to 'high' the same day)
- * - Advisor: max-level escalation for commitment-boundary review (Algorithm v3.23+ VERIFY doctrine)
+ * - max:    keystone decisions — Algorithm E4/E5 dispatch (max=Fable, 2026-07-01; the TheRouter classifier moved to 'high' the same day)
  *
  * USAGE:
  *   bun Inference.ts --level low <system_prompt> <user_prompt>
  *   bun Inference.ts --level medium <system_prompt> <user_prompt>
  *   bun Inference.ts --level high <system_prompt> <user_prompt>
  *   bun Inference.ts --level max <system_prompt> <user_prompt>
- *   bun Inference.ts --mode advisor <task> <state> <question>
- *   bun Inference.ts --mode advisor --auto-state <task> <question>   (v3.24 P5)
  *   bun Inference.ts --json --level low <system_prompt> <user_prompt>
  *
  * OPTIONS:
@@ -28,45 +25,37 @@
  *                                  These four are the ONLY accepted names.
  *                                  Legacy fast/standard/smart were removed
  *                                  2026-06-10 — unknown names hard-error.
- *   --mode advisor                 Advisor escalation mode — 3 positional args: task, state, question
- *   --auto-state                   v3.24 P5: Auto-synthesize state from current ISA + recent activity (advisor mode only, 2 positional args: task, question)
  *   --json                         Expect and parse JSON response
  *   --timeout <ms>                 Custom timeout (default varies by level)
  *
  * DEFAULTS BY LEVEL (models resolve via models.ts EFFORT_MODEL — edit the
  * mapping there on a lineup change; never hardcode model names here):
- *   low:      haiku-tier,  timeout=15s,  effort=low
- *   medium:   sonnet-tier, timeout=30s,  effort=medium
+ *   low:      haiku-tier,  timeout=15s,  effort=high   (effort uniformly high 2026-07-06)
+ *   medium:   sonnet-tier, timeout=30s,  effort=high
  *   high:     opus-tier,   timeout=90s,  effort=high
- *   max:      fable-tier,  timeout=120s, effort=xhigh
- *   advisor:  max level,   timeout=120s
+ *   max:      fable-tier,  timeout=120s, effort=high   (ceiling — was xhigh, flattened 2026-07-06)
  *
  * BILLING: Uses Claude CLI with subscription (not API key)
  * CACHE: Uses --exclude-dynamic-system-prompt-sections for cross-invocation prompt cache hits
  *
- * ADVISOR PATTERN (v3.24 Verification Doctrine — see LIFEOS/ALGORITHM/v3.24.0.md):
- *   The advisor() function implements the Sonnet→Opus escalation checkpoint rule
- *   from R Amjad's Anthropic Advisor tool writeup. Call at commitment boundaries:
- *   - Before committing to an approach
- *   - When stuck or diverging
- *   - Once after a durable deliverable, before declaring done
- *   Skip for short reactive tasks (measured: <4 min AND <2 files — v3.24 P2).
- *   On Extended+ ISAs, phase:complete transition = MANDATORY advisor call (v3.24 P4).
- *
- *   Unlike Anthropic's native Advisor which receives the full CC session, this
- *   function takes explicit (task, state, question) parameters. The caller may
- *   supply state manually OR set autoSynthesize: true to have the helper read
- *   the current ISA + recent activity automatically (v3.24 P5 — closes the
- *   state-gaming escape hatch where the caller cherry-picks what the reviewer sees).
- *
- *   Conflict-surfacing rule: if empirical results contradict advisor output,
- *   re-call advisor with the conflict surfaced — do NOT silently switch. Max 2
- *   re-calls on the same conflict; after that, escalate to user (v3.24 P1).
- *
- * ============================================================================
  */
 
 import { spawn } from "child_process";
+import { appendFileSync, existsSync, mkdirSync } from "fs";
+import { join } from "path";
+import { homedir } from "os";
+
+/**
+ * Resolve the claude binary explicitly. launchd jobs run with a minimal PATH
+ * that lacks ~/.local/bin, which made every scheduled caller (amber route,
+ * conduit insight) fail silently with ENOENT — 2026-07-10.
+ */
+export function resolveClaudeBin(): string {  // exported for algorithm.ts (PR #1460, author asdf8675309)
+  const fromPath = typeof Bun !== "undefined" ? Bun.which("claude") : null;
+  if (fromPath) return fromPath;
+  const fallback = join(homedir(), ".local", "bin", "claude");
+  return existsSync(fallback) ? fallback : "claude";
+}
 
 /** The four run levels — mirrors models.ts EffortLevel. */
 export type InferenceLevel = 'low' | 'medium' | 'high' | 'max';
@@ -98,7 +87,7 @@ export interface InferenceOptions {
    * fallback must fit inside it). The TheRouter classifier FORMERLY set this;
    * it now runs at `high` directly (2026-07-01), so no caller sets it today —
    * retained for any future hook-bound max caller. Callers WITHOUT a hook
-   * ceiling (e.g. the advisor, timeout 120s) omit it, so the fallback inherits
+   * ceiling (e.g. a fixed-timeout max caller) omit it, so the fallback inherits
    * the full `timeout` and degrades gracefully instead of a too-tight retry. */
   fallbackTimeoutMs?: number;
 }
@@ -110,6 +99,17 @@ export interface InferenceResult {
   error?: string;
   latencyMs: number;
   level: InferenceLevel;
+  /** The model that ACTUALLY generated the answer, read back from the claude
+   * JSON envelope's `modelUsage` map (the key with the most output tokens).
+   * undefined when modelUsage is absent (older CLI / error envelopes). This is
+   * PROOF of what ran — the requested model is never trusted as the executed one.
+   * A `max` call that silently ran Opus instead of Fable is visible here. */
+  executedModel?: string;
+  /** True when `executedModel`'s family does not match the requested tier
+   * (`EFFORT_MODEL[level]`) — a silent downgrade (e.g. max asked Fable, ran
+   * Opus). undefined when executedModel is unknown. Logged to
+   * MEMORY/OBSERVABILITY/model-verification.jsonl. */
+  modelDowngraded?: boolean;
 }
 
 import { modelForEffort, pinnedModelForEffort, EFFORT_MODEL, LEVEL_TO_HARNESS_EFFORT, type EffortLevel, type HarnessEffort } from './models';
@@ -118,25 +118,70 @@ import { modelForEffort, pinnedModelForEffort, EFFORT_MODEL, LEVEL_TO_HARNESS_EF
 // edit point on a lineup change). No model names appear here. `effort` is the
 // REASONING-EFFORT axis (the CLI `--effort` flag), resolved through
 // models.ts LEVEL_TO_HARNESS_EFFORT — the one source of truth for the model-rung
-// → reasoning-effort crossover (note max→xhigh). These are two distinct axes;
-// see the THREE LEVEL AXES block in models.ts.
+// → reasoning-effort mapping. Reasoning ceiling is `high` (max also resolves to
+// high, 2026-07-06). These are two distinct axes; see THREE LEVEL AXES in models.ts.
 const LEVEL_CONFIG: Record<InferenceLevel, { model: string; defaultTimeout: number; effort: HarnessEffort }> = {
   low: { model: modelForEffort('low'), defaultTimeout: 15000, effort: LEVEL_TO_HARNESS_EFFORT.low },
   medium: { model: modelForEffort('medium'), defaultTimeout: 30000, effort: LEVEL_TO_HARNESS_EFFORT.medium },
   high: { model: modelForEffort('high'), defaultTimeout: 90000, effort: LEVEL_TO_HARNESS_EFFORT.high },
-  // max powers the advisor (commitment-boundary review) AND Algorithm E4/E5 +
+  // max powers Algorithm E4/E5 +
   // Core-System dispatch. max is Fable (2026-07-01). The TheRouter classifier
   // moved OFF max to 'high' the same day — it fires on every prompt, so the
   // per-prompt keystone stays on cheap/fast Opus. Pinned ID (not alias): the
   // top-rung CLI alias is unverified from a nested-session-blocked context.
   // inference() adds a max→high fallback below (now fable→opus, a real degrade).
-  // Reasoning effort caps at xhigh (LEVEL_TO_HARNESS_EFFORT.max), not harness
-  // `max` — by design.
+  // Reasoning effort caps at `high` (LEVEL_TO_HARNESS_EFFORT.max resolves to high,
+  // 2026-07-06) — LifeOS never emits xhigh/max.
   max: { model: pinnedModelForEffort('max'), defaultTimeout: 120000, effort: LEVEL_TO_HARNESS_EFFORT.max },
 };
 
-// Advisor-specific defaults (v3.23 VERIFY doctrine).
-const ADVISOR_TIMEOUT_MS = 120000;
+/** Determine which model actually produced the answer, and whether the requested
+ * tier was silently downgraded, from a claude JSON envelope's `modelUsage` map
+ * (keyed by executed model id). The integrity primitive behind executed-model
+ * verification: the system reports what RAN, not what it requested.
+ *
+ * How the answer model is identified: Claude Code fires a background haiku pass
+ * (conversation title / summary) on every turn that SHARES this envelope and can
+ * carry MORE input AND output tokens than a short answer (observed: haiku 528 in
+ * / 11 out vs the fable answer 179 in / 13 out). So we FILTER haiku first (unless
+ * haiku was requested), then take the highest-OUTPUT model among the rest as the
+ * author. Presence alone is not enough — a mid-run fallback (a small fable
+ * safety-classifier pass, then opus authoring the answer) leaves BOTH in the
+ * envelope, and family-presence would call that "fable ran"; output picks the
+ * real author. Returns {} when modelUsage is absent (older CLI / error
+ * envelopes) — never guesses. */
+export function verifyExecutedModel(modelUsage: unknown, expectedTier: string): { executed?: string; downgraded?: boolean } {
+  if (!modelUsage || typeof modelUsage !== 'object') return {};
+  const keys = Object.keys(modelUsage as Record<string, unknown>);
+  if (keys.length === 0) return {};
+  // Background utility model in Claude Code is haiku (title/summary). Filter it so
+  // it can't be mistaken for the answer — UNLESS haiku was the requested tier.
+  const answerKeys = expectedTier === 'haiku' ? keys : keys.filter((k) => !k.includes('haiku'));
+  const pool = answerKeys.length > 0 ? answerKeys : keys; // only-haiku (downgrade-to-haiku) edge
+  // The ANSWER model is the highest-OUTPUT model in the pool. A mid-run fallback
+  // (small fable classifier pass + opus answer) leaves both, so presence alone
+  // would misreport authorship; output identifies who actually answered.
+  let executed = pool[0];
+  let bestOut = -1;
+  for (const k of pool) {
+    const u = (modelUsage as Record<string, { outputTokens?: unknown }>)[k];
+    const out = u && typeof u.outputTokens === 'number' ? u.outputTokens : 0;
+    if (out > bestOut) { bestOut = out; executed = k; }
+  }
+  const downgraded = executed ? !executed.includes(expectedTier) : undefined;
+  return { executed, downgraded };
+}
+
+/** Append a model-verification record. The system NEVER claims a model ran
+ * without this proof — a `max` (Fable) call that silently executes Opus is the
+ * exact drift this catches and makes auditable. Logging must never break inference. */
+function logModelVerification(entry: Record<string, unknown>): void {
+  try {
+    const dir = join(process.env.HOME || '', '.claude', 'LIFEOS', 'MEMORY', 'OBSERVABILITY');
+    mkdirSync(dir, { recursive: true });
+    appendFileSync(join(dir, 'model-verification.jsonl'), JSON.stringify({ ts: new Date().toISOString(), ...entry }) + '\n');
+  } catch { /* observability must never break inference */ }
+}
 
 /**
  * Run inference with configurable level
@@ -162,6 +207,10 @@ async function inferenceAttempt(options: InferenceOptions, modelOverride?: strin
     // either path leaks subscription work onto API-key billing. Scrub both.
     delete env.ANTHROPIC_API_KEY;
     delete env.ANTHROPIC_AUTH_TOKEN;
+    // Also scrub ANTHROPIC_BASE_URL: a local proxy (e.g. a LiteLLM gateway) would
+    // still be targeted after the child loses its credentials above, so every
+    // nested call fails auth (401) and retries until timeout. Force real Anthropic API.
+    delete env.ANTHROPIC_BASE_URL;
 
     const hasImages = options.imagePaths && options.imagePaths.length > 0;
     const args = [
@@ -182,13 +231,21 @@ async function inferenceAttempt(options: InferenceOptions, modelOverride?: strin
     let stdout = '';
     let stderr = '';
 
-    const proc = spawn('claude', args, {
+    const proc = spawn(resolveClaudeBin(), args, {
       env,
       stdio: ['pipe', 'pipe', 'pipe'],
     });
 
+    // #1158: `claude --print` parses a leading-slash prompt ("/interview") as a
+    // CLI slash command → "Unknown command: /X" → downstream JSON-parse failure.
+    // Prefix such prompts so they always reach the model as plain text. Guards
+    // every caller (router classifier included), not just one call site.
+    const stdinPayload = /^\s*\//.test(userPromptWithImages)
+      ? `User message: ${userPromptWithImages}`
+      : userPromptWithImages;
+
     // Write prompt via stdin to avoid ARG_MAX limits on large inputs
-    proc.stdin.write(userPromptWithImages);
+    proc.stdin.write(stdinPayload);
     proc.stdin.end();
 
     proc.stdout.on('data', (data) => {
@@ -257,6 +314,17 @@ async function inferenceAttempt(options: InferenceOptions, modelOverride?: strin
       const stopReason = envelope.stop_reason;
       const resultText = typeof envelope.result === 'string' ? envelope.result : undefined;
 
+      // EXECUTED-MODEL VERIFICATION (integrity linchpin). Read back which model
+      // actually ran from `modelUsage`, compare it to the requested tier, and log
+      // any silent downgrade. A `max` call that runs Opus instead of Fable is
+      // caught HERE instead of being reported as Fable. Logged for max (Fable
+      // audit trail) and for any downgrade at any level.
+      const expectedTier = EFFORT_MODEL[level];
+      const { executed: executedModel, downgraded: modelDowngraded } = verifyExecutedModel(envelope.modelUsage, expectedTier);
+      if (executedModel && (modelDowngraded || level === 'max')) {
+        logModelVerification({ level, requested: model, expected_tier: expectedTier, executed: executedModel, downgraded: !!modelDowngraded, latency_ms: latencyMs });
+      }
+
       // 2026-06 Fable contract: refusals arrive as HTTP-200 JSON with stop_reason:"refusal".
       if (stopReason === 'refusal') {
         resolve({
@@ -322,6 +390,8 @@ async function inferenceAttempt(options: InferenceOptions, modelOverride?: strin
               success: true,
               output,
               parsed,
+              executedModel,
+              modelDowngraded,
               latencyMs,
               level,
             });
@@ -341,6 +411,8 @@ async function inferenceAttempt(options: InferenceOptions, modelOverride?: strin
       resolve({
         success: true,
         output,
+        executedModel,
+        modelDowngraded,
         latencyMs,
         level,
       });
@@ -362,7 +434,7 @@ async function inferenceAttempt(options: InferenceOptions, modelOverride?: strin
 /**
  * Run inference with configurable level.
  *
- * max → top-rung model (classifier + advisor + deep skills). Because the
+ * max → top-rung model (classifier + deep skills). Because the
  * classifier is the highest-leverage decision in LifeOS, a max-model failure must
  * NOT hard-break it: this wrapper retries once on the `high` model when the
  * max attempt fails, so a top-rung outage degrades one rung rather than to a
@@ -384,8 +456,8 @@ export async function inference(options: InferenceOptions): Promise<InferenceRes
   // modelForEffort returns an alias ("opus"), so a string compare would miss the
   // collision. Under a lineup where max and high share a tier (today both →
   // opus), retrying 'high' would hit the same failing model — a no-op fallback
-  // that re-times-out (the bug the task-intelligence review found: the advisor
-  // and classifier had no real degraded path). Pick the first distinct lower
+  // that re-times-out (the bug the task-intelligence review found: the max-level
+  // callers and classifier had no real degraded path). Pick the first distinct lower
   // rung so a top-rung outage degrades to a model that can actually answer.
   const fallbackLevel: EffortLevel =
     EFFORT_MODEL.high !== EFFORT_MODEL.max ? 'high'
@@ -394,199 +466,12 @@ export async function inference(options: InferenceOptions): Promise<InferenceRes
   console.error(`[Inference] max-level model failed (${first.error}); falling back to ${modelForEffort(fallbackLevel)} (level=${fallbackLevel}, distinct from max)`);
   // The retry uses `fallbackTimeoutMs` when the caller set one — only the
   // TheRouter classifier does, because its hook has a hard ceiling and the max
-  // attempt + fallback must fit inside it. Callers without a ceiling (advisor) omit
+  // attempt + fallback must fit inside it. Callers without a ceiling omit
   // it, so the fallback inherits the full `timeout` and degrades gracefully.
   const fallbackTimeout = options.fallbackTimeoutMs ?? options.timeout ?? config.defaultTimeout;
   return inferenceAttempt({ ...normalized, timeout: fallbackTimeout }, modelForEffort(fallbackLevel));
 }
 
-/**
- * Synthesize advisor state from the current ISA + recent activity (v3.24 P5).
- *
- * Closes the state-gaming Flaw identified by RedTeam review of v3.23 doctrine:
- * when the caller writes the state string manually, the same cognitive model
- * that might have missed the problem decides what the reviewer sees. Auto-synthesis
- * reads the ISA directly so the reviewer gets the unfiltered state.
- *
- * Reads:
- * - Current ISA content (resolved from MEMORY/STATE/work.json active session, or
- *   the most recently-updated ISA in MEMORY/WORK/)
- * - Recent session activity if available
- *
- * Returns a state string suitable for passing to advisor().
- */
-export async function synthesizeAdvisorState(): Promise<string> {
-  const fs = await import("fs/promises");
-  const path = await import("path");
-  const home = process.env.HOME || process.env.USERPROFILE || "";
-  const workDir = path.join(home, ".claude", "LIFEOS", "MEMORY", "WORK");
-  const stateFile = path.join(home, ".claude", "LIFEOS", "MEMORY", "STATE", "work.json");
-
-  // Try to read active session from work.json
-  let activeSlug: string | undefined;
-  try {
-    const stateRaw = await fs.readFile(stateFile, "utf-8");
-    const state = JSON.parse(stateRaw);
-    activeSlug = state?.active || state?.current || state?.activeSession;
-  } catch {
-    // work.json may not exist — fall back to most recent ISA
-  }
-
-  // Fall back: find most recently updated ISA in WORK/
-  if (!activeSlug) {
-    try {
-      const entries = await fs.readdir(workDir, { withFileTypes: true });
-      const dirs = entries.filter((e) => e.isDirectory()).map((e) => e.name);
-      if (dirs.length === 0) {
-        return "No active ISA found. Advisor state unavailable.";
-      }
-      // Sort by mtime
-      const statted = await Promise.all(
-        dirs.map(async (d) => {
-          const s = await fs.stat(path.join(workDir, d));
-          return { name: d, mtime: s.mtimeMs };
-        }),
-      );
-      statted.sort((a, b) => b.mtime - a.mtime);
-      activeSlug = statted[0].name;
-    } catch (err) {
-      return `Unable to locate active ISA: ${(err as Error).message}`;
-    }
-  }
-
-  // Read ISA content
-  const isaPath = path.join(workDir, activeSlug, "ISA.md");
-  let prdContent: string;
-  try {
-    prdContent = await fs.readFile(isaPath, "utf-8");
-  } catch (err) {
-    return `Active session ${activeSlug} has no ISA.md: ${(err as Error).message}`;
-  }
-
-  // Truncate to a reasonable size for advisor context (first 300 lines, ~8KB)
-  const MAX_LINES = 300;
-  const lines = prdContent.split("\n");
-  const truncated = lines.length > MAX_LINES
-    ? lines.slice(0, MAX_LINES).join("\n") + `\n\n[... ISA truncated at ${MAX_LINES} lines of ${lines.length} total ...]`
-    : prdContent;
-
-  // v6.6.0: surface principal_stated_goal as a leading block above the ISA blob,
-  // so the advisor reads the literal anchor before any derived content.
-  // Parse YAML frontmatter (delimited by the first two `---` lines).
-  let goalBlock = "";
-  const frontmatterMatch = prdContent.match(/^---\n([\s\S]*?)\n---/);
-  if (frontmatterMatch) {
-    const fm = frontmatterMatch[1];
-    const goalLine = fm.match(/^principal_stated_goal:\s*"((?:[^"\\]|\\.)*)"/m);
-    if (goalLine && goalLine[1]) {
-      goalBlock = [
-        `--- PRINCIPAL STATED GOAL (v6.4.0 literal — evidence anchor, not optimization target) ---`,
-        goalLine[1],
-        `--- END PRINCIPAL STATED GOAL ---`,
-        ``,
-      ].join("\n");
-    }
-  }
-
-  return [
-    `ISA: ${activeSlug}`,
-    `Source: ${isaPath}`,
-    ``,
-    goalBlock,
-    `--- ISA CONTENT (verbatim, auto-synthesized from disk — not caller-filtered) ---`,
-    truncated,
-    `--- END ISA CONTENT ---`,
-  ].filter(line => line !== "").join("\n");
-}
-
-/**
- * Advisor escalation — v3.24 Verification Doctrine.
- *
- * Calls the max level framed as a reviewer. Caller may supply explicit state
- * OR set autoSynthesize: true to have the helper read the current ISA automatically
- * (v3.24 P5 — closes state-gaming escape hatch).
- *
- * @param task          What the executor is trying to accomplish
- * @param state         Current relevant state (omit when autoSynthesize is true)
- * @param question      Specific question or decision point the executor faces
- * @param autoSynthesize If true, ignore `state` and read current ISA via synthesizeAdvisorState()
- * @param timeout       Override timeout in ms (default 120000)
- * @returns Structured advisory response
- *
- * Usage:
- *   import { advisor } from "./Inference";
- *
- *   // Manual state
- *   const review = await advisor({
- *     task: "Ship Algorithm v3.24.0",
- *     state: "Edited 8 files; ISC 28/30 passing; Inference.ts typecheck clean.",
- *     question: "Any gaps before declaring done?",
- *   });
- *
- *   // Auto-synthesized state (v3.24 P5 — recommended for commitment boundaries)
- *   const review = await advisor({
- *     task: "Ship Algorithm v3.24.0",
- *     question: "Any gaps before declaring done?",
- *     autoSynthesize: true,
- *   });
- *
- * Rules (from Algorithm v3.24.0 VERIFY doctrine):
- * - Call at commitment boundaries: before approach, when stuck, before declaring done
- * - Skip for MEASURED short reactive tasks (<4 min wall-clock AND <2 files)
- * - Extended+ ISA phase:complete = mandatory advisor call (P4)
- * - On conflict with empirical: re-call surfacing conflict, max 2 re-calls, then escalate (P1)
- */
-export interface AdvisorOptions {
-  task: string;
-  state?: string;
-  question: string;
-  autoSynthesize?: boolean;
-  timeout?: number;
-}
-
-export async function advisor(options: AdvisorOptions): Promise<InferenceResult> {
-  const systemPrompt = [
-    "You are an advisor model invoked at a commitment boundary by an executor model.",
-    "Review the executor's task, state, and specific question.",
-    "Be direct. Flag risks the executor may have missed.",
-    "If you see a fatal flaw, say so. If the approach is sound, confirm and say why.",
-    "Your output will be weighed against empirical test results — a passing test does NOT invalidate your review.",
-  ].join(" ");
-
-  // Resolve state: either auto-synthesized from ISA or caller-supplied.
-  let resolvedState: string;
-  if (options.autoSynthesize) {
-    resolvedState = await synthesizeAdvisorState();
-  } else if (options.state !== undefined) {
-    resolvedState = options.state;
-  } else {
-    return {
-      success: false,
-      output: "",
-      error: "advisor() requires either state or autoSynthesize: true",
-      latencyMs: 0,
-      level: 'max',
-    };
-  }
-
-  const userPrompt = [
-    `TASK: ${options.task}`,
-    ``,
-    `STATE:`,
-    resolvedState,
-    ``,
-    `QUESTION: ${options.question}`,
-    ``,
-    `Advisory response:`,
-  ].join("\n");
-
-  return inference({
-    systemPrompt,
-    userPrompt,
-    level: 'max',
-    timeout: options.timeout ?? ADVISOR_TIMEOUT_MS,
-  });
-}
 
 /**
  * CLI entry point
@@ -598,24 +483,11 @@ async function main() {
   let expectJson = false;
   let timeout: number | undefined;
   let level: InferenceLevel = 'medium';
-  let mode: 'inference' | 'advisor' = 'inference';
-  let autoState = false;  // v3.24 P5
   const positionalArgs: string[] = [];
 
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--json') {
       expectJson = true;
-    } else if (args[i] === '--auto-state') {
-      autoState = true;
-    } else if (args[i] === '--mode' && args[i + 1]) {
-      const requestedMode = args[i + 1].toLowerCase();
-      if (requestedMode === 'advisor' || requestedMode === 'inference') {
-        mode = requestedMode;
-      } else {
-        console.error(`Invalid mode: ${args[i + 1]}. Use inference or advisor.`);
-        process.exit(1);
-      }
-      i++;
     } else if (args[i] === '--level' && args[i + 1]) {
       const requestedLevel = args[i + 1].toLowerCase();
       if (['low', 'medium', 'high', 'max'].includes(requestedLevel)) {
@@ -633,38 +505,6 @@ async function main() {
     }
   }
 
-  // Advisor mode: normally task/state/question (3 args), or with --auto-state task/question (2 args)
-  if (mode === 'advisor') {
-    if (autoState) {
-      if (positionalArgs.length < 2) {
-        console.error('Usage: bun Inference.ts --mode advisor --auto-state [--json] [--timeout <ms>] <task> <question>');
-        process.exit(1);
-      }
-      const [task, question] = positionalArgs;
-      const advisoryResult = await advisor({ task, question, autoSynthesize: true, timeout });
-      if (advisoryResult.success) {
-        console.log(advisoryResult.output);
-      } else {
-        console.error(`Advisor error: ${advisoryResult.error}`);
-        process.exit(1);
-      }
-      return;
-    }
-    if (positionalArgs.length < 3) {
-      console.error('Usage: bun Inference.ts --mode advisor [--json] [--timeout <ms>] <task> <state> <question>');
-      console.error('       bun Inference.ts --mode advisor --auto-state [--json] [--timeout <ms>] <task> <question>');
-      process.exit(1);
-    }
-    const [task, state, question] = positionalArgs;
-    const advisoryResult = await advisor({ task, state, question, timeout });
-    if (advisoryResult.success) {
-      console.log(advisoryResult.output);
-    } else {
-      console.error(`Advisor error: ${advisoryResult.error}`);
-      process.exit(1);
-    }
-    return;
-  }
 
   if (positionalArgs.length < 2) {
     console.error('Usage: bun Inference.ts [--level low|medium|high|max] [--json] [--timeout <ms>] <system_prompt> <user_prompt>');
@@ -681,6 +521,13 @@ async function main() {
     timeout,
   });
 
+  // Executed-model verification surfaced to the caller (stderr only — stdout stays
+  // the clean answer). Proof of what RAN, so a Fable request that degraded to Opus
+  // is never silently reported as Fable.
+  if (result.executedModel) {
+    console.error(`[model] requested=${level} → executed=${result.executedModel}${result.modelDowngraded ? '  ⚠️ DOWNGRADED from requested tier' : ''}`);
+  }
+
   if (result.success) {
     if (expectJson && result.parsed) {
       console.log(JSON.stringify(result.parsed));
@@ -688,6 +535,12 @@ async function main() {
       console.log(result.output);
     }
   } else {
+    // #1323: on failure (e.g. --json parse miss) the raw model output was
+    // silently dropped. Preserve it on stdout so callers can recover it;
+    // exit code + stderr still signal the failure.
+    if (result.output) {
+      console.log(result.output);
+    }
     console.error(`Error: ${result.error}`);
     process.exit(1);
   }

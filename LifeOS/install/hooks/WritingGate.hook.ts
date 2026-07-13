@@ -1,5 +1,13 @@
 #!/usr/bin/env bun
+// Normalize env path vars Claude Code may inject unexpanded — literal $HOME/${HOME}
+// in LIFEOS_DIR/LIFEOS_CONFIG_DIR/PROJECTS_DIR resolves to a shadow dir (#1404 / PR #1451, author jbmml).
+for (const __k of ["LIFEOS_DIR", "LIFEOS_CONFIG_DIR", "PROJECTS_DIR"]) {
+  const __v = process.env[__k];
+  if (__v && /^\$\{?HOME\}?(\/|$)/.test(__v)) process.env[__k] = __v.replace(/^\$\{?HOME\}?/, process.env.HOME ?? "~");
+}
+
 /**
+ * @version 1.0.3
  * WritingGate.hook.ts — force a REAL _WRITING audit + AI-detector run on any
  * response that ships authored, outbound prose FOR {{PRINCIPAL_NAME}}.
  *
@@ -29,6 +37,13 @@ import { readHookInput, parseTranscriptFromInput } from "./lib/hook-io";
 import { appendFileSync, mkdirSync, existsSync, readFileSync } from "fs";
 import { createHash } from "crypto";
 import { dirname, join } from "path";
+
+// Normalize env path vars that Claude Code injects without shell expansion (LifeOS#1404)
+for (const k of ["LIFEOS_DIR", "LIFEOS_CONFIG_DIR", "PROJECTS_DIR"]) {
+  const v = process.env[k];
+  if (v && /^\$\{?HOME\}?(\/|$)/.test(v)) process.env[k] = v.replace(/^\$\{?HOME\}?/, process.env.HOME ?? "~");
+}
+
 
 const LIFEOS_DIR = process.env.LIFEOS_DIR || join(process.env.HOME!, ".claude", "LIFEOS");
 const OBS_PATH = join(LIFEOS_DIR, "MEMORY", "OBSERVABILITY", "writing-gate.jsonl");
@@ -133,22 +148,20 @@ const BLOCK_REASON =
   "logged; (3) cite the detect result + the reported AI% in a `✍️ WRITING-AUDIT:` line. Pangram saturates on " +
   "model prose, so the number is REPORTED, not a pass/fail bar — the requirement is that the audit RAN.";
 
-async function main(): Promise<void> {
-  const input = await readHookInput();
-  if (!input) process.exit(0);
+/** Returns a decision object to emit, or null. Pure — no exit, no stdout. */
+export async function run(input: NonNullable<Awaited<ReturnType<typeof readHookInput>>>): Promise<object | null> {
   const session_id = input.session_id ?? "unknown";
 
   if (input.stop_hook_active === true) {
     appendObs({ session_id, decision: "skip-recovery" as Decision, stop_hook_active: true });
-    console.log(JSON.stringify({ continue: true }));
-    process.exit(0);
+    return { continue: true };
   }
 
   let message = input.last_assistant_message;
   if (!message) {
     try { message = (await parseTranscriptFromInput(input)).lastMessage ?? undefined; } catch { /* best-effort */ }
   }
-  if (!message || message.trim().length === 0) process.exit(0);
+  if (!message || message.trim().length === 0) return null;
 
   const fenceStripped = message.replace(/```[\s\S]*?```/g, " ").trimStart();
   const strong =
@@ -165,20 +178,28 @@ async function main(): Promise<void> {
     const { freshRun, shaMatch } = auditRunProof(message);
     if (shaMatch && hasCitation(message)) {
       appendObs({ session_id, decision: "pass-run-verified" as Decision, strong, words });
-      process.exit(0);
+      return null;
     }
     appendObs({ session_id, decision: "block-strong-no-run" as Decision, strong, words, freshRun, shaMatch });
-    console.log(JSON.stringify({ decision: "block", reason: BLOCK_REASON }));
-    process.exit(0);
+    return { decision: "block", reason: BLOCK_REASON };
   }
 
   if (weak && words >= 60) {
     appendObs({ session_id, decision: "telemetry-weak" as Decision, weak, words });
-    process.exit(0);
+    return null;
   }
 
   appendObs({ session_id, decision: "no-content" as Decision, strong, weak, words });
-  process.exit(0);
+  return null;
 }
 
-main().catch((err) => { console.error("[WritingGate] fatal:", err); process.exit(0); });
+if (import.meta.main) {
+  (async () => {
+    const input = await readHookInput();
+    if (input) {
+      const d = await run(input);
+      if (d) console.log(JSON.stringify(d));
+    }
+    process.exit(0);
+  })().catch((err) => { console.error("[WritingGate] fatal:", err); process.exit(0); });
+}

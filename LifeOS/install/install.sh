@@ -28,8 +28,9 @@ set -euo pipefail
 # LIFEOS_VERSION=x.y.z (or LIFEOS_TAG=vx.y.z) to force a specific version.
 # Falls back to a known-good tag if the GitHub API is unreachable, so the
 # install never hard-fails on a network hiccup.
+# Repo owner/name is parameterized — set at publish time, never hard-coded here.
 LIFEOS_REPO="${LIFEOS_REPO:-danielmiessler/LifeOS}"
-LIFEOS_FALLBACK_TAG="v6.0.5"
+LIFEOS_FALLBACK_TAG="v7.0.0"
 if [ -n "${LIFEOS_VERSION:-}" ]; then
   LIFEOS_TAG="v${LIFEOS_VERSION}"
 elif [ -z "${LIFEOS_TAG:-}" ]; then
@@ -83,19 +84,45 @@ need bash || FAIL=1
 need tar  || FAIL=1
 [ $FAIL -ne 0 ] && { error "Install the missing prerequisites and re-run."; exit 1; }
 
-if ! command -v bun >/dev/null 2>&1; then
-  warn "bun not found — LifeOS tools need it."
+# LifeOS's bun.lock uses the v6 lockfile format, which bun < 1.2 cannot parse.
+# So we require bun AND a modern-enough bun — auto-installing (which pulls the
+# latest) via the same official installer whether bun is absent OR too old.
+BUN_MIN_MAJOR=1
+BUN_MIN_MINOR=2
+bun_too_old() {
+  # returns 0 (true) when the installed bun is older than $BUN_MIN_MAJOR.$BUN_MIN_MINOR
+  local v major minor
+  v="$(bun --version 2>/dev/null | head -n1 | tr -d '[:space:]' || true)"
+  [ -z "$v" ] && return 0
+  major="${v%%.*}"; minor="${v#*.}"; minor="${minor%%.*}"
+  case "$major" in ''|*[!0-9]*) return 0 ;; esac
+  case "$minor" in ''|*[!0-9]*) minor=0 ;; esac
+  [ "$major" -gt "$BUN_MIN_MAJOR" ] && return 1
+  [ "$major" -lt "$BUN_MIN_MAJOR" ] && return 0
+  [ "$minor" -lt "$BUN_MIN_MINOR" ] && return 0 || return 1
+}
+install_bun() {
   if [ "${LIFEOS_AUTO_INSTALL_BUN:-1}" = "1" ] && [ -z "${CI:-}" ] && [ -t 0 ]; then
     info "Installing bun..."
     run bash -c "curl -fsSL https://bun.sh/install | bash"
-    [ -f "$HOME/.bun/bin/bun" ] && export PATH="$HOME/.bun/bin:$PATH" && success "bun installed" \
+    [ -f "$HOME/.bun/bin/bun" ] && export PATH="$HOME/.bun/bin:$PATH" && hash -r && success "bun installed" \
       || { error "bun install failed"; exit 1; }
   else
-    error "Install bun first:  ${BOLD}curl -fsSL https://bun.sh/install | bash${RESET}"; exit 1
+    error "Install bun ≥ ${BUN_MIN_MAJOR}.${BUN_MIN_MINOR} first:  ${BOLD}curl -fsSL https://bun.sh/install | bash${RESET}"; exit 1
   fi
-else
-  success "bun ($(command -v bun))"
+}
+
+if ! command -v bun >/dev/null 2>&1; then
+  warn "bun not found — LifeOS tools need it."
+  install_bun
+elif bun_too_old; then
+  warn "bun $(bun --version 2>/dev/null) is too old — LifeOS needs bun ≥ ${BUN_MIN_MAJOR}.${BUN_MIN_MINOR} (v6 bun.lock format)."
+  install_bun
 fi
+if [ "$DRY_RUN" != "1" ] && bun_too_old; then
+  error "bun is still older than ${BUN_MIN_MAJOR}.${BUN_MIN_MINOR} ($(bun --version 2>/dev/null)). Upgrade with ${BOLD}bun upgrade${RESET} and re-run."; exit 1
+fi
+success "bun ($(command -v bun), v$(bun --version 2>/dev/null))"
 
 # ─── Step 2: Detect harness (no clobber) ─────────────────────────
 step "2/5  Detecting your harness"

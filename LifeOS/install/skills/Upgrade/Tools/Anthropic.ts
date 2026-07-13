@@ -4,7 +4,7 @@
  * Check Anthropic Changes - Comprehensive Update Monitoring
  *
  * Monitors 30+ official Anthropic sources for updates and provides
- * AI-powered recommendations for improving PAI infrastructure.
+ * AI-powered recommendations for improving LifeOS infrastructure.
  *
  * Usage:
  *   /check-anthropic-changes              # Check last 7 days
@@ -24,7 +24,7 @@
  *   - Links to all changes
  */
 
-import { readFileSync, writeFileSync, existsSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import { createHash } from 'crypto';
 import { join } from 'path';
 import { homedir } from 'os';
@@ -132,11 +132,8 @@ function loadState(): State {
 }
 
 function saveState(state: State): void {
-  try {
-    writeFileSync(STATE_FILE, JSON.stringify(state, null, 2), 'utf-8');
-  } catch (error) {
-    console.error('❌ Failed to save state:', error);
-  }
+  mkdirSync(STATE_DIR, { recursive: true });
+  writeFileSync(STATE_FILE, JSON.stringify(state, null, 2), 'utf-8');
 }
 
 function logRun(updatesFound: number, high: number, medium: number, low: number): void {
@@ -230,7 +227,7 @@ async function fetchGitHubRepo(source: Source, state: State): Promise<Update[]> 
   const token = process.env.GITHUB_TOKEN || '';
   const headers: Record<string, string> = {
     'Accept': 'application/vnd.github.v3+json',
-    'User-Agent': 'PAI-Anthropic-Monitor'
+    'User-Agent': 'LifeOS-Anthropic-Monitor'
   };
   if (token) headers['Authorization'] = `token ${token}`;
 
@@ -522,99 +519,99 @@ async function fetchIndex(source: Source, state: State): Promise<Update[]> {
   }
 }
 
-// Recommendation engine - PAI PAI ecosystem focused
+// Recommendation engine - LifeOS LifeOS ecosystem focused
 function generateRecommendation(update: Update): string {
   const { source, type, title, category } = update;
   const titleLower = title.toLowerCase();
 
-  // SKILLS - Critical for PAI's skill system
+  // SKILLS - Critical for LifeOS's skill system
   if (titleLower.includes('skill') || titleLower.includes('skills')) {
-    return `**PAI Impact:** CRITICAL for skills ecosystem\n` +
-      `**Why:** PAI's entire infrastructure is built on skills - any changes to skill patterns, specifications, or examples directly affect how we build and organize PAI's capabilities.\n` +
-      `**Action:** Review immediately and update PAI's skill templates/patterns if new conventions emerge. Check if new skill categories or capabilities can be adopted.`;
+    return `**LifeOS Impact:** CRITICAL for skills ecosystem\n` +
+      `**Why:** LifeOS's entire infrastructure is built on skills - any changes to skill patterns, specifications, or examples directly affect how we build and organize LifeOS's capabilities.\n` +
+      `**Action:** Review immediately and update LifeOS's skill templates/patterns if new conventions emerge. Check if new skill categories or capabilities can be adopted.`;
   }
 
   // MCP - Core infrastructure
   if (titleLower.includes('mcp') || source.toLowerCase().includes('mcp')) {
-    return `**PAI Impact:** HIGH - MCP infrastructure enhancement\n` +
-      `**Why:** PAI uses MCP servers for brightdata, Ref docs, content access, and Stripe. Changes to MCP spec/docs affect our integrations.\n` +
-      `**Action:** Assess compatibility with existing MCP servers in .mcp.json. Look for new MCP capabilities to expand PAI's tooling.`;
+    return `**LifeOS Impact:** HIGH - MCP infrastructure enhancement\n` +
+      `**Why:** LifeOS uses MCP servers for brightdata, Ref docs, content access, and Stripe. Changes to MCP spec/docs affect our integrations.\n` +
+      `**Action:** Assess compatibility with existing MCP servers in .mcp.json. Look for new MCP capabilities to expand LifeOS's tooling.`;
   }
 
   // Commands/Slash Commands
   if (titleLower.includes('command') || titleLower.includes('slash command')) {
-    return `**PAI Impact:** HIGH - Command system update\n` +
-      `**Why:** PAI uses slash commands extensively (~/.claude/Commands/). Changes affect our command architecture and user workflows.\n` +
-      `**Action:** Review for new command patterns or capabilities. Update PAI's command templates if conventions change.`;
+    return `**LifeOS Impact:** HIGH - Command system update\n` +
+      `**Why:** LifeOS uses slash commands extensively (~/.claude/Commands/). Changes affect our command architecture and user workflows.\n` +
+      `**Action:** Review for new command patterns or capabilities. Update LifeOS's command templates if conventions change.`;
   }
 
   // Agents/Hooks
   if (titleLower.includes('agent') || titleLower.includes('hook')) {
-    return `**PAI Impact:** HIGH - Agent/Hook system change\n` +
-      `**Why:** PAI uses agents (researcher, engineer, architect, etc.) and hooks (load-context, stop-hook) as core infrastructure components.\n` +
-      `**Action:** Check if this affects PAI's agent definitions or hook configurations. Test existing agent workflows.`;
+    return `**LifeOS Impact:** HIGH - Agent/Hook system change\n` +
+      `**Why:** LifeOS uses agents (researcher, engineer, architect, etc.) and hooks (load-context, stop-hook) as core infrastructure components.\n` +
+      `**Action:** Check if this affects LifeOS's agent definitions or hook configurations. Test existing agent workflows.`;
   }
 
   // Claude Code releases
   if (type === 'release' && source.includes('claude-code')) {
-    return `**PAI Impact:** CRITICAL - Core platform update\n` +
-      `**Why:** PAI runs on Claude Code - releases may include new features, breaking changes, or performance improvements.\n` +
-      `**Action:** Review changelog carefully. Test PAI's critical workflows. Update skills/commands if APIs changed.`;
+    return `**LifeOS Impact:** CRITICAL - Core platform update\n` +
+      `**Why:** LifeOS runs on Claude Code - releases may include new features, breaking changes, or performance improvements.\n` +
+      `**Action:** Review changelog carefully. Test LifeOS's critical workflows. Update skills/commands if APIs changed.`;
   }
 
   // MCP releases
   if (type === 'release' && source.includes('MCP')) {
-    return `**PAI Impact:** HIGH - MCP protocol update\n` +
+    return `**LifeOS Impact:** HIGH - MCP protocol update\n` +
       `**Why:** MCP protocol changes may require updates to server implementations or client integrations.\n` +
       `**Action:** Check MCP server compatibility. Look for new transports, authentication methods, or capabilities to adopt.`;
   }
 
   // Plugin/Marketplace
   if (titleLower.includes('plugin') || titleLower.includes('marketplace')) {
-    return `**PAI Impact:** MEDIUM - Ecosystem expansion\n` +
-      `**Why:** Plugin/marketplace features could provide new capabilities to integrate into PAI's toolkit.\n` +
-      `**Action:** Explore available plugins. Assess if any solve current PAI limitations or add valuable features.`;
+    return `**LifeOS Impact:** MEDIUM - Ecosystem expansion\n` +
+      `**Why:** Plugin/marketplace features could provide new capabilities to integrate into LifeOS's toolkit.\n` +
+      `**Action:** Explore available plugins. Assess if any solve current LifeOS limitations or add valuable features.`;
   }
 
   // Cookbooks/Quickstarts/Courses - Implementation patterns
   if (source.includes('cookbook') || source.includes('quickstart') || source.includes('courses')) {
-    return `**PAI Impact:** MEDIUM - Implementation patterns\n` +
-      `**Why:** Cookbooks/examples show best practices and patterns we can adopt in PAI's codebase.\n` +
-      `**Action:** Review for reusable patterns, especially around skills, agents, or Claude Code features. Extract learnings for PAI.`;
+    return `**LifeOS Impact:** MEDIUM - Implementation patterns\n` +
+      `**Why:** Cookbooks/examples show best practices and patterns we can adopt in LifeOS's codebase.\n` +
+      `**Action:** Review for reusable patterns, especially around skills, agents, or Claude Code features. Extract learnings for LifeOS.`;
   }
 
   // GitHub commits
   if (category === 'github' && type === 'commit') {
-    return `**PAI Impact:** LOW-MEDIUM - Code pattern review\n` +
-      `**Why:** Commits may reveal implementation details, bug fixes, or patterns useful for PAI development.\n` +
+    return `**LifeOS Impact:** LOW-MEDIUM - Code pattern review\n` +
+      `**Why:** Commits may reveal implementation details, bug fixes, or patterns useful for LifeOS development.\n` +
       `**Action:** Skim commit for code patterns. Low priority unless it touches skills/MCP/commands directly.`;
   }
 
   // Documentation
   if (titleLower.includes('doc') || type === 'docs') {
-    return `**PAI Impact:** MEDIUM - Capability discovery\n` +
-      `**Why:** Doc updates often reveal new features or best practices not yet in PAI.\n` +
+    return `**LifeOS Impact:** MEDIUM - Capability discovery\n` +
+      `**Why:** Doc updates often reveal new features or best practices not yet in LifeOS.\n` +
       `**Action:** Review for new Claude Code features, API capabilities, or configuration options to leverage.`;
   }
 
   // SDK releases
   if (source.includes('sdk')) {
-    return `**PAI Impact:** LOW - SDK update\n` +
-      `**Why:** SDK updates are less relevant since PAI uses Claude Code CLI, not raw API SDKs.\n` +
-      `**Action:** Note for reference. Only investigate if mentions features relevant to PAI's agent implementations.`;
+    return `**LifeOS Impact:** LOW - SDK update\n` +
+      `**Why:** SDK updates are less relevant since LifeOS uses Claude Code CLI, not raw API SDKs.\n` +
+      `**Action:** Note for reference. Only investigate if mentions features relevant to LifeOS's agent implementations.`;
   }
 
   // Blog posts
   if (type === 'blog') {
-    return `**PAI Impact:** LOW-MEDIUM - Awareness\n` +
-      `**Why:** Blogs announce new features and directions that may eventually affect PAI.\n` +
+    return `**LifeOS Impact:** LOW-MEDIUM - Awareness\n` +
+      `**Why:** Blogs announce new features and directions that may eventually affect LifeOS.\n` +
       `**Action:** Skim for strategic announcements about Claude Code, Skills, or MCP. Track for future planning.`;
   }
 
   // Generic
-  return `**PAI Impact:** LOW - General awareness\n` +
-    `**Why:** May have indirect relevance to PAI ecosystem.\n` +
-    `**Action:** Review if time permits. Low impact on PAI's core functionality.`;
+  return `**LifeOS Impact:** LOW - General awareness\n` +
+    `**Why:** May have indirect relevance to LifeOS ecosystem.\n` +
+    `**Action:** Review if time permits. Low impact on LifeOS's core functionality.`;
 }
 
 function assessRelevance(update: Update): 'HIGH' | 'MEDIUM' | 'LOW' {
@@ -643,7 +640,7 @@ function assessRelevance(update: Update): 'HIGH' | 'MEDIUM' | 'LOW' {
   return update.priority;
 }
 
-// Generate narrative analysis focused on PAI ecosystem
+// Generate narrative analysis focused on LifeOS ecosystem
 function generateNarrative(updates: Update[]): string {
   const high = updates.filter(u => u.priority === 'HIGH');
   const medium = updates.filter(u => u.priority === 'MEDIUM');
@@ -657,13 +654,13 @@ function generateNarrative(updates: Update[]): string {
   const docUpdates = updates.filter(u => u.type === 'docs');
   const releases = updates.filter(u => u.type === 'release');
 
-  let narrative = `## 📖 Executive Summary: What This Means for PAI\n\n`;
+  let narrative = `## 📖 Executive Summary: What This Means for LifeOS\n\n`;
 
   // Overall activity
   narrative += `Found **${updates.length} updates** across the Anthropic ecosystem in the monitored period. `;
 
   if (high.length > 0) {
-    narrative += `**${high.length} are HIGH priority** for PAI's infrastructure, `;
+    narrative += `**${high.length} are HIGH priority** for LifeOS's infrastructure, `;
   }
   if (medium.length > 0) {
     narrative += `${medium.length} are MEDIUM priority, `;
@@ -705,8 +702,8 @@ function generateNarrative(updates: Update[]): string {
     const highSkills = skillUpdates.filter(u => u.priority === 'HIGH').length;
     if (highSkills > 0) {
       narrative += `**🔥 CRITICAL: Skills System Activity**\n`;
-      narrative += `There are **${highSkills} HIGH-priority skill updates** - this is BIG because PAI's entire architecture is built on the skills system. `;
-      narrative += `Any changes to skill patterns, specifications, or conventions could require updates to PAI's ${countSkills()} existing skills. `;
+      narrative += `There are **${highSkills} HIGH-priority skill updates** - this is BIG because LifeOS's entire architecture is built on the skills system. `;
+      narrative += `Any changes to skill patterns, specifications, or conventions could require updates to LifeOS's ${countSkills()} existing skills. `;
 
       const skillsRepo = skillUpdates.some(u => u.source === 'skills');
       if (skillsRepo) {
@@ -718,7 +715,7 @@ function generateNarrative(updates: Update[]): string {
         narrative += `Skills documentation has also been updated - check for new patterns or best practices. `;
       }
 
-      narrative += `\n\n**→ Priority Action:** Review all skill updates immediately. Update PAI's skill templates if conventions changed.\n\n`;
+      narrative += `\n\n**→ Priority Action:** Review all skill updates immediately. Update LifeOS's skill templates if conventions changed.\n\n`;
     } else {
       narrative += `Skills system has **${skillUpdates.length} updates** but lower priority - likely documentation or minor improvements.\n\n`;
     }
@@ -729,7 +726,7 @@ function generateNarrative(updates: Update[]): string {
     const highMcp = mcpUpdates.filter(u => u.priority === 'HIGH').length;
     if (highMcp > 0) {
       narrative += `**🔧 IMPORTANT: MCP Infrastructure Changes**\n`;
-      narrative += `**${highMcp} HIGH-priority MCP updates** detected. Since PAI uses MCP servers for brightdata, Ref, content, and Stripe, `;
+      narrative += `**${highMcp} HIGH-priority MCP updates** detected. Since LifeOS uses MCP servers for brightdata, Ref, content, and Stripe, `;
       narrative += `protocol changes could affect our integrations. `;
 
       const mcpRelease = mcpUpdates.find(u => u.type === 'release');
@@ -737,7 +734,7 @@ function generateNarrative(updates: Update[]): string {
         narrative += `There's a new MCP release (${mcpRelease.title}) - check for new capabilities or breaking changes. `;
       }
 
-      narrative += `\n\n**→ Priority Action:** Test existing MCP servers. Look for new MCP features to expand PAI's toolkit.\n\n`;
+      narrative += `\n\n**→ Priority Action:** Test existing MCP servers. Look for new MCP features to expand LifeOS's toolkit.\n\n`;
     } else {
       narrative += `MCP has **${mcpUpdates.length} updates** - mostly documentation or minor improvements. Still worth monitoring.\n\n`;
     }
@@ -748,14 +745,14 @@ function generateNarrative(updates: Update[]): string {
     const highCode = codeUpdates.filter(u => u.priority === 'HIGH').length;
     if (highCode > 0) {
       narrative += `**⚡ PLATFORM UPDATE: Claude Code Changes**\n`;
-      narrative += `**${highCode} HIGH-priority** Claude Code updates found. Since PAI runs on Claude Code, platform changes can affect everything. `;
+      narrative += `**${highCode} HIGH-priority** Claude Code updates found. Since LifeOS runs on Claude Code, platform changes can affect everything. `;
 
       const codeRelease = codeUpdates.find(u => u.type === 'release');
       if (codeRelease) {
         narrative += `New release detected: ${codeRelease.title}. This could include new features, bug fixes, or breaking changes. `;
       }
 
-      narrative += `\n\n**→ Priority Action:** Review changelog. Test PAI's core workflows after updating.\n\n`;
+      narrative += `\n\n**→ Priority Action:** Review changelog. Test LifeOS's core workflows after updating.\n\n`;
     } else {
       narrative += `Claude Code has **${codeUpdates.length} updates** but lower priority. Likely maintenance commits.\n\n`;
     }
@@ -767,7 +764,7 @@ function generateNarrative(updates: Update[]): string {
     narrative += `**${cookbookUpdates.length} cookbook updates** - these often contain useful patterns and examples. `;
     const skillCookbooks = cookbookUpdates.filter(u => u.title.toLowerCase().includes('skill'));
     if (skillCookbooks.length > 0) {
-      narrative += `${skillCookbooks.length} specifically about skills - definitely review these for patterns to adopt in PAI. `;
+      narrative += `${skillCookbooks.length} specifically about skills - definitely review these for patterns to adopt in LifeOS. `;
     }
     narrative += `\n\n`;
   }
@@ -775,7 +772,7 @@ function generateNarrative(updates: Update[]): string {
   // Documentation
   if (docUpdates.length > 5) {
     narrative += `**📖 Documentation Updates**\n`;
-    narrative += `**${docUpdates.length} documentation pages** updated. While less urgent, docs often reveal new capabilities or best practices not yet used in PAI.\n\n`;
+    narrative += `**${docUpdates.length} documentation pages** updated. While less urgent, docs often reveal new capabilities or best practices not yet used in LifeOS.\n\n`;
   }
 
   // Releases summary
@@ -789,7 +786,7 @@ function generateNarrative(updates: Update[]): string {
   }
 
   // Bottom line
-  narrative += `### 🎯 Bottom Line for PAI\n\n`;
+  narrative += `### 🎯 Bottom Line for LifeOS\n\n`;
 
   if (high.length > 5) {
     narrative += `**High activity period** with ${high.length} high-priority changes. This suggests significant ecosystem development. `;
@@ -797,14 +794,14 @@ function generateNarrative(updates: Update[]): string {
   } else if (high.length > 0) {
     narrative += `**Moderate activity** with ${high.length} items requiring attention. Not urgent, but should review within the week.\n\n`;
   } else {
-    narrative += `**Quiet period** - mostly low-priority updates. Good time to focus on PAI development rather than external changes.\n\n`;
+    narrative += `**Quiet period** - mostly low-priority updates. Good time to focus on LifeOS development rather than external changes.\n\n`;
   }
 
   // Specific call-outs
   const topItems: string[] = [];
 
   if (skillUpdates.filter(u => u.priority === 'HIGH').length > 0) {
-    topItems.push('1. **Skills system updates** - Review immediately, may affect PAI architecture');
+    topItems.push('1. **Skills system updates** - Review immediately, may affect LifeOS architecture');
   }
   if (mcpUpdates.filter(u => u.priority === 'HIGH').length > 0) {
     topItems.push('2. **MCP changes** - Test existing integrations, look for new capabilities');
@@ -824,7 +821,7 @@ function generateNarrative(updates: Update[]): string {
 
 function countSkills(): number {
   // Simple estimate - could be enhanced to actually count skills
-  return 20; // Approximate based on PAI's current skill set
+  return 20; // Approximate based on LifeOS's current skill set
 }
 
 // Main execution

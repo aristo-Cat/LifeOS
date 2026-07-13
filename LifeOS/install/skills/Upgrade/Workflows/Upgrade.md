@@ -39,7 +39,7 @@ Thread 0 output gates synthesis. No recommendation may be emitted without a Prio
 Spawn 5 parallel agents (`subagent_type=Explore`) to inventory current LifeOS state. Each returns an inventory with file:line evidence.
 
 **Agent 0a — Algorithm & Capabilities**
-Read: `~/.claude/LIFEOS/ALGORITHM/LATEST` + the file it points to, `~/.claude/LIFEOS/ALGORITHM/capabilities.md`, `mode-detection.md`, `~/.claude/LIFEOS/DOCUMENTATION/Algorithm/AlgorithmSystem.md`.
+Read: `~/.claude/LIFEOS/ALGORITHM/LATEST` + the file it points to, `mode-detection.md`, `~/.claude/LIFEOS/DOCUMENTATION/Algorithm/AlgorithmSystem.md`.
 Extract: phase definitions and gates, verification doctrine (advisor rules, live-probe, conflict resolution), preflight gates, capabilities table, mode-detection triggers, browser-first / env-probe / feedback-memory-lookup / parallelization rules.
 Return: state inventory with file:line evidence, ≤500 words.
 

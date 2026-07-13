@@ -1,3 +1,7 @@
+---
+provenance: template
+---
+
 # Core Content Themes
 
 > The recurring themes in what you produce — essays, talks, videos, posts, code.

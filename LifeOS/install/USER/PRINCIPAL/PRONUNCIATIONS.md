@@ -1,3 +1,7 @@
+---
+provenance: template
+---
+
 # Pronunciations — User
 
 > Bootstrap default. Run `/interview` to capture words the DA must say

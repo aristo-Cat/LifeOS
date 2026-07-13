@@ -1,6 +1,7 @@
 ---
 name: Science
-description: "The scientific method as a universal problem-solving algorithm — goal-first, hypothesis-plural, falsifiable experiments, honest measurement. Seven workflows: DefineGoal, GenerateHypotheses (min 3 — single-hypothesis is confirmation bias), DesignExperiment, MeasureResults, AnalyzeResults, Iterate, FullCycle. Diagnostic shortcuts: QuickDiagnosis (15-min rule), StructuredInvestigation (multi-factor). Scales across micro (TDD), meso (feature validation), macro (MVP launch). Integrates Council, Evals, Development, RedTeam. USE WHEN think about, figure out, experiment, iterate, optimize, hypothesis, science, full cycle, quick diagnosis, structured investigation, how do we test, analyze results. NOT FOR multi-angle lens passes (use IterativeDepth)."
+version: 1.1.17
+description: "The scientific method as a universal problem-solving algorithm — goal-first, plural falsifiable hypotheses, designed experiments, and honest measurement, scaling from TDD to feature validation to MVP launch. USE WHEN think about, figure out, experiment, iterate, optimize, hypothesis, science, full cycle, quick diagnosis, structured investigation, how do we test, analyze results. NOT FOR multi-angle lens passes (use IterativeDepth)."
 effort: high
 ---
 
@@ -139,18 +140,6 @@ The answer emerges from the cycle, not from guessing.
 
 ---
 
-## Key Principles (Quick Reference)
-
-1. **Goal-First** - Define success before starting
-2. **Hypothesis Plurality** - NEVER just one idea (minimum 3)
-3. **Minimum Viable Experiments** - Smallest test that teaches
-4. **Falsifiability** - Experiments must be able to fail
-5. **Measure What Matters** - Only goal-relevant data
-6. **Honest Analysis** - Compare to goal, not expectations
-7. **Rapid Iteration** - Cycle speed > perfect experiments
-
----
-
 ## Anti-Patterns
 
 | Bad | Good |
@@ -163,22 +152,9 @@ The answer emerges from the cycle, not from guessing.
 
 ---
 
-## Quick Start
-
-1. **Goal** - What does success look like?
-2. **Observe** - What do we know?
-3. **Hypothesize** - At least 3 ideas
-4. **Experiment** - Minimum viable tests
-5. **Measure** - Collect goal-relevant data
-6. **Analyze** - Compare to success criteria
-7. **Iterate** - Adjust and repeat
-
-**The answer emerges from the cycle, not from guessing.**
-
 ## Gotchas
 
-- **Hypothesis-test-analyze is the core loop.** Don't skip the hypothesis step — going straight to testing is just trial-and-error, not science.
-- **Minimum 3 hypotheses before testing.** Single-hypothesis testing is confirmation bias.
+- **Minimum 3 hypotheses before testing.** Single-hypothesis testing is confirmation bias — going straight to a single test is trial-and-error, not science.
 - **Measurements must be specific and reproducible.** "It seems better" is not a measurement.
 - **Full cycle is for systematic investigation.** For quick debugging, use quick diagnosis mode.
 

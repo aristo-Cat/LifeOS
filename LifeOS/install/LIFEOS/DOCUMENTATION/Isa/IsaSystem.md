@@ -1,3 +1,7 @@
+---
+version: 1.0.20
+---
+
 # ISA System
 
 > The ISA is the LifeOS loop (`LifeOs/LifeOsThesis.md`) applied to one thing at a time. TELOS articulates the ideal state of a *life*; an ISA articulates the ideal state of a *task, project, or artifact* — same primitive, smaller aperture. Every ISC is one verifiable step of the same hill-climb the OS runs globally.
@@ -8,7 +12,7 @@ The companion documents:
 
 - **Format spec** — `LIFEOS/DOCUMENTATION/Isa/IsaFormat.md` — the file-shape contract: frontmatter fields, body section schemas, ID-stability rule, status markers.
 - **Skill** — `~/.claude/skills/ISA/SKILL.md` — the workflows that generate, refine, score, and merge ISAs (Scaffold, Interview, CheckCompleteness, Reconcile, Seed, Append).
-- **Algorithm doctrine** — `LIFEOS/ALGORITHM/v6.19.0.md` (or LATEST) — the invocation cadence: when each workflow fires across the seven Algorithm phases.
+- **Algorithm doctrine** — `LIFEOS/ALGORITHM/v8.4.0.md` (or LATEST) — the invocation cadence: when each workflow fires across the seven Algorithm phases.
 
 If this document and the format spec disagree, the format spec wins and this document updates to match.
 
@@ -26,7 +30,7 @@ The ISA is one primitive with five simultaneous identities. Authors think of it 
 
 The five identities exist because pursuit is iterative. At OBSERVE the ISA is articulation; at PLAN it is the work breakdown; at BUILD it is the contract being met; at VERIFY it is the test harness; at LEARN it is the system of record being refined.
 
-**Principle (NEW v6.4.0): the literal is the evidence anchor, not the optimization target.** When the user has explicitly stated the goal in the prompt, that literal is captured verbatim into `principal_stated_goal:` and becomes the anchor every downstream gate verifies against. The literal is *evidence*, not *target* — Rule 1 probes use it as the verification reference, but BUILD/EXECUTE optimize for the *intent* the literal expresses, not the literal's surface form. Hitting `p95=199ms` by exploiting a percentile-calc edge case that misses 12% of requests passes the surface but fails the intent; Cato (Rule 2a) is the cross-vendor probe that surfaces this drift. See Algorithm v6.4.0 Doctrine section.
+**Principle (NEW v6.4.0): the literal is the evidence anchor, not the optimization target.** When the user has explicitly stated the goal in the prompt, that literal is captured verbatim into `principal_stated_goal:` and becomes the anchor every downstream gate verifies against. The literal is *evidence*, not *target* — Rule 1 probes use it as the verification reference, but BUILD/EXECUTE optimize for the *intent* the literal expresses, not the literal's surface form. Hitting `p95=199ms` by exploiting a percentile-calc edge case that misses 12% of requests passes the surface but fails the intent; Forge audit mode (Rule 2a) is the cross-vendor probe that surfaces this drift. See Algorithm v6.4.0 Doctrine section.
 
 ---
 
@@ -145,7 +149,7 @@ This rule exists because Reconcile is keyed on ISC IDs. If IDs renumber across e
 
 The ISA is the artifact every other LifeOS subsystem orbits.
 
-- **Algorithm** (`LIFEOS/DOCUMENTATION/Algorithm/AlgorithmSystem.md`, `LIFEOS/ALGORITHM/v6.19.0.md`) — invokes the ISA skill. OBSERVE invokes Scaffold; OBSERVE end + VERIFY invoke CheckCompleteness; PLAN may invoke ephemeral-extract; LEARN invokes Reconcile and Append. The Algorithm's seven phases are operational; the ISA is the durable artifact those phases write to.
+- **Algorithm** (`LIFEOS/DOCUMENTATION/Algorithm/AlgorithmSystem.md`, `LIFEOS/ALGORITHM/v8.4.0.md`) — invokes the ISA skill. OBSERVE invokes Scaffold; OBSERVE end + VERIFY invoke CheckCompleteness; PLAN may invoke ephemeral-extract; LEARN invokes Reconcile and Append. The Algorithm's seven phases are operational; the ISA is the durable artifact those phases write to.
 - **Memory** (`LIFEOS/DOCUMENTATION/Memory/MemorySystem.md`) — task ISAs live under `MEMORY/WORK/{slug}/`. The Memory subsystem provides the directory structure and the WORK→LEARNING→KNOWLEDGE compaction lifecycle. Task ISAs are archived to KNOWLEDGE when their associated learnings have been harvested.
 - **Skills** (`LIFEOS/DOCUMENTATION/Skills/SkillSystem.md`) — the ISA skill is one skill among many; it follows the same canonical form (TitleCase directory for public, `_ALLCAPS` for private; `Workflows/` + optional `Tools/` + optional `Examples/`; mandatory voice-notification block; mandatory Gotchas section).
 - **Hooks** (`LIFEOS/DOCUMENTATION/Hooks/HookSystem.md`) — `ISASync.hook.ts` watches Edit/Write events on ISA frontmatter and syncs `phase` and `progress` to Pulse via `work.json`. `CheckpointPerISC.hook.ts` auto-commits per-ISC transitions. Hooks only read the ISA; the ISA is mutated by the AI directly via Edit/Write or via the ISA skill's workflows.
@@ -161,7 +165,7 @@ The ISA is the gravitational center the rest of the system orbits — every task
 - **Format spec (file-shape contract):** `LIFEOS/DOCUMENTATION/Isa/IsaFormat.md`
 - **Skill (workflow implementations):** `~/.claude/skills/ISA/SKILL.md`
 - **Skill canonical example:** `~/.claude/skills/ISA/Examples/canonical-isa.md`
-- **Algorithm doctrine:** `LIFEOS/ALGORITHM/v6.19.0.md` (current); `LIFEOS/ALGORITHM/LATEST` for version pointer
+- **Algorithm doctrine:** `LIFEOS/ALGORITHM/v8.4.0.md` (current); `LIFEOS/ALGORITHM/LATEST` for version pointer
 - **Algorithm system doc:** `LIFEOS/DOCUMENTATION/Algorithm/AlgorithmSystem.md`
 - **Memory system doc:** `LIFEOS/DOCUMENTATION/Memory/MemorySystem.md`
 - **Skills system doc:** `LIFEOS/DOCUMENTATION/Skills/SkillSystem.md`

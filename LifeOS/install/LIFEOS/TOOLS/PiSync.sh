@@ -10,19 +10,19 @@ LifeOS=~/.claude
 PI=~/.pi/agent
 
 [ -d "$PI" ] || { echo "✗ ~/.pi/agent missing"; exit 1; }
-[ -d "$PAI/PAI" ] || { echo "✗ ~/.claude/LIFEOS missing"; exit 1; }
+[ -d "$LifeOS/LIFEOS" ] || { echo "✗ ~/.claude/LIFEOS missing"; exit 1; }
 
 echo "→ PiSync v2"
 
 # ─── 1. LIFEOS_SYSTEM_PROMPT.md ───────────────────────────
 echo "[1/4] Sync LIFEOS_SYSTEM_PROMPT.md"
 awk 'NR==1 && /^---$/ {fm=1; next} fm && /^---$/ {fm=0; next} !fm' \
-  "$PAI/PAI/LIFEOS_SYSTEM_PROMPT.md" > "$PI/LIFEOS_SYSTEM_PROMPT.md"
+  "$LifeOS/LIFEOS/LIFEOS_SYSTEM_PROMPT.md" > "$PI/LIFEOS_SYSTEM_PROMPT.md"
 echo "  $(wc -l < "$PI/LIFEOS_SYSTEM_PROMPT.md") lines"
 
 # ─── 2. AGENTS.md ─────────────────────────────────────
 echo "[2/4] Regenerate AGENTS.md"
-ALG=$(tr -d '[:space:]' < "$PAI/LIFEOS/ALGORITHM/LATEST")
+ALG=$(tr -d '[:space:]' < "$LifeOS/LIFEOS/ALGORITHM/LATEST")
 {
   echo "# LifeOS on Pi"
   echo "Auto-regenerated $(date -u +%Y-%m-%dT%H:%M:%SZ) | Algorithm v${ALG}"
@@ -36,14 +36,14 @@ ALG=$(tr -d '[:space:]' < "$PAI/LIFEOS/ALGORITHM/LATEST")
   echo "# Routing table (CLAUDE.md)"
   echo
   awk 'NR==1 && /^---$/ {fm=1; next} fm && /^---$/ {fm=0; next} !fm && !/^@/' \
-    "$PAI/CLAUDE.md"
+    "$LifeOS/CLAUDE.md"
   echo
   for f in \
-    "$PAI/LIFEOS/USER/PRINCIPAL/PRINCIPAL_IDENTITY.md" \
-    "$PAI/LIFEOS/USER/DIGITAL_ASSISTANT/DA_IDENTITY.md" \
-    "$PAI/LIFEOS/USER/PROJECTS.md" \
-    "$PAI/LIFEOS/USER/TELOS/PRINCIPAL_TELOS.md" \
-    "$PAI/LIFEOS/DOCUMENTATION/ARCHITECTURE_SUMMARY.md"; do
+    "$LifeOS/LIFEOS/USER/PRINCIPAL/PRINCIPAL_IDENTITY.md" \
+    "$LifeOS/LIFEOS/USER/DIGITAL_ASSISTANT/DA_IDENTITY.md" \
+    "$LifeOS/LIFEOS/USER/PROJECTS.md" \
+    "$LifeOS/LIFEOS/USER/TELOS/PRINCIPAL_TELOS.md" \
+    "$LifeOS/LIFEOS/DOCUMENTATION/ARCHITECTURE_SUMMARY.md"; do
     [ -f "$f" ] || continue
     echo "---"; echo "# $(basename "$f" .md)"; echo
     awk 'NR==1 && /^---$/ {fm=1; next} fm && /^---$/ {fm=0; next} !fm' "$f"
@@ -51,7 +51,7 @@ ALG=$(tr -d '[:space:]' < "$PAI/LIFEOS/ALGORITHM/LATEST")
   done
   echo "---"; echo "# Algorithm v${ALG}"; echo
   awk 'NR==1 && /^---$/ {fm=1; next} fm && /^---$/ {fm=0; next} !fm' \
-    "$PAI/LIFEOS/ALGORITHM/v${ALG}.md"
+    "$LifeOS/LIFEOS/ALGORITHM/v${ALG}.md"
 } > "$PI/AGENTS.md"
 echo "  $(wc -l < "$PI/AGENTS.md") lines"
 
@@ -84,7 +84,7 @@ to_kebab() {
 
 added=0
 refreshed=0
-for pai_dir in "$PAI/skills"/*/; do
+for pai_dir in "$LifeOS/skills"/*/; do
   [ -d "$pai_dir" ] || continue
   pai_skill="$pai_dir/SKILL.md"
   [ -f "$pai_skill" ] || continue
@@ -124,7 +124,7 @@ echo "  refreshed $refreshed existing, added $added new"
 # ─── 4. Summary ───────────────────────────────────────
 echo "[4/4] Summary"
 echo "  Pi skills : $(ls "$PI/skills" 2>/dev/null | wc -l | tr -d ' ')"
-echo "  LifeOS skills: $(find "$PAI/skills" -maxdepth 1 -mindepth 1 -type d | wc -l | tr -d ' ')"
+echo "  LifeOS skills: $(find "$LifeOS/skills" -maxdepth 1 -mindepth 1 -type d | wc -l | tr -d ' ')"
 echo "  Pi system prompt: $(wc -l < "$PI/LIFEOS_SYSTEM_PROMPT.md" | tr -d ' ') lines"
 echo "  Pi AGENTS.md   : $(wc -l < "$PI/AGENTS.md" | tr -d ' ') lines"
 echo

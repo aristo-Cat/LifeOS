@@ -26,10 +26,12 @@ required_sections:
   Problem: present
   Vision: present
   Out of Scope: missing
-  Principles: thin       # ≤ 1 sentence
+  Principles: present
   Constraints: present
+  Dependencies: absent     # conditional — required only when cross-ISA links exist
   Goal: present
   Criteria: present
+  Bridge Criteria: absent  # conditional — required only when cross-ISA links exist
   Test Strategy: present
   Features: present
   Decisions: present
@@ -39,19 +41,16 @@ gaps:
   - section: Out of Scope
     severity: hard
     reason: required at E4, missing entirely
-  - section: Principles
-    severity: hard
-    reason: thin — only one bullet
   - section: Changelog
     severity: hard
     reason: required at E4, missing entirely
 isc_quality:
   total: 24
-  tier_floor: 128
-  under_floor: true
+  coverage_gaps: 0             # Vision/Goal subsystems with no container criterion
   granularity_violations: 0
   anti_criteria_count: 2
   antecedent_present: true
+  test_strategy_orphans: 0     # leaf ISCs with no Test Strategy row naming a probe
   id_stability_violations: 0
 ```
 
@@ -77,8 +76,8 @@ Load `isa_path`. Parse frontmatter and section headers.
 | E1 | Goal, Criteria |
 | E2 | Problem, Goal, Criteria, Test Strategy |
 | E3 | Problem, Vision, Out of Scope, Constraints, Goal, Criteria, Features, Test Strategy |
-| E4 | All twelve sections |
-| E5 | All twelve sections + Interview workflow ran before BUILD |
+| E4 | All fourteen sections (empty sections never appear — Dependencies/Bridge Criteria only when cross-ISA links exist) |
+| E5 | All fourteen sections (same conditional rule) + Interview workflow ran before BUILD |
 
 Project ISA (`<project>/ISA.md`) — bump tier to max(declared-tier, E3).
 
@@ -88,8 +87,7 @@ For each required section:
 
 | Classification | Test |
 |----------------|------|
-| `present` | Section header exists and body is ≥ 2 sentences (or ≥ 3 bullets) |
-| `thin` | Section header exists but body is ≤ 1 sentence (or ≤ 2 bullets) |
+| `present` | Section header exists and body has content — length is not graded; a one-sentence section can be exactly right |
 | `missing` | Section header doesn't exist |
 | `empty` | Section header exists, body is whitespace only — only acceptable for `Verification` before VERIFY phase |
 
@@ -98,8 +96,9 @@ For each required section:
 Walk every ISC in `## Criteria`:
 
 - **Granularity** — every ISC names a single binary tool probe (or has one inferable from its phrasing). Compound "and/with" criteria fail.
-- **Tier floor** — at E2+, total ISC count meets the floor (E2 ≥16, E3 ≥32, E4 ≥128, E5 ≥256). Soft fail if under.
-- **Anti-criteria** — at least one ISC has the `Anti:` prefix.
+- **Coverage (v7.0.0 — replaces the deleted numeric count floors)** — every subsystem named in Vision/Goal has a container criterion decomposed until each leaf is one binary tool probe; never split to hit a number. A subsystem with no container criterion is a coverage gap.
+- **Anti-criteria (HARD fail at E2+)** — at least one ISC has the `Anti:` prefix. Empirically ignored in ~80% of pre-v7 ISAs because nothing enforced it; this check is the teeth.
+- **Test Strategy coverage (HARD fail at E2+)** — every leaf ISC has a `## Test Strategy` row naming its probe. Orphan leaves fail (E1 has no Test Strategy section, so exempt).
 - **Antecedent** — when the goal is experiential, at least one ISC has the `Antecedent:` prefix.
 - **ID stability** — every ISC has a unique sequential ID. No collisions, no gaps from renumbering. Tombstones (e.g., `ISC-7: [DROPPED — see Decisions 2026-04-15]`) are valid.
 - **Anchoring (NEW v6.4.0)** — when frontmatter `principal_stated_goal:` is set, every ISC must have an `anchors_to` value in Test Strategy (either `literal` or `derived: <sub-claim>`). Orphan ISCs (no traceable anchor) are a hard failure.
@@ -122,17 +121,9 @@ At E4+ AND v6.4.0+ scaffolded, for every ISC marked `[x]` in `## Criteria` that 
 - If the surface is asserted complete by an `[x]` but no textual evidence appears in the ISA body → hard failure: "ISC claims surface that does not exist in artifact (system-of-record violation)."
 - The ISA artifact must contain its own design surface, not reference ephemeral chat context. The system-of-record identity (one of the five) requires this.
 
-### Step 5c — Density Gate Acknowledged Check (NEW v6.5.0)
+### Legacy frontmatter (v6.x ceremony keys) — inert, never graded
 
-**Backwards-compat guard:** this check fires ONLY when the ISA frontmatter explicitly contains the `density_score` key (any value, including `null` or empty string — **presence**, not truthiness). v6.4.0-era ISAs and earlier — which never carry this key — are not subject to the check. Key-presence IS the version marker, mirroring the v6.4.0 `principal_stated_goal` pattern. Implementation note: parsers must check `'density_score' in frontmatter` (or YAML key-set membership), NOT `frontmatter.density_score !== undefined && frontmatter.density_score !== null` — the latter would spuriously skip the check when a user authors an ISA with `density_score:` and no value.
-
-At E3+ AND v6.5.0+ scaffolded:
-
-- If `interview_invoked` is missing or `density_gate_acknowledged` is missing → hard failure: "v6.5.0 ISA lacks density-gate acknowledgment (Stage 2 of OBSERVE preflight was never recorded)."
-- If `divergence_risk: high` AND no Decisions row mentions `density gate fired` or `proceed override` → hard failure: "high divergence risk asserted but no audit trail in Decisions."
-- If `interview_invoked: true` AND `density_score` is not a number in `[0, 1]` → hard failure: "density_score out of range."
-
-This gate is the self-enforcing arm of v6.5.0: every future E3+ ISA carries the audit trail of its OBSERVE density decision, or fails the completeness gate.
+The v6.5.0–v6.7.0 density/divergence/acknowledgment frontmatter keys were deleted in Algorithm v7.0.0 — they checked whether ceremony was recorded, not ISA quality. Hundreds of archived ISAs still carry them: their presence is **never** a failure, their values are **never** validated. Do not invert the deleted checks. The only ambiguity-check keys graded on v7.0.0+ ISAs are `context_sufficient` and `interview_invoked`.
 
 ### Step 6 — Compose the report
 
@@ -158,20 +149,16 @@ When invoked from VERIFY-phase doctrine, hard gaps block the `phase: complete` t
 | Decisions missing | — | — | — | hard | hard |
 | Changelog missing | — | — | — | hard | hard |
 | Interview not run pre-BUILD | — | — | — | — | hard |
-| Anti-criteria count = 0 | hard | hard | hard | hard | hard |
+| Anti-criteria count = 0 (≥1 `Anti:` ISC required) | soft | hard | hard | hard | hard |
+| Leaf ISC without a Test Strategy row naming its probe | — | hard | hard | hard | hard |
 | Antecedent missing (experiential) | hard | hard | hard | hard | hard |
 | ID-stability violation | hard | hard | hard | hard | hard |
-| ISC count under tier floor | — | soft | soft | soft | soft |
+| Coverage gap (Vision/Goal subsystem with no container criterion; Goal-only at E2) | — | soft | hard | hard | hard |
 | Granularity violation | hard | hard | hard | hard | hard |
 | Anchoring violation (orphan ISC, v6.4.0+ ISAs only) | hard | hard | hard | hard | hard |
 | Goal-signal mismatch (classifier vs ISA, v6.4.0+ ISAs only) | hard | hard | hard | hard | hard |
 | Artifact-presence violation (v6.4.0+ ISAs only, E4+) | — | — | — | hard | hard |
-| Density-gate not acknowledged (v6.5.0+ ISAs only, E3+) | — | — | hard | hard | hard |
-| `divergence_risk: high` without Decisions audit-trail (v6.5.0+ ISAs only) | — | — | hard | hard | hard |
-| `density_score` out of `[0, 1]` (v6.5.0+ ISAs only) | — | — | hard | hard | hard |
-| `context_sufficient` missing on v6.7.0+ ISAs at all ALGORITHM tiers (E1 reads true/null only when Density Gate skipped via `proceed`) | hard | hard | hard | hard | hard |
-| `context_checks_fired` empty array on v6.7.0+ ISAs when ALGORITHM phase reached PLAN | — | — | hard | hard | hard |
-| PLAN-refresh flag set (`plan-refresh` in `context_checks_fired` + `divergence_risk: medium`) — soft-gate teeth contract per v6.7.0 (currently SHOULD; CheckCompleteness cannot inspect phase-output text — re-open as MUST when a phase-output gate hook lands) | — | — | — | — | — |
+| `context_sufficient` missing (v7.0.0+ scaffolds only; ISAs carrying legacy v6.x ceremony keys predate v7 and are exempt; E1 inline ISAs exempt) | — | hard | hard | hard | hard |
 
 ## Failure modes
 

@@ -1,3 +1,7 @@
+---
+version: 1.1.10
+---
+
 > **LifeOS 6.0.0** — This system is under active development. APIs, configuration formats, and features may change without notice.
 
 # LifeOS Command-Line Tools

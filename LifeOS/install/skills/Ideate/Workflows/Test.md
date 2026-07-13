@@ -25,7 +25,7 @@ curl -s -X POST http://localhost:31337/notify \
 
 1. **Optional adversarial pass:** if `redteam_pass` is true, invoke `Skill("RedTeam")` to attack each candidate. Surfaced fatal flaws are appended to the candidate metadata before scoring (judges see them).
 
-2. **Spawn `judge_count` Judge agents in parallel** via Task tool. Each judge independently scores ALL candidates. Trait composition: `critical + analytical + skeptical`.
+2. **Spawn `judge_count` Judge agents in parallel** via Task tool. Each judge independently scores ALL candidates.
 
 3. **Each judge scores each candidate on 4 dimensions (0-100 each):**
 

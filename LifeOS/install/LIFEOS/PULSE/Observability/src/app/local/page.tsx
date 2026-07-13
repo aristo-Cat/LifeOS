@@ -13,6 +13,7 @@ import {
   RefreshCw,
   AlertCircle,
 } from "lucide-react";
+import { PageShell, PageHeader, Panel, Pill, EmptyState, type Dim } from "@/components/ui/chrome";
 
 type SourceStatus = "ok" | "unavailable" | "empty";
 type Item = { title: string; source: string; url: string; date: string; summary?: string };
@@ -53,104 +54,19 @@ interface SectionDef {
   key: SectionKey;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
-  // Tailwind classes already authored as full class names so JIT picks them up.
-  chipBg: string;
-  chipBorder: string;
-  chipText: string;
-  iconText: string;
-  dot: string;
+  dim: Dim;
   emptyHint: string;
 }
 
 const SECTIONS: SectionDef[] = [
-  {
-    key: "construction",
-    label: "Construction",
-    icon: Building2,
-    chipBg: "bg-amber-400/10",
-    chipBorder: "border-amber-400/30",
-    chipText: "text-amber-300",
-    iconText: "text-amber-400",
-    dot: "bg-amber-400",
-    emptyHint: "No new construction permits this week.",
-  },
-  {
-    key: "crime",
-    label: "Crime",
-    icon: Shield,
-    chipBg: "bg-red-400/10",
-    chipBorder: "border-red-400/30",
-    chipText: "text-red-300",
-    iconText: "text-red-400",
-    dot: "bg-red-400",
-    emptyHint: "No new crime stats this week.",
-  },
-  {
-    key: "business",
-    label: "New Business",
-    icon: Briefcase,
-    chipBg: "bg-emerald-400/10",
-    chipBorder: "border-emerald-400/30",
-    chipText: "text-emerald-300",
-    iconText: "text-emerald-400",
-    dot: "bg-emerald-400",
-    emptyHint: "No new business openings this week.",
-  },
-  {
-    key: "officials",
-    label: "Officials",
-    icon: Users,
-    chipBg: "bg-indigo-400/10",
-    chipBorder: "border-indigo-400/30",
-    chipText: "text-indigo-300",
-    iconText: "text-indigo-400",
-    dot: "bg-indigo-400",
-    emptyHint: "No officials news this week.",
-  },
-  {
-    key: "legislation",
-    label: "Legislation",
-    icon: ScrollText,
-    chipBg: "bg-violet-400/10",
-    chipBorder: "border-violet-400/30",
-    chipText: "text-violet-300",
-    iconText: "text-violet-400",
-    dot: "bg-violet-400",
-    emptyHint: "No pending or enacted laws this week.",
-  },
-  {
-    key: "elections",
-    label: "Elections",
-    icon: Vote,
-    chipBg: "bg-sky-400/10",
-    chipBorder: "border-sky-400/30",
-    chipText: "text-sky-300",
-    iconText: "text-sky-400",
-    dot: "bg-sky-400",
-    emptyHint: "No upcoming elections.",
-  },
-  {
-    key: "arrests",
-    label: "Arrests",
-    icon: Gavel,
-    chipBg: "bg-orange-400/10",
-    chipBorder: "border-orange-400/30",
-    chipText: "text-orange-300",
-    iconText: "text-orange-400",
-    dot: "bg-orange-400",
-    emptyHint: "No new arrests reported this week.",
-  },
-  {
-    key: "news",
-    label: "Local News",
-    icon: Newspaper,
-    chipBg: "bg-cyan-400/10",
-    chipBorder: "border-cyan-400/30",
-    chipText: "text-cyan-300",
-    iconText: "text-cyan-400",
-    dot: "bg-cyan-400",
-    emptyHint: "No local news this week.",
-  },
+  { key: "construction", label: "Construction", icon: Building2, dim: "money", emptyHint: "No new construction permits this week." },
+  { key: "crime", label: "Crime", icon: Shield, dim: "err", emptyHint: "No new crime stats this week." },
+  { key: "business", label: "New Business", icon: Briefcase, dim: "ok", emptyHint: "No new business openings this week." },
+  { key: "officials", label: "Officials", icon: Users, dim: "blue", emptyHint: "No officials news this week." },
+  { key: "legislation", label: "Legislation", icon: ScrollText, dim: "relationships", emptyHint: "No pending or enacted laws this week." },
+  { key: "elections", label: "Elections", icon: Vote, dim: "freedom", emptyHint: "No upcoming elections." },
+  { key: "arrests", label: "Arrests", icon: Gavel, dim: "warn", emptyHint: "No new arrests reported this week." },
+  { key: "news", label: "Local News", icon: Newspaper, dim: "rhythms", emptyHint: "No local news this week." },
 ];
 
 function relativeTime(iso: string): string {
@@ -164,6 +80,19 @@ function relativeTime(iso: string): string {
   if (ago < 86400 * 30) return `${Math.floor(ago / 86400)}d ago`;
   if (ago < 86400 * 365) return `${Math.floor(ago / (86400 * 30))}mo ago`;
   return `${Math.floor(ago / (86400 * 365))}y ago`;
+}
+
+function RefreshButton({ refreshing, onClick }: { refreshing: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={refreshing}
+      className="inline-flex items-center gap-2 rounded-md border border-line-2 hover:border-line-3 disabled:opacity-50 px-3 py-1.5 text-sm text-ink-2 transition-colors"
+    >
+      <RefreshCw className={refreshing ? "w-4 h-4 animate-spin" : "w-4 h-4"} />
+      {refreshing ? "Refreshing…" : "Refresh now"}
+    </button>
+  );
 }
 
 export default function LocalPage() {
@@ -216,46 +145,42 @@ export default function LocalPage() {
 
   if (error === "not-yet-generated") {
     return (
-      <main className="max-w-[1400px] mx-auto px-6 py-8 text-slate-200">
-        <h1 className="text-2xl font-semibold mb-4 tracking-tight">Local Intelligence</h1>
-        <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-6 flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-amber-400 mt-0.5" />
+      <PageShell>
+        <PageHeader title="Local" subtitle="Civic intelligence digest for your hometown." />
+        <Panel className="flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 text-warn mt-0.5 shrink-0" />
           <div>
-            <p className="font-medium">No digest generated yet.</p>
-            <p className="text-sm text-slate-300 mt-1">
+            <p className="font-medium text-ink-1">No digest generated yet.</p>
+            <p className="text-sm text-ink-2 mt-1">
               The first refresh hasn&apos;t completed. Click below to run it now or wait
               for the daily 6 a.m. job.
             </p>
-            <button
-              onClick={refreshNow}
-              disabled={refreshing}
-              className="mt-4 inline-flex items-center gap-2 rounded-md bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 px-3 py-1.5 text-sm font-medium"
-            >
-              <RefreshCw className={refreshing ? "w-4 h-4 animate-spin" : "w-4 h-4"} />
-              {refreshing ? "Refreshing…" : "Refresh now"}
-            </button>
+            <div className="mt-4">
+              <RefreshButton refreshing={refreshing} onClick={refreshNow} />
+            </div>
           </div>
-        </div>
-      </main>
+        </Panel>
+      </PageShell>
     );
   }
 
   if (error) {
     return (
-      <main className="max-w-[1400px] mx-auto px-6 py-8 text-slate-200">
-        <h1 className="text-2xl font-semibold mb-4 tracking-tight">Local Intelligence</h1>
-        <div className="rounded-lg border border-red-900 bg-red-950/40 p-4 text-sm">
+      <PageShell>
+        <PageHeader title="Local" subtitle="Civic intelligence digest for your hometown." />
+        <Panel className="text-sm text-err" style={{ borderColor: "var(--err)" }}>
           Error loading digest: {error}
-        </div>
-      </main>
+        </Panel>
+      </PageShell>
     );
   }
 
   if (!digest) {
     return (
-      <main className="max-w-[1400px] mx-auto px-6 py-8 text-slate-400 text-sm">
-        Loading…
-      </main>
+      <PageShell>
+        <PageHeader title="Local" subtitle="Civic intelligence digest for your hometown." />
+        <EmptyState title="Loading…" />
+      </PageShell>
     );
   }
 
@@ -263,77 +188,61 @@ export default function LocalPage() {
   const totalSources = meta.sources_used.length + meta.sources_failed.length;
 
   return (
-    <main className="max-w-[1400px] mx-auto px-6 py-8 text-slate-200">
-      {/* Header */}
-      <header className="flex items-end justify-between mb-8 flex-wrap gap-3 pb-5 border-b border-slate-800">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-slate-50">
-            {meta.city}, {meta.state}
-          </h1>
-          <p className="mt-2 flex items-center gap-3 text-[12px] uppercase tracking-[0.18em] text-slate-500 font-mono">
-            {meta.zip ? <span>{meta.zip}</span> : null}
-            {meta.county ? (
-              <>
-                <span className="text-slate-700">·</span>
-                <span>{meta.county} County</span>
-              </>
-            ) : null}
-            <span className="text-slate-700">·</span>
-            <span>refreshed {relativeTime(meta.generated_at)}</span>
-            <span className="text-slate-700">·</span>
-            <span className="text-slate-400">
-              {meta.sources_used.length}/{totalSources} sources
-            </span>
-          </p>
-        </div>
-        <button
-          onClick={refreshNow}
-          disabled={refreshing}
-          className="inline-flex items-center gap-2 rounded-md border border-slate-700 hover:border-slate-500 disabled:opacity-50 px-3 py-1.5 text-sm transition-colors"
-        >
-          <RefreshCw className={refreshing ? "w-4 h-4 animate-spin" : "w-4 h-4"} />
-          {refreshing ? "Refreshing…" : "Refresh now"}
-        </button>
-      </header>
+    <PageShell>
+      <PageHeader
+        title="Local"
+        subtitle={`${meta.city}, ${meta.state} — civic intelligence digest.`}
+        actions={
+          <>
+            <div className="flex items-center gap-2 text-[12px] uppercase tracking-[0.15em] text-ink-3 mono">
+              {meta.zip ? <span>{meta.zip}</span> : null}
+              {meta.county ? (
+                <>
+                  <span className="text-ink-3">·</span>
+                  <span>{meta.county} County</span>
+                </>
+              ) : null}
+              <span className="text-ink-3">·</span>
+              <span>refreshed {relativeTime(meta.generated_at)}</span>
+              <span className="text-ink-3">·</span>
+              <span className="text-ink-2">
+                {meta.sources_used.length}/{totalSources} sources
+              </span>
+            </div>
+            <RefreshButton refreshing={refreshing} onClick={refreshNow} />
+          </>
+        }
+      />
 
       {/* Card grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
         {SECTIONS.map((section) => {
           const data = digest[section.key];
           const Icon = section.icon;
+          const dotColor =
+            data.source_status === "ok"
+              ? "var(--ok)"
+              : data.source_status === "empty"
+                ? "var(--ink-3)"
+                : "var(--warn)";
           return (
-            <section
-              key={section.key}
-              className="rounded-xl border border-slate-800 bg-slate-900/40 hover:border-slate-700 transition-colors p-5 flex flex-col"
-            >
+            <Panel key={section.key} as="section" hover className="flex flex-col">
               {/* Section header chip */}
               <header className="flex items-center justify-between mb-4">
-                <div
-                  className={`inline-flex items-center gap-2 px-2.5 py-1 rounded-md border ${section.chipBg} ${section.chipBorder}`}
-                >
-                  <Icon className={`w-3.5 h-3.5 ${section.iconText}`} />
-                  <span className={`text-[12px] uppercase tracking-[0.2em] font-semibold ${section.chipText}`}>
-                    {section.label}
-                  </span>
-                </div>
+                <Pill dim={section.dim}>
+                  <Icon className="w-3.5 h-3.5" />
+                  <span className="uppercase tracking-[0.16em] font-semibold">{section.label}</span>
+                </Pill>
                 <div className="flex items-center gap-1.5">
-                  <span
-                    className={`w-1.5 h-1.5 rounded-full ${
-                      data.source_status === "ok"
-                        ? section.dot
-                        : data.source_status === "empty"
-                          ? "bg-slate-600"
-                          : "bg-amber-500"
-                    }`}
-                  />
-                  <span className="text-[12px] uppercase tracking-wider text-slate-500 font-mono">
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ background: dotColor }} />
+                  <span className="text-[12px] uppercase tracking-wider text-ink-3 mono">
                     {data.source_status}
                   </span>
                 </div>
               </header>
 
               {data.items.length === 0 ? (
-                <p className="text-sm text-slate-400 italic">
+                <p className="text-sm text-ink-2 italic">
                   {data.source_status === "unavailable"
                     ? "Source unavailable for this city."
                     : section.emptyHint}
@@ -342,25 +251,20 @@ export default function LocalPage() {
                 <ul className="space-y-3.5 flex-1">
                   {data.items.slice(0, 7).map((item, i) => (
                     <li key={i} className="group">
-                      <a
-                        href={item.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="block"
-                      >
-                        <div className="text-[14px] font-medium text-slate-100 leading-snug group-hover:text-blue-400 transition-colors line-clamp-2">
+                      <a href={item.url} target="_blank" rel="noreferrer" className="block">
+                        <div className="text-[14px] font-medium text-ink-1 leading-snug group-hover:text-[color:var(--accent-soft)] transition-colors line-clamp-2">
                           {item.title}
                         </div>
                         {item.summary ? (
-                          <p className="mt-1 text-[13px] text-slate-300 leading-relaxed line-clamp-2">
+                          <p className="mt-1 text-[13px] text-ink-2 leading-relaxed line-clamp-2">
                             {item.summary}
                           </p>
                         ) : null}
-                        <div className="mt-1.5 text-[12px] uppercase tracking-[0.15em] text-slate-500 font-mono tabular-nums flex items-center gap-2">
+                        <div className="mt-1.5 text-[12px] uppercase tracking-[0.15em] text-ink-3 mono tabular-nums flex items-center gap-2">
                           <span className="truncate max-w-[60%]">{item.source}</span>
                           {item.date ? (
                             <>
-                              <span className="text-slate-700">·</span>
+                              <span className="text-ink-3">·</span>
                               <span>{relativeTime(item.date)}</span>
                             </>
                           ) : null}
@@ -370,15 +274,15 @@ export default function LocalPage() {
                   ))}
                 </ul>
               )}
-            </section>
+            </Panel>
           );
         })}
       </div>
 
       {/* Errors */}
       {meta.errors.length > 0 ? (
-        <details className="mt-8 text-xs text-slate-500 font-mono">
-          <summary className="cursor-pointer hover:text-slate-300 uppercase tracking-[0.18em]">
+        <details className="text-xs text-ink-3 mono">
+          <summary className="cursor-pointer hover:text-ink-2 uppercase tracking-[0.18em]">
             {meta.errors.length} source error{meta.errors.length === 1 ? "" : "s"}
           </summary>
           <ul className="mt-3 space-y-1 pl-4">
@@ -388,6 +292,6 @@ export default function LocalPage() {
           </ul>
         </details>
       ) : null}
-    </main>
+    </PageShell>
   );
 }

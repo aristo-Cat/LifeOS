@@ -14,6 +14,7 @@ export type ClassificationReason =
   | "credential-path"
   | "injection-shape"
   | "shell-loop-data-iteration"
+  | "mutating-pipe-consumer"
   | "default-defer";
 
 export interface Classification {
@@ -354,6 +355,48 @@ export function extractCommandSubstitutions(cmd: string): string[] {
   return out;
 }
 
+/**
+ * Pipe/chain into a mutating consumer (#732). A read-only FIRST WORD
+ * (find, echo, ls, cat, …) must not auto-allow a command whose LATER
+ * segments mutate the filesystem:
+ *
+ *   find / | xargs -I% rm -f %          — destructive body behind xargs
+ *   find . -type f | xargs chmod 777    — same, no -I
+ *   echo 'rm -rf /' > s.sh && chmod +x s.sh && ./s.sh — write-then-execute chain
+ *
+ * The first-word allow paths (SEARCH_TOOLS / DEV_BINARIES /
+ * READ_ONLY_COMMAND_PATTERNS / trusted-workspace) only look at the head
+ * of the command, so these shapes previously returned `allow` before any
+ * destructive scan ran. Detection here returns `neutral` (defer to the
+ * native permission prompt) — never a hard block — so legitimate bulk
+ * operations just prompt.
+ *
+ * Matched against the quote-stripped form (single-quoted data regions are
+ * inert for non-wrapper commands), so `echo 'use chmod carefully'` does
+ * NOT trip this.
+ */
+const MUTATING_CONSUMER = "(?:rm|unlink|chmod|chown|mv|dd)";
+export const MUTATING_PIPE_PATTERNS: readonly RegExp[] = [
+  // pipe into xargs whose body carries a destructive command (with or without -I)
+  new RegExp(`\\|\\s*(?:\\S*\\/)?xargs\\b[^|]*\\b${MUTATING_CONSUMER}\\b`),
+  // pipe into xargs -I — literal substitution; body cannot be reasoned about statically
+  /\|\s*(?:\S*\/)?xargs\s+(?:-\S+\s+)*-I/,
+  // direct pipe into a destructive binary (e.g. `… | dd of=…`)
+  new RegExp(`\\|\\s*(?:sudo\\s+)?${MUTATING_CONSUMER}\\b`),
+  // chained destructive command after && or ; behind a read-only first word
+  // (write-then-execute: `echo '…' > s.sh && chmod +x s.sh && ./s.sh`).
+  // `mv` is deliberately excluded from the CHAIN form (common in benign
+  // build chains); it stays covered in the pipe/xargs forms above.
+  new RegExp(`(?:&&|;)\\s*(?:sudo\\s+)?(?:rm|unlink|chmod|chown|dd)\\b`),
+];
+
+export function pipesToMutatingConsumer(target: string): RegExp | null {
+  for (const r of MUTATING_PIPE_PATTERNS) {
+    if (r.test(target)) return r;
+  }
+  return null;
+}
+
 export function classifyCommand(tc: ToolCall): Classification {
   if (tc.toolName.startsWith("mcp__")) {
     return { decision: "allow", reasons: ["mcp-pre-vetted"] };
@@ -418,6 +461,21 @@ export function classifyCommand(tc: ToolCall): Classification {
             matched_pattern: r.source,
           };
         }
+      }
+    }
+
+    // #732 guard — must run BEFORE every first-word allow path below
+    // (SEARCH_TOOLS, loopback, shell-loop, DEV_BINARIES,
+    // READ_ONLY_COMMAND_PATTERNS, trusted-workspace). A pipe/chain into a
+    // mutating consumer defers to the native permission prompt.
+    for (const target of shapeTargets) {
+      const hit = pipesToMutatingConsumer(target);
+      if (hit) {
+        return {
+          decision: "neutral",
+          reasons: ["mutating-pipe-consumer"],
+          matched_pattern: hit.source,
+        };
       }
     }
 

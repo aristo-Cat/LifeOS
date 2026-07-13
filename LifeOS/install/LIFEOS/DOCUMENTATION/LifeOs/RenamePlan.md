@@ -2,6 +2,7 @@
 last_updated: 2026-06-13T01:30:00Z
 last_updated_by: kai
 convention: pai-freshness-v1
+version: 1.0.2
 ---
 
 # RenamePlan — LifeOS → LifeOS

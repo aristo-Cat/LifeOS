@@ -1,6 +1,7 @@
 ---
 name: BeCreative
-description: "Divergent ideation and corpus expansion via Verbalized Sampling + extended thinking. Single-shot generates 5 internally diverse candidates (p<0.10 each), surfaces strongest. Multi-turn expands seed corpus (5-20 examples) into N-example diverse dataset for evals/training/test sets. Seven workflows: StandardCreativity, MaximumCreativity, IdeaGeneration, TreeOfThoughts, DomainSpecific, TechnicalCreativityGemini3, SyntheticDataExpansion (VS-Multi). USE WHEN be creative, brainstorm, divergent ideas, creative solutions, maximum creativity, tree of thoughts, radically different, name this, creative angle, expand this corpus, synthetic data, generate diverse examples, create test set. NOT FOR multi-cycle evolutionary ideation with Lamarckian meta-learning (use Ideate)."
+version: 1.1.18
+description: "Divergent ideation and corpus expansion via Verbalized Sampling plus extended thinking — single-shot generates several internally diverse candidates and surfaces the strongest, or expands a seed corpus into a diverse dataset for evals and test sets. USE WHEN be creative, brainstorm, divergent ideas, creative solutions, maximum creativity, tree of thoughts, radically different, name this, creative angle, expand this corpus, synthetic data, generate diverse examples, create test set. NOT FOR multi-cycle evolutionary ideation with Lamarckian meta-learning (use Ideate)."
 effort: medium
 ---
 

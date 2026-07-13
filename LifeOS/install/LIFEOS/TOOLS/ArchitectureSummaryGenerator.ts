@@ -1,4 +1,11 @@
 #!/usr/bin/env bun
+// Normalize env path vars Claude Code may inject unexpanded — literal $HOME/${HOME}
+// in LIFEOS_DIR/LIFEOS_CONFIG_DIR/PROJECTS_DIR resolves to a shadow dir (#1404 / PR #1451, author jbmml).
+for (const __k of ["LIFEOS_DIR", "LIFEOS_CONFIG_DIR", "PROJECTS_DIR"]) {
+  const __v = process.env[__k];
+  if (__v && /^\$\{?HOME\}?(\/|$)/.test(__v)) process.env[__k] = __v.replace(/^\$\{?HOME\}?/, process.env.HOME ?? "~");
+}
+
 /**
  * ArchitectureSummaryGenerator — Generate LIFEOS_ARCHITECTURE_SUMMARY.md from source docs
  *
@@ -14,6 +21,13 @@
 import { parseArgs } from "util";
 import * as fs from "fs";
 import * as path from "path";
+
+// Normalize env path vars that Claude Code injects without shell expansion (LifeOS#1404)
+for (const k of ["LIFEOS_DIR", "LIFEOS_CONFIG_DIR", "PROJECTS_DIR"]) {
+  const v = process.env[k];
+  if (v && /^\$\{?HOME\}?(\/|$)/.test(v)) process.env[k] = v.replace(/^\$\{?HOME\}?/, process.env.HOME ?? "~");
+}
+
 
 // ============================================================================
 // Configuration
@@ -60,6 +74,22 @@ function detectAlgorithmVersion(): string {
   return versions[versions.length - 1] ?? "unknown";
 }
 
+/** Detect the system prompt's component version from its frontmatter `version:` line —
+ *  the marker BumpSystemPromptVersion.ts owns (a versioning component line). Scoped to the
+ *  leading `---` block so a `version:` in the body can't match. */
+function detectSystemPromptVersion(): string {
+  const spPath = path.join(LIFEOS_DIR, "LIFEOS_SYSTEM_PROMPT.md");
+  if (!fs.existsSync(spPath)) return "unknown";
+  const lines = fs.readFileSync(spPath, "utf-8").split("\n");
+  if (lines[0]?.trim() !== "---") return "unknown";
+  for (let i = 1; i < lines.length; i++) {
+    if (lines[i]?.trim() === "---") break;
+    const m = lines[i]?.match(/^version:\s*(\d+\.\d+\.\d+)\s*$/);
+    if (m) return m[1]!;
+  }
+  return "unknown";
+}
+
 /** Detect current Memory version from `**Version:** X.Y` in MemorySystem.md */
 function detectMemoryVersion(): string {
   if (!fs.existsSync(MEMORY_SYSTEM_DOC)) return "unknown";
@@ -90,121 +120,10 @@ function detectLifeosVersion(): string {
 // ============================================================================
 // Parsing
 // ============================================================================
-
-/** Extract H2/H3 sections and their content from the architecture doc */
-function extractSections(content: string): Array<{ heading: string; level: number; body: string }> {
-  const sections: Array<{ heading: string; level: number; body: string }> = [];
-  const lines = content.split("\n");
-  let currentHeading = "";
-  let currentLevel = 0;
-  let currentBody: string[] = [];
-
-  for (const line of lines) {
-    const h2Match = line.match(/^## (.+)$/);
-    const h3Match = line.match(/^### (.+)$/);
-
-    if (h2Match || h3Match) {
-      if (currentHeading) {
-        sections.push({ heading: currentHeading, level: currentLevel, body: currentBody.join("\n").trim() });
-      }
-      currentHeading = (h2Match || h3Match)![1];
-      currentLevel = h2Match ? 2 : 3;
-      currentBody = [];
-    } else {
-      currentBody.push(line);
-    }
-  }
-  if (currentHeading) {
-    sections.push({ heading: currentHeading, level: currentLevel, body: currentBody.join("\n").trim() });
-  }
-
-  return sections;
-}
-
-/** Extract subsystem entries from CLAUDE.md routing — supports legacy table and current bullet-list formats.
- *
- * Section-aware: tracks the current `## ...` heading so bullets under `{{PRINCIPAL_NAME}} — ...`
- * sections (which document personal identity/voice files) resolve to LIFEOS/USER/, not
- * LIFEOS/DOCUMENTATION/. The downstream `USER/` filter then correctly drops them.
- */
-function extractSubsystems(): Array<{ name: string; description: string; docPath: string }> {
-  const claudeMdPath = path.join(HOME, ".claude", "CLAUDE.md");
-  if (!fs.existsSync(claudeMdPath)) return [];
-
-  const content = fs.readFileSync(claudeMdPath, "utf-8");
-  const entries: Array<{ name: string; description: string; docPath: string; sectionRoot: string }> = [];
-
-  const tableLegacy1 = /^\| \*\*(.+?)\*\* \| `(.+?)` .*/;
-  const tableLegacy2 = /^\| (.+?) \| `(.+?)`/;
-  const bulletLine = /^\s*-\s+(?:\*\*([^*]+?)\*\*|([A-Za-z][^—–\-`\n]*?))\s*[—–-]\s*`([^`]+?\.md)`/;
-  // Section heading: `## {{PRINCIPAL_NAME}} — Identity & Voice (paths under LIFEOS/USER/)` etc.
-  // Captures the optional "paths under <X>" hint to override the default section root.
-  const headingPathHint = /paths under\s+`?([A-Za-z_/.0-9-]+?)`?(?:\s|\)|$)/;
-
-  let currentSectionRoot = "LIFEOS/DOCUMENTATION/";
-
-  const push = (rawName: string, docPath: string) => {
-    const name = rawName.replace(/\*\*/g, "").trim();
-    if (!name || !docPath) return;
-    if (!entries.find(e => e.name === name && e.docPath === docPath)) {
-      entries.push({ name, description: name, docPath, sectionRoot: currentSectionRoot });
-    }
-  };
-
-  for (const line of content.split("\n")) {
-    const h2 = line.match(/^##\s+(.+)$/);
-    if (h2) {
-      const heading = h2[1];
-      const hint = heading.match(headingPathHint);
-      if (hint) {
-        let root = hint[1];
-        if (!root.endsWith("/")) root += "/";
-        currentSectionRoot = root;
-      } else {
-        currentSectionRoot = "LIFEOS/DOCUMENTATION/";
-      }
-      continue;
-    }
-
-    let m = line.match(tableLegacy1);
-    if (m) { push(m[1], m[2]); continue; }
-    m = line.match(tableLegacy2);
-    if (m) { push(m[1], m[2]); continue; }
-    m = line.match(bulletLine);
-    if (m) { push(m[1] ?? m[2] ?? "", m[3]); continue; }
-  }
-
-  return entries
-    .map(e => {
-      let p = e.docPath;
-      if (!p.startsWith("LIFEOS/") && !p.startsWith("~") && !p.startsWith("/") && p.endsWith(".md")) {
-        p = e.sectionRoot + p;
-      }
-      return { name: e.name, description: e.description, docPath: p };
-    })
-    .filter(e =>
-      e.docPath.includes("LIFEOS/") &&
-      !e.docPath.includes("USER/") &&
-      !e.docPath.includes("DA_") &&
-      e.docPath.endsWith(".md")
-    );
-}
-
-/** Extract founding principles from architecture doc */
-function extractPrinciples(content: string): string[] {
-  const principles: string[] = [];
-  const lines = content.split("\n");
-
-  for (const line of lines) {
-    // Match "### N. Principle Name" pattern
-    const match = line.match(/^### \d+\. (.+)$/);
-    if (match) {
-      principles.push(match[1]);
-    }
-  }
-
-  return principles;
-}
+// v7.0.0 BPE cut: extractSections/extractSubsystems/extractPrinciples deleted.
+// Subsystem Reference duplicated CLAUDE.md (both always resident); Founding
+// Principles + section list live in the master doc (pull); Instruction
+// Hierarchy duplicated the system prompt § Context Hierarchy.
 
 /** Extract the Pipeline Topology section from the architecture doc */
 function extractTopology(content: string): string | null {
@@ -219,6 +138,57 @@ function extractTopology(content: string): string | null {
     : content.slice(startIdx, afterStart);
 
   return section.trim();
+}
+
+// The summary is a ROUTER, not an archive (principal directive 2026-07-09):
+// one line per pipeline + a doc pointer; wiring detail stays in the master doc.
+// Pipeline NAMES come from the master doc's topology table (so new pipelines
+// surface automatically); descriptions come from this curated map. An unmapped
+// pipeline falls back to a truncated master-doc cell and warns on stderr so
+// the map gets updated rather than silently drifting.
+const PIPELINE_ROUTER: Record<string, { what: string; doc: string }> = {
+  "Security": { what: "Constitutional security protocol, native denylist, safety-classifier hooks", doc: "Security/README.md" },
+  "Algorithm": { what: "Outcome-driven ISA execution — articulate done, hill-climb, close claims on tool evidence", doc: "Algorithm/AlgorithmSystem.md" },
+  "Memory": { what: "Autonomic capture, tiered curation, and retrieval across hot-layer, KNOWLEDGE, LEARNING", doc: "Memory/MemorySystem.md" },
+  "Hooks": { what: "Deterministic enforcement and context injection at Claude Code events", doc: "Hooks/HookSystem.md" },
+  "Observability": { what: "Tool activity and failures appended to JSONL, read by Pulse", doc: "Observability/ObservabilitySystem.md" },
+  "Pulse": { what: "The Life Dashboard server on :31337 — voice, work kanban, wiki, Telegram", doc: "Pulse/PulseSystem.md" },
+  "Work System": { what: "Four capture surfaces feeding private GitHub Issues as system of record", doc: "Work/WorkSystem.md" },
+  "Skills": { what: "Domain capabilities: SKILL.md + workflows + deterministic tools", doc: "Skills/SkillSystem.md" },
+  "Config": { what: "settings.json, CLAUDE.md, system prompt; release tooling stages public artifacts", doc: "Config/ConfigSystem.md" },
+  "Notifications": { what: "Voice notifications via Pulse to ElevenLabs, logged to VOICE events", doc: "Notifications/NotificationSystem.md" },
+  "Telegram Dynamic Voice": { what: "Per-turn Telegram pipeline: identity-injected replies plus voice bubbles", doc: "Pulse/PulseSystem.md" },
+  "Doc Integrity": { what: "Stop-hook cross-reference checks; regenerates this summary from the master doc", doc: "Hooks/HookSystem.md" },
+  "Bunker": { what: "Universal application harness — canonical repo ~/Projects/bunker; app state-of-record bunker.isa.md; Pulse /bunker tab", doc: "LifeosSystemArchitecture.md" },
+};
+
+const ROW_FALLBACK_MAX = 140;
+
+/** Condense the verbatim topology section into a one-line-per-pipeline router */
+function condenseTopology(section: string): string {
+  const out: string[] = [
+    "## Pipeline Router",
+    "",
+    "One line per pipeline. Full wiring, file inventories, and incident notes: master doc § Pipeline Topology.",
+    "",
+    "| Pipeline | What it is | Doc |",
+    "|----------|------------|-----|",
+  ];
+  for (const line of section.split("\n")) {
+    const m = line.match(/^\| \*\*(.+?)\*\* \| (.+) \|\s*$/);
+    if (!m) continue;
+    const name = m[1];
+    const entry = PIPELINE_ROUTER[name];
+    if (entry) {
+      out.push(`| **${name}** | ${entry.what} | \`LIFEOS/DOCUMENTATION/${entry.doc}\` |`);
+    } else {
+      console.error(`WARN: pipeline "${name}" missing from PIPELINE_ROUTER map — add a one-liner (fallback used)`);
+      let cell = m[2].replace(/\\\|/g, "|").trim();
+      if (cell.length > ROW_FALLBACK_MAX) cell = cell.slice(0, ROW_FALLBACK_MAX).replace(/\s+\S*$/, "") + " …";
+      out.push(`| **${name}** | ${cell.replace(/\|/g, "\\|")} | master doc |`);
+    }
+  }
+  return out.join("\n");
 }
 
 /** Get modification time of a file, or 0 if missing */
@@ -241,33 +211,11 @@ function generate(): string {
   }
 
   const archContent = fs.readFileSync(ARCH_SOURCE, "utf-8");
-  const subsystems = extractSubsystems();
-  const principles = extractPrinciples(archContent);
   const topology = extractTopology(archContent);
   const paiVersion = detectLifeosVersion();
   const algorithmVersion = detectAlgorithmVersion();
+  const systemPromptVersion = detectSystemPromptVersion();
   const memoryVersion = detectMemoryVersion();
-
-  // Build subsystem list — one bullet per subsystem (more compact than a table)
-  // (existence is asserted by inclusion; missing files would fail the regen, not silently render "N")
-  const subsystemRows: string[] = [];
-  const missing: string[] = [];
-  for (const sub of subsystems) {
-    const resolved = sub.docPath.startsWith("/")
-      ? sub.docPath
-      : sub.docPath.startsWith("~")
-        ? sub.docPath.replace(/^~/, HOME)
-        : path.join(HOME, ".claude", sub.docPath);
-    const shortPath = sub.docPath.replace("~/.claude/", "");
-    if (!fs.existsSync(resolved)) missing.push(shortPath);
-    subsystemRows.push(`- ${sub.name} — ${shortPath}`);
-  }
-
-  // Extract key architecture sections — emitted inline (compressed from bullet list)
-  const sections = extractSections(archContent);
-  const majorSections = sections
-    .filter(s => s.level === 2 && !s.heading.includes("Changelog") && !s.heading.includes("Updates"))
-    .map(s => s.heading);
 
   // Build the summary — frontmatter first (pai-freshness-v1 convention).
   // Auto-generated derivative; effective freshness inherits from derived_from.
@@ -283,44 +231,18 @@ function generate(): string {
     "",
     "# LifeOS Architecture Summary",
     "",
-    "> Auto-generated by ArchitectureSummaryGenerator.ts. Do not edit manually.",
-    `> Generated: ${nowIso} | Source: DOCUMENTATION/LifeosSystemArchitecture.md`,
+    "> Auto-generated — do not edit (source + generator in frontmatter).",
     "",
     "## Overview",
     "",
     "LifeOS — the **Life Operating System**, built on the LifeOS (LifeOS) layer — is the framework that knows your goals, people, and current state, and continuously hill-climbs you toward your ideal state.",
     "Everything below is the machinery of that one loop: Current State → Ideal State via verifiable iteration (ISC). Canonical thesis: `LIFEOS/DOCUMENTATION/LifeOs/LifeOsThesis.md`.",
     "",
-    `**Current versions:** LifeOS ${paiVersion} | Algorithm v${algorithmVersion} | Memory v${memoryVersion}`,
+    `**Current versions:** LifeOS ${paiVersion} | Algorithm v${algorithmVersion} | System Prompt v${systemPromptVersion} | Memory v${memoryVersion}`,
     "",
-    "## Subsystem Reference",
+    "Doc routing lives in CLAUDE.md; founding principles + full section map in the master doc.",
     "",
-    ...subsystemRows,
-    ...(missing.length > 0 ? ["", `> Missing: ${missing.join(", ")}`] : []),
-    "",
-    `**Sections in source doc:** ${majorSections.join(" · ")}`,
-    "",
-    "## Founding Principles",
-    "",
-    ...principles.slice(0, 17).map((p, i) => `${i + 1}. ${p}`),
-    "",
-    "## Instruction Hierarchy",
-    "",
-    "1. **System Prompt** — LIFEOS_SYSTEM_PROMPT.md, constitutional, survives compaction",
-    "2. **CLAUDE.md** — routing table: @-imports + subsystem pointers (no constitutional rules)",
-    "3. **@Imported files** — PRINCIPAL_IDENTITY, DA_IDENTITY, PROJECTS, PRINCIPAL_TELOS, this file",
-    "4. **Dynamic context** — LoadContext hook output, ephemeral",
-    "",
-    "## Key Design Decisions",
-    "",
-    "- Algorithm is the gravitational center — everything else feeds it",
-    "- ISA is the single source of truth per Algorithm run",
-    "- Skills = self-activating composable domain units",
-    "- Hooks provide SessionStart→SessionEnd lifecycle integration",
-    "- Memory compounds across sessions: WORK → LEARNING → KNOWLEDGE",
-    "- System/user config separation enables public releases without personal data",
-    "",
-    ...(topology ? [topology, ""] : []),
+    ...(topology ? [condenseTopology(topology), ""] : []),
     "## Cross-References",
     "",
     "- Full architecture: `LIFEOS/DOCUMENTATION/LifeosSystemArchitecture.md`",

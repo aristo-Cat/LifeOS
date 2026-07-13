@@ -1,6 +1,7 @@
 ---
 name: ISA
-description: "Owns the Ideal State Artifact — universal primitive holding articulated ideal state of any project, task, application, library, or work session as a hard-to-vary explanation. Six workflows: Scaffold (fresh ISA at effort tier), Interview (adaptive Q&A), CheckCompleteness (score against tier gate), Reconcile (merge ephemeral feature-file excerpt back to master, keyed on stable ISC IDs), Seed (bootstrap from repo README/code/commits), Append (record Decisions/Changelog/Verification entries). Locked twelve-section order: Problem, Vision, Out of Scope, Principles, Constraints, Goal, Criteria, Test Strategy, Features, Decisions, Changelog, Verification. Auto-invoked by Algorithm at OBSERVE. USE WHEN ISA, ISC, ideal state, ideal state criteria, project specification, hill-climb, articulating done. NOT FOR creating new skills (use CreateSkill)."
+version: 1.0.13
+description: "Owns the Ideal State Artifact — the primitive holding a project or task's articulated ideal state; scaffolds, interviews, scores completeness, reconciles feature excerpts to master, seeds from a repo, and appends decisions/changelog/verification across a locked fourteen-section order. USE WHEN ISA, ISC, ideal state, ideal state criteria, project specification, hill-climb, articulating done. NOT FOR creating new skills (use CreateSkill)."
 effort: medium
 ---
 
@@ -35,13 +36,13 @@ Most work starts without a written, testable definition of what finished looks l
 
 ## How It Works
 
-The ISA is a single document with a locked twelve-section body. A tier completeness gate decides which sections are required at which effort level, and five workflows generate, deepen, score, and reconcile the artifact across sessions and agents.
+The ISA is a single document with a locked fourteen-section body. A tier completeness gate decides which sections are required at which effort level, and five workflows generate, deepen, score, and reconcile the artifact across sessions and agents.
 
 ---
 
-## The Twelve-Section Body (locked v6.2.0)
+## The Fourteen-Section Body (locked; spec v2.13.0, Algorithm v7.0.0)
 
-Every ISA may have up to twelve body sections. The tier completeness gate decides which are required at which effort tier; sections never appear empty. **Order is fixed**.
+Every ISA may have up to fourteen body sections. The tier completeness gate decides which are required at which effort tier; sections never appear empty. **Order is fixed**.
 
 | # | Section | Purpose | Written At |
 |---|---------|---------|------------|
@@ -50,13 +51,17 @@ Every ISA may have up to twelve body sections. The tier completeness gate decide
 | 3 | `## Out of Scope` | Anti-vision — what is *not* included in this ideal state, declared upfront in prose | OBSERVE |
 | 4 | `## Principles` | Substrate-independent truths (Deutsch reach) the work must respect | OBSERVE |
 | 5 | `## Constraints` | Immovable architectural mandates that bound the solution space | OBSERVE |
-| 6 | `## Goal` | The hard-to-vary spine — 1–3 sentences naming verifiable done | OBSERVE |
-| 7 | `## Criteria` | Atomic ISCs (Ideal State Criteria) — one binary tool probe each, including derived `Anti:` ISCs | OBSERVE → EXECUTE |
-| 8 | `## Test Strategy` | Per-ISC verification approach — `isc | type | check | threshold | tool` | OBSERVE/PLAN |
-| 9 | `## Features` | Work breakdown — `name | description | satisfies: [ISC-N…] | depends_on: [feature…] | parallelizable: bool` | PLAN |
-| 10 | `## Decisions` | Timestamped decision log including dead ends; `refined:` prefix for Goal/ISC restructures | any phase |
-| 11 | `## Changelog` | Conjecture / refuted-by / learned / criterion-now entries — Deutsch error-correction trail | LEARN |
-| 12 | `## Verification` | Evidence that each ISC passed — quoted command output, file content, screenshot path | VERIFY |
+| 6 | `## Dependencies` | Cross-ISA needs, one machine-readable `requires: <slug> — <contract>` line each — only when the ISA participates in a hierarchy | OBSERVE |
+| 7 | `## Goal` | The hard-to-vary spine — 1–3 sentences naming verifiable done | OBSERVE |
+| 8 | `## Criteria` | Atomic ISCs (Ideal State Criteria) — one binary tool probe each, including derived `Anti:` ISCs | OBSERVE → EXECUTE |
+| 9 | `## Bridge Criteria` | Cross-ISA integration ISCs (`Bridge:` prefix) verified across the seam as a distinct VERIFY pass — only when the ISA has siblings | OBSERVE → EXECUTE |
+| 10 | `## Test Strategy` | Per-ISC verification approach — `isc | type | check | threshold | tool | anchors_to` | OBSERVE/PLAN |
+| 11 | `## Features` | Work breakdown — `name | description | satisfies: [ISC-N…] | depends_on: [feature…] | parallelizable: bool` | PLAN |
+| 12 | `## Decisions` | Timestamped decision log including dead ends; `refined:` prefix for Goal/ISC restructures | any phase |
+| 13 | `## Changelog` | Conjecture / refuted-by / learned / criterion-now entries — Deutsch error-correction trail | LEARN |
+| 14 | `## Verification` | Evidence that each ISC passed — quoted command output, file content, screenshot path | VERIFY |
+
+`## Dependencies` and `## Bridge Criteria` are **conditional-required**: mandatory when the ISA has any `parent:`/`children:`/cross-ISA relationship, omitted (like any empty section) for a standalone single-ISA task. Multi-ISA trees are rare (<4% of archived ISAs) — full mechanics in `LIFEOS/DOCUMENTATION/Isa/IsaHierarchy.md`.
 
 ---
 
@@ -77,15 +82,15 @@ The first three are author-stated (declarative). Anti-criteria are derived — t
 
 ## Tier Completeness Gate (HARD at all tiers)
 
-Mirrors the v6.1.0 thinking-floor non-relaxability. Required sections per tier:
+Quality gates, not section counts (Algorithm v7.0.0 R2) — sections exist because content exists. Required per tier:
 
 | Tier | Required Sections |
 |------|-------------------|
 | **E1** | Goal, Criteria |
 | **E2** | Problem, Goal, Criteria, Test Strategy |
 | **E3** | Problem, Vision, Out of Scope, Constraints, Goal, Criteria, Features, Test Strategy |
-| **E4** | All twelve sections |
-| **E5** | All twelve + active Interview workflow run before BUILD |
+| **E4** | All fourteen sections (empty sections never appear — Dependencies/Bridge Criteria only when cross-ISA links exist) |
+| **E5** | All fourteen (same conditional rule) + active Interview workflow run before BUILD |
 
 **Project ISA override:** any `<project>/ISA.md` requires E3+ structure regardless of the active task's tier. The project file is the long-lived source of truth; one transient E1 task must not downgrade it.
 
@@ -122,7 +127,7 @@ The highest-information-density part of this skill. Each entry captures a non-ob
 - **Ephemeral files are derived views, never sources of truth.** Scaffold's `--ephemeral` mode produces a slice of the master ISA at `MEMORY/WORK/{slug}/_ephemeral/<feature>.md`. Workers operate against that slice; Reconcile merges back. Hand-editing master content from an ephemeral file is policy-forbidden — the master is what persists; the ephemeral is what gets archived.
 - **The Changelog format is non-negotiable.** Every entry needs all four pieces (`conjectured`, `refuted by`, `learned`, `criterion now`) in that order. Append refuses to write a partial C/R/L; if any of the four is missing, the entry is a Decision, not a Changelog. The format is what makes the Deutsch error-correction trail auditable across sessions.
 - **Project ISAs upgrade tier to `max(declared, E3)` regardless of the active task's tier.** A `<project>/ISA.md` is the long-lived system of record for a thing with persistent identity. One transient E1 task on the project must NOT downgrade the structural minimum. CheckCompleteness applies this override automatically.
-- **Empty sections never appear.** The twelve-section body is a *capacity*, not a *requirement* at every tier. Sections required-but-empty for the tier are populated; sections not required and not yet written are simply absent from the file. CheckCompleteness distinguishes `present` / `thin` / `missing` / `empty` and only `empty` is acceptable for `Verification` before VERIFY phase.
+- **Empty sections never appear.** The fourteen-section body is a *capacity*, not a *requirement* at every tier. Sections required-but-empty for the tier are populated; sections not required and not yet written are simply absent from the file. CheckCompleteness distinguishes `present` / `missing` / `empty` and only `empty` is acceptable for `Verification` before VERIFY phase — section length is never graded; a one-sentence section can be exactly right.
 - **Anti-criteria are derived from Out of Scope plus regression-prevention concerns.** They are how the prose-guardrails (Out of Scope, Constraints, Principles) become probe-able. At least one is required at every tier; the absence of an anti-criterion at OBSERVE is a hard CheckCompleteness failure.
 - **Antecedents are required when the goal is experiential.** For art, design, content, and anything that has to "land," at least one ISC must use the `Antecedent:` prefix to name a precondition that reliably produces the target experience. Verifiable goals (build, deploy, schema) don't need antecedents; experiential goals always do.
 - **Reconcile is deterministic — there are no conflicts to resolve.** Either an ISC ID exists in master (mechanical merge) or it doesn't (abort with ID-stability violation). If the ephemeral made structural changes (split ISC-7 into ISC-7.1/ISC-7.2), those structural changes belong in master via a separate Edit by the user *before* Reconcile runs.
@@ -134,13 +139,13 @@ The highest-information-density part of this skill. Each entry captures a non-ob
 
 ## Examples
 
-The `Examples/` directory holds twelve reference ISAs spanning the tier (E1–E5) × domain (code / art / design / ops / marketplace / enterprise) matrix. Always start by reading the canonical showpiece before scaffolding a new ISA — copy its section headers, then populate. Pick the example closest to your domain + scale as a template.
+The `Examples/` directory holds reference ISAs spanning the tier (E1–E5) × domain (code / art / design / ops / marketplace / enterprise) matrix. (Authored pre-v6.25.0, so they omit Dependencies and Bridge Criteria and may show retired frontmatter keys; they are historical — the fourteen-section order above wins on shape.) Always start by reading the canonical showpiece before scaffolding a new ISA — copy its section headers, then populate. Pick the example closest to your domain + scale as a template.
 
 **Showpiece**
 
 | File | Purpose |
 |------|---------|
-| `Examples/canonical-isa.md` | **BeanLine** — peer-to-peer specialty-coffee marketplace. The showpiece reference, fully populated across all twelve sections with real-feeling Decisions and a four-piece C/R/L Changelog. Read this first. |
+| `Examples/canonical-isa.md` | **BeanLine** — peer-to-peer specialty-coffee marketplace. The showpiece reference, fully populated across every section with real-feeling Decisions and a four-piece C/R/L Changelog. Read this first. |
 
 **Code**
 
@@ -149,7 +154,7 @@ The `Examples/` directory holds twelve reference ISAs spanning the tier (E1–E5
 | `Examples/e1-minimal.md` | E1 | Add a `--no-color` flag to a CLI tool. <90s task, Goal + 4 ISCs only. Demonstrates the fast-path floor. |
 | `Examples/e2-backup-verify.md` | E2 | Add SHA-256 verification to a backup CLI's `--verify` mode. Single-domain, 18 ISCs. |
 | `Examples/e3-project.md` | E3 | Build an arxiv metadata extractor CLI. Mid-size project, 12 ISCs, eight sections. |
-| `Examples/e4-api-migration.md` | E4 | Migrate a public API from REST to GraphQL with 6-month backwards-compat. Cross-cutting, 73 ISCs, all twelve sections. |
+| `Examples/e4-api-migration.md` | E4 | Migrate a public API from REST to GraphQL with 6-month backwards-compat. Cross-cutting, 73 ISCs, every section populated. |
 | `Examples/e5-desktop-app.md` | E5 | **WattWatch** — open-source desktop app for personal home-energy monitoring. Single-user app pattern, 50 ISCs, populated Changelog. |
 
 **Art (experiential — antecedents required)**
@@ -176,7 +181,7 @@ The `Examples/` directory holds twelve reference ISAs spanning the tier (E1–E5
 
 | File | Tier | Purpose |
 |------|------|---------|
-| `Examples/e5-enterprise.md` | E5 | **Beacon Health Alliance** — multi-region HIPAA-compliant patient portal for a 50-hospital network. Compliance anti-criteria, multi-team parallelizable features, 68 ISCs across all twelve sections. |
+| `Examples/e5-enterprise.md` | E5 | **Beacon Health Alliance** — multi-region HIPAA-compliant patient portal for a 50-hospital network. Compliance anti-criteria, multi-team parallelizable features, 68 ISCs, every section populated. The E5 reference Scaffold reads. |
 
 ---
 
@@ -213,7 +218,7 @@ The Algorithm at OBSERVE invokes this skill to scaffold or read an ISA. The skil
 - PLAN: `Skill("ISA", "extract feature <name> as ephemeral file")` → ephemeral excerpt.
 - LEARN: `Skill("ISA", "reconcile <ephemeral-path> → <master-path>")` → deterministic merge.
 
-The Algorithm doctrine spec at `~/.claude/LIFEOS/ALGORITHM/v6.2.0.md` (or LATEST) governs invocation cadence. This skill is invocation-agnostic — it works the same whether called by the Algorithm or directly by the user.
+The Algorithm doctrine spec at `~/.claude/LIFEOS/ALGORITHM/v7.0.0.md` (or LATEST) governs invocation cadence. This skill is invocation-agnostic — it works the same whether called by the Algorithm or directly by the user.
 
 ---
 
@@ -221,4 +226,4 @@ The Algorithm doctrine spec at `~/.claude/LIFEOS/ALGORITHM/v6.2.0.md` (or LATEST
 
 The full ISA format spec lives at `~/.claude/LIFEOS/DOCUMENTATION/Isa/IsaFormat.md`. This skill implements that spec; if there is ever a contradiction, the format spec wins and this skill is updated to match.
 
-The system-architecture doc — five identities, three-guardrail taxonomy, twelve-section body, six workflows, two homes, subsystem relationships — lives at `~/.claude/LIFEOS/DOCUMENTATION/Isa/IsaSystem.md`. Read that for the conceptual frame; read this file (and `IsaFormat.md`) for the operational contract.
+The system-architecture doc — five identities, three-guardrail taxonomy, fourteen-section body, six workflows, two homes, subsystem relationships — lives at `~/.claude/LIFEOS/DOCUMENTATION/Isa/IsaSystem.md`. Read that for the conceptual frame; read this file (and `IsaFormat.md`) for the operational contract.

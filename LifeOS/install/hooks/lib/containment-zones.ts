@@ -61,8 +61,10 @@ export const CONTAINMENT_ZONES: readonly ContainmentZone[] = [
       "Plugins/**",
       "Plugins/installed_plugins.json",
       "Plugins/known_marketplaces.json",
+      "debug/**",
+      "debug",
     ],
-    description: "Claude Code runtime install state written by the harness",
+    description: "Claude Code runtime install state written by the harness — plugin registry, history, and debug/ session transcripts (the debug/latest symlink and per-session .txt dumps; runtime output, never ships)",
   },
   {
     name: "private-infra",

@@ -21,6 +21,34 @@ const config: Config = {
     },
   	extend: {
   		colors: {
+  			/* Pulse design tokens (globals.css :root) */
+  			ground: 'var(--ground)',
+  			surface: {
+  				'1': 'var(--surface-1)',
+  				'2': 'var(--surface-2)',
+  				'3': 'var(--surface-3)'
+  			},
+  			line: {
+  				'1': 'var(--line-1)',
+  				'2': 'var(--line-2)',
+  				'3': 'var(--line-3)'
+  			},
+  			ink: {
+  				'1': 'var(--ink-1)',
+  				'2': 'var(--ink-2)',
+  				'3': 'var(--ink-3)'
+  			},
+  			ok: 'var(--ok)',
+  			warn: 'var(--warn)',
+  			err: 'var(--err)',
+  			dim: {
+  				health: 'var(--health)',
+  				money: 'var(--money)',
+  				freedom: 'var(--freedom)',
+  				creative: 'var(--creative)',
+  				relationships: 'var(--relationships)',
+  				rhythms: 'var(--rhythms)'
+  			},
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
   			card: {

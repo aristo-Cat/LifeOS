@@ -1,5 +1,13 @@
 #!/usr/bin/env bun
+// Normalize env path vars Claude Code may inject unexpanded — literal $HOME/${HOME}
+// in LIFEOS_DIR/LIFEOS_CONFIG_DIR/PROJECTS_DIR resolves to a shadow dir (#1404 / PR #1451, author jbmml).
+for (const __k of ["LIFEOS_DIR", "LIFEOS_CONFIG_DIR", "PROJECTS_DIR"]) {
+  const __v = process.env[__k];
+  if (__v && /^\$\{?HOME\}?(\/|$)/.test(__v)) process.env[__k] = __v.replace(/^\$\{?HOME\}?/, process.env.HOME ?? "~");
+}
+
 /**
+ * @version 1.4.40
  * PromptProcessing.hook.ts - Tab Title + Session Naming (Haiku)
  *
  * PURPOSE:
@@ -39,6 +47,13 @@ import type { AlgorithmTabPhase } from './lib/tab-constants';
 import { paiPath } from './lib/paths';
 import { updateSessionNameInWorkJson, upsertSession } from './lib/isa-utils';
 import { isDesktopChannel, logSkippedVoice, getNotificationChannel } from './lib/notification-channel';
+
+// Normalize env path vars that Claude Code injects without shell expansion (LifeOS#1404)
+for (const k of ["LIFEOS_DIR", "LIFEOS_CONFIG_DIR", "PROJECTS_DIR"]) {
+  const v = process.env[k];
+  if (v && /^\$\{?HOME\}?(\/|$)/.test(v)) process.env[k] = v.replace(/^\$\{?HOME\}?/, process.env.HOME ?? "~");
+}
+
 
 // ── Types ──
 
@@ -934,8 +949,28 @@ async function main() {
     const thinkingTitle = deterministicTitle || getWorkingFallback();
     stampWorkingTab(thinkingTitle, true);
 
-    // ── INFERENCE: Tab title + session name ──
-    console.error('[PromptProcessing] Running inference (tab title' + (isFirstPrompt ? ' + session name)...' : ')...'));
+    // ── 7.0.0 BPE: inference is FIRST-PROMPT-ONLY ──
+    // The session name is permanent and set once, on the first prompt — that is the
+    // only thing the ~6s Sonnet subprocess bought. On every follow-up the deterministic
+    // quickTitle path already produced a good tab title, so re-running the LLM per prompt
+    // was ~6s of per-turn latency for tab cosmetics. Finalize the deterministic tab and exit.
+    if (!isFirstPrompt) {
+      const followupTitle = deterministicTitle && isValidWorkingTitle(deterministicTitle)
+        ? deterministicTitle : getWorkingFallback();
+      stampWorkingTab(followupTitle, false);
+      appendPromptProcessingTelemetry({
+        timestamp: new Date().toISOString(),
+        session_id: sessionId,
+        prompt_excerpt: prompt.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 120),
+        tab_title: followupTitle,
+        source: 'deterministic-followup',
+        latency_ms: 0,
+      });
+      process.exit(0);
+    }
+
+    // ── INFERENCE: Tab title + session name (first prompt only) ──
+    console.error('[PromptProcessing] Running inference (tab title + session name)...');
 
     const cleanPrompt = prompt.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 1000);
     // Naming is permanent and first-prompt-only; exclude Assistant turns so Algorithm scaffolding
@@ -1018,7 +1053,7 @@ async function main() {
             const nameWords = r.session_name.trim().split(/\s+/).slice(0, 5);
             const label = nameWords.map(w => titleCase(w)).join(' ');
             const hasProfanity = nameWords.some(w => PROFANITY_WORDS.has(w.toLowerCase()));
-            if (label && nameWords.length >= 5 && nameWords.every(w => w.length >= 2) && !hasProfanity && isValidSessionName(label)) {
+            if (label && nameWords.length >= 2 && nameWords.every(w => w.length >= 2) && !hasProfanity && isValidSessionName(label)) {
               storeName(sessionId, label, 'inference-haiku');
               inferenceNameStored = true;
             } else if (label) {

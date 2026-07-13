@@ -1,3 +1,10 @@
+// Normalize env path vars Claude Code may inject unexpanded — literal $HOME/${HOME}
+// in LIFEOS_DIR/LIFEOS_CONFIG_DIR/PROJECTS_DIR resolves to a shadow dir (#1404 / PR #1451, author jbmml).
+for (const __k of ["LIFEOS_DIR", "LIFEOS_CONFIG_DIR", "PROJECTS_DIR"]) {
+  const __v = process.env[__k];
+  if (__v && /^\$\{?HOME\}?(\/|$)/.test(__v)) process.env[__k] = __v.replace(/^\$\{?HOME\}?/, process.env.HOME ?? "~");
+}
+
 /**
  * Work — Pulse module rendering the agent-visible Kanban over GitHub Issues.
  *
@@ -24,6 +31,14 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync, statSync } from "fs";
 import { join } from "path";
 import { loadWorkConfig, type WorkConfig } from "../../../hooks/lib/work-config";
+import { getDAName } from "../../../hooks/lib/identity";
+
+// Normalize env path vars that Claude Code injects without shell expansion (LifeOS#1404)
+for (const k of ["LIFEOS_DIR", "LIFEOS_CONFIG_DIR", "PROJECTS_DIR"]) {
+  const v = process.env[k];
+  if (v && /^\$\{?HOME\}?(\/|$)/.test(v)) process.env[k] = v.replace(/^\$\{?HOME\}?/, process.env.HOME ?? "~");
+}
+
 
 const HOME = process.env.HOME || "";
 const LIFEOS_DIR = process.env.LIFEOS_DIR || join(HOME, ".claude", "LIFEOS");
@@ -310,7 +325,7 @@ function setupTemplate(reason: string): Response {
     subtype,
     instructions: [
       "Configure the work repo via the privacy-attested CLI: `bun ~/.claude/skills/_ULWORK/Tools/SetWorkRepo.ts <owner/repo>`. The CLI calls `gh repo view --json visibility,isPrivate` and refuses to write the config unless the repo is currently private.",
-      "Ensure the repo has these labels: Type:feature, Type:reminder, Type:research, Type:queue, Status:queued, Status:in-progress, Status:in-review, Status:blocked, Status:done, Priority:P0..P3, Property:internal, Agent:kai, pai-sync.",
+      `Ensure the repo has these labels: Type:feature, Type:reminder, Type:research, Type:queue, Status:queued, Status:in-progress, Status:in-review, Status:blocked, Status:done, Priority:P0..P3, Property:internal, Agent:${getDAName()}, pai-sync.`,
       "Restart Pulse so this module re-reads work_repo.json: `bun ~/.claude/LIFEOS/PULSE/manage.sh restart`.",
       "Run an Algorithm session — ULWorkSync.hook.ts will open the first issue at SessionEnd.",
     ],
@@ -395,7 +410,7 @@ function renderKanbanHTML(): string {
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>LifeOS · Work</title>
+<title>Pulse | Work</title>
 <style>
   :root {
     --bg: #0b0d12;

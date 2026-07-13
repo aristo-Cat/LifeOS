@@ -9,7 +9,7 @@
  *
  * Loads a scenario module (default export or named `scenario`), runs
  * scenario.run() for N trials, converts results through ScenarioToTranscript,
- * and writes an EvalRun JSON to PAI/MEMORY/STATE/Evals-Results/<scenario-id>/<run-id>/.
+ * and writes an EvalRun JSON to LIFEOS/MEMORY/STATE/Evals-Results/<scenario-id>/<run-id>/.
  */
 
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
@@ -108,7 +108,8 @@ async function main(): Promise<void> {
   const runId = `${scenarioId}_${new Date().toISOString().replace(/[:.]/g, '-')}`;
   const skillDir = resolve(dirname(new URL(import.meta.url).pathname), '..');
   // Run artifacts live outside the skill tree (runtime state, not skill content).
-  const runDir = join(skillDir, '..', '..', 'LifeOS', 'MEMORY', 'STATE', 'Evals-Results', scenarioId, runId);
+  // 'LIFEOS' exactly — 'LifeOS' only resolved on case-insensitive filesystems (#1461 class).
+  const runDir = join(skillDir, '..', '..', 'LIFEOS', 'MEMORY', 'STATE', 'Evals-Results', scenarioId, runId);
   mkdirSync(runDir, { recursive: true });
   mkdirSync(join(runDir, 'transcripts'), { recursive: true });
 

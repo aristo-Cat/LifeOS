@@ -89,7 +89,7 @@ export default function ToolFailureLeaderboard() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-40 text-zinc-600 text-xs">
+      <div className="flex items-center justify-center h-40 text-ink-3 text-xs">
         Loading tool failures...
       </div>
     );
@@ -97,7 +97,7 @@ export default function ToolFailureLeaderboard() {
 
   if (ranked.length === 0) {
     return (
-      <div className="flex items-center justify-center h-40 text-zinc-600 text-xs">
+      <div className="flex items-center justify-center h-40 text-ink-3 text-xs">
         No tool failures recorded
       </div>
     );
@@ -108,10 +108,10 @@ export default function ToolFailureLeaderboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-medium text-zinc-300">
+          <span className="text-xs font-medium text-ink-1">
             Tool Failures
           </span>
-          <span className="text-[13px] font-mono text-zinc-500">
+          <span className="text-[13px] font-mono text-ink-3">
             {totalFiltered} total
           </span>
           <span className="px-1.5 py-0.5 rounded text-[13px] font-mono bg-rose-500/10 text-rose-400">
@@ -119,13 +119,13 @@ export default function ToolFailureLeaderboard() {
           </span>
         </div>
         {/* Toggle */}
-        <div className="flex items-center gap-1 bg-zinc-800/50 rounded p-0.5">
+        <div className="flex items-center gap-1 bg-[rgba(20,28,56,0.5)] rounded p-0.5">
           <button
             onClick={() => setFilter("24h")}
             className={`px-2 py-0.5 rounded text-[13px] transition-colors ${
               filter === "24h"
-                ? "bg-zinc-700 text-zinc-200"
-                : "text-zinc-500 hover:text-zinc-400"
+                ? "bg-surface-3 text-ink-1"
+                : "text-ink-3 hover:text-ink-2"
             }`}
           >
             Last 24h
@@ -134,8 +134,8 @@ export default function ToolFailureLeaderboard() {
             onClick={() => setFilter("all")}
             className={`px-2 py-0.5 rounded text-[13px] transition-colors ${
               filter === "all"
-                ? "bg-zinc-700 text-zinc-200"
-                : "text-zinc-500 hover:text-zinc-400"
+                ? "bg-surface-3 text-ink-1"
+                : "text-ink-3 hover:text-ink-2"
             }`}
           >
             All time
@@ -155,17 +155,17 @@ export default function ToolFailureLeaderboard() {
               ? "bg-rose-500"
               : item.rank <= 7
                 ? "bg-amber-500"
-                : "bg-zinc-400";
+                : "bg-ink-2";
 
           return (
             <div key={item.name}>
               <div className="flex items-center gap-2">
                 {/* Rank */}
-                <span className="w-5 text-right text-xs font-mono text-zinc-500 shrink-0">
+                <span className="w-5 text-right text-xs font-mono text-ink-3 shrink-0">
                   {item.rank}
                 </span>
                 {/* Tool name */}
-                <span className="w-28 text-sm font-mono text-zinc-200 truncate shrink-0">
+                <span className="w-28 text-sm font-mono text-ink-1 truncate shrink-0">
                   {item.name}
                 </span>
                 {/* Bar */}
@@ -175,14 +175,14 @@ export default function ToolFailureLeaderboard() {
                     style={{ width: `${barWidth}px`, maxWidth: "200px" }}
                   />
                   {/* Count */}
-                  <span className="text-xs font-mono text-zinc-400 shrink-0">
+                  <span className="text-xs font-mono text-ink-2 shrink-0">
                     {item.count}
                   </span>
                 </div>
               </div>
               {/* Error pattern */}
               {item.topError && (
-                <div className="ml-7 pl-28 text-[13px] text-zinc-500 truncate">
+                <div className="ml-7 pl-28 text-[13px] text-ink-3 truncate">
                   {item.topError}
                 </div>
               )}

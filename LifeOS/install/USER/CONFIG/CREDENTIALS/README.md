@@ -1,3 +1,7 @@
+---
+provenance: template
+---
+
 # CREDENTIALS
 
 **Purpose:** Local credential store for skills that need API keys, OAuth tokens, or other secrets to call external services.

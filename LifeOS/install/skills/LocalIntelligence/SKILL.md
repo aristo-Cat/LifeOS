@@ -1,5 +1,6 @@
 ---
 name: LocalIntelligence
+version: 1.0.4
 description: "Generic civic intelligence aggregator for any US city — daily local digest of construction permits, crime, new businesses, public officials, legislation, elections, arrests, and local news, keyed off principal's Hometown. Writes JSON consumed by Pulse LOCAL tab. Crime delegates to _CRIMESTATS. Workflows: DailyBrief, Construction, Crime, Business, Officials, Legislation, Elections, Arrests, News. USE WHEN local news, hometown news, council meeting, building permits, mayor, ballot measures, ordinance, recent arrests, civic intel, local digest. NOT FOR national news or arbitrary-city crime."
 effort: medium
 ---

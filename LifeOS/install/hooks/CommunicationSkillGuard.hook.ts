@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 /**
+ * @version 1.0.2
  * CommunicationSkillGuard.hook.ts — PreToolUse Bash gate
  *
  * Catches raw outbound-email sends — `gmail.ts send` and `aws ses send-email`
@@ -38,48 +39,66 @@ function readHookInput(): HookInput {
 
 // Outbound-send signatures. Read-only gmail ops (count/ids/fetch/archive) and
 // non-send aws ses ops (verify-email-identity, etc.) are deliberately NOT gated.
+// The gmail matcher is anchored to an actual bun/bunx EXECUTION of gmail.ts —
+// a mere mention of the path in a grep/echo/comment must not trip the gate
+// (public issue #1453: unanchored substring matching blocked ordinary dev
+// commands; same class as #1335). `[^|;&\n]*` keeps the match inside one
+// shell command, so `echo x && bun gmail.ts send` still trips on the real leg.
 function isEmailSend(command: string): boolean {
-  const gmailSend = /gmail\.ts['"]?\s+send\b/.test(command);
+  // bun/bunx execution of gmail.ts, OR gmail.ts itself in command position
+  // (direct-shebang `./…/gmail.ts send`) — both are real invocations; a path
+  // appearing mid-command as data (grep/echo/cp arguments) is not.
+  const gmailExec = /\b(?:bun|bunx)\b[^|;&\n]*?\bgmail\.ts['"]?\s+send\b/.test(command);
+  const gmailShebang = /(?:^|[;&|]\s*|\$\(\s*)\S*gmail\.ts\s+send\b/.test(command);
   const sesSend = /\baws\s+sesv?2?\s+send(-raw)?-email\b/.test(command);
-  return gmailSend || sesSend;
+  return gmailExec || gmailShebang || sesSend;
 }
 
 function isSkillRouted(command: string): boolean {
   return /LIFEOS_SKILL=_COMMUNICATION\b/.test(command);
 }
 
-function main(): never {
-  const command = readHookInput()?.tool_input?.command ?? "";
+const BLOCK_MESSAGE = [
+  "",
+  "═══════════════════════════════════════════════════════════════════════════",
+  "  CommunicationSkillGuard — raw email send BLOCKED before execution.",
+  "═══════════════════════════════════════════════════════════════════════════",
+  "",
+  "  Sending email is the _COMMUNICATION skill, not a standalone tool call.",
+  "  The SendEmail workflow carries rules a bare `gmail.ts send` / `aws ses",
+  "  send-email` skips: mandatory auto-BCC to the principal, send-as-DA",
+  "  identity + signature consistency, and DKIM/DMARC-safe transport.",
+  "",
+  "  Do this instead:",
+  "    1. Invoke  Skill(\"_COMMUNICATION\")",
+  "    2. Follow its SendEmail workflow (skills/_COMMUNICATION/Workflows/SendEmail.md)",
+  "    3. The send command it builds carries  LIFEOS_SKILL=_COMMUNICATION  and passes.",
+  "",
+  "  Explicit one-off override (logged): prefix the command with",
+  "    LIFEOS_SKILL=_COMMUNICATION  <your send command>",
+  "  Only do this when you have genuinely already applied the workflow's rules",
+  "  (BCC, identity/signature, transport).",
+  "",
+  "═══════════════════════════════════════════════════════════════════════════",
+  "",
+].join("\n");
 
-  if (!isEmailSend(command)) process.exit(0);
-  if (isSkillRouted(command)) process.exit(0);
-
-  const lines = [
-    "",
-    "═══════════════════════════════════════════════════════════════════════════",
-    "  CommunicationSkillGuard — raw email send BLOCKED before execution.",
-    "═══════════════════════════════════════════════════════════════════════════",
-    "",
-    "  Sending email is the _COMMUNICATION skill, not a standalone tool call.",
-    "  The SendEmail workflow carries rules a bare `gmail.ts send` / `aws ses",
-    "  send-email` skips: mandatory auto-BCC to the principal, send-as-DA",
-    "  identity + signature consistency, and DKIM/DMARC-safe transport.",
-    "",
-    "  Do this instead:",
-    "    1. Invoke  Skill(\"_COMMUNICATION\")",
-    "    2. Follow its SendEmail workflow (skills/_COMMUNICATION/Workflows/SendEmail.md)",
-    "    3. The send command it builds carries  LIFEOS_SKILL=_COMMUNICATION  and passes.",
-    "",
-    "  Explicit one-off override (logged): prefix the command with",
-    "    LIFEOS_SKILL=_COMMUNICATION  <your send command>",
-    "  Only do this when you have genuinely already applied the workflow's rules",
-    "  (BCC, identity/signature, transport).",
-    "",
-    "═══════════════════════════════════════════════════════════════════════════",
-    "",
-  ];
-  process.stderr.write(lines.join("\n"));
-  process.exit(2);
+/**
+ * Pure check for PreToolGuard dispatch. Returns a block decision or null (allow).
+ * FAIL-OPEN: an unrouted email send is the only block; everything else allows.
+ */
+export function check(input: HookInput): { block: true; message: string } | null {
+  const command = input?.tool_input?.command ?? "";
+  if (!isEmailSend(command)) return null;
+  if (isSkillRouted(command)) return null;
+  return { block: true, message: BLOCK_MESSAGE };
 }
 
-main();
+if (import.meta.main) {
+  const result = check(readHookInput());
+  if (result?.block) {
+    process.stderr.write(result.message);
+    process.exit(2);
+  }
+  process.exit(0);
+}

@@ -1,6 +1,7 @@
 ---
 name: Sales
-description: "Transforms product documentation into sales-ready narrative packages: story explanation, charcoal gestural sketch art (the mandatory visual style), and talking points. Pipeline: extract narrative arc -> determine emotional register -> derive visual scene -> generate assets. Three workflows: CreateSalesPackage (full pipeline), CreateNarrative (story only, 8-24 first-person numbered points, why-it-matters), CreateVisual (charcoal sketch, transparent background). Integrates _STORYEXPLANATION and the Art essay-art workflow internally. USE WHEN sales, proposal, pitch deck, value proposition, sales narrative, sales deck, sales package, turn this into a pitch, create a sales story, sales materials, product pitch, transform docs to sales, sales script. NOT FOR Hormozi $100M frameworks, value equation, irresistible offer, or VOC mining (use _SALESHORMOZI), standalone diagrams or illustrations (use Art), or platform social posts (use _SOCIALPOST)."
+version: 1.0.25
+description: "Transforms product documentation into sales-ready packages — a story explanation, charcoal gestural sketch art, and talking points — via a narrative-arc pipeline. USE WHEN sales, proposal, pitch deck, value proposition, sales narrative, sales deck, sales package, turn this into a pitch, create a sales story, sales materials, product pitch, transform docs to sales, sales script. NOT FOR Hormozi $100M frameworks, value equation, irresistible offer, or VOC mining (use _SALESHORMOZI), standalone diagrams or illustrations (use Art), or platform social posts (use _SOCIALPOST)."
 effort: medium
 ---
 

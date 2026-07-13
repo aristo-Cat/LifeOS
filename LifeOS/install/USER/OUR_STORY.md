@@ -1,3 +1,7 @@
+---
+provenance: template
+---
+
 # Our Story — User & DA
 
 > Bootstrap default. The relationship narrative between you and your DA.

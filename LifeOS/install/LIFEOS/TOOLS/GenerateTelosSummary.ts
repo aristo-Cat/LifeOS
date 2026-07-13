@@ -112,10 +112,12 @@ function parseItems(content: string, fallbackPrefix?: string): ParsedItem[] {
   const lines = content.split('\n');
 
   for (const line of lines) {
-    // Bullet form: "- **M0**: text" or "- M0: text"
+    // Bullet form: "- **M0**: text", "- M0: text", or colon-inside-bold "- **M0:** text".
+    // The trailing asterisk strip handles the colon-inside-bold shape, which
+    // otherwise leaks a literal "** " into the rendered summary (issue #1113).
     const bullet = line.match(/^-\s+\*?\*?([A-Z]+\d+\w?)\*?\*?:\s*(.+)/);
     if (bullet) {
-      items.push({ id: bullet[1], text: bullet[2].trim() });
+      items.push({ id: bullet[1], text: bullet[2].replace(/^\*+\s*/, '').trim() });
       continue;
     }
     // H3 heading form: "### M0: text" (the unified TELOS.md style)
@@ -155,40 +157,76 @@ function parseMissions(): string[] {
 }
 
 /**
- * Parse goals from GOALS.md, separating 2026 goals from older ones
+ * Parse goals from GOALS.md, section-aware (issue #1115).
+ *
+ * Goals are classified by the "## Active" / "## Deferred / Ongoing" /
+ * "## Completed This Year" heading each bullet sits under — the shape the
+ * shipped GOALS.md template uses. Content before any recognized heading (or a
+ * file/section with no headings at all, like the unified TELOS.md goals
+ * section) is active. Bullets without explicit IDs get positional IDs so the
+ * template's plain-bullet Deferred/Completed sections render instead of being
+ * silently dropped. (Replaces the old num>=9/[0,1] numeric heuristic, which
+ * encoded one personal file's history and misclassified everyone else's goals.)
  */
-function parseGoals(): { active: string[]; deferred: string[] } {
+function parseGoals(): { active: string[]; deferred: string[]; completed: string[] } {
   const content = readTelosFile('GOALS.md');
-  const items = parseItems(content);
 
-  // ID-less prose: the list IS the current goal set — everything is active.
-  // (The G9+/G0/G1 split below encodes the OLD ID'd file's history and only
-  // applies when explicit IDs exist.)
-  if (items.length === 0) {
-    const active = paragraphItems(content, 'G').map(i => {
-      const firstSentence = i.text.split(/\s—\s|(?<!\w\.\w)(?<=\w)\.\s/)[0].trim();
-      return `- **${i.id}**: ${truncate(firstSentence, 70)}`;
-    });
-    return { active, deferred: [] };
-  }
+  type Bucket = 'active' | 'deferred' | 'completed';
+  const bucketOf = (heading: string): Bucket | null => {
+    const h = heading.toLowerCase();
+    if (h.includes('active')) return 'active';
+    if (h.includes('deferred') || h.includes('ongoing')) return 'deferred';
+    if (h.includes('completed') || h.includes('done')) return 'completed';
+    return null; // unrecognized heading (e.g. "## Notes") — not goal content
+  };
 
-  // Goals with IDs G9+ are 2026 goals based on the file structure
-  const active: string[] = [];
-  const deferred: string[] = [];
-
-  for (const item of items) {
-    const num = parseInt(item.id.replace(/\D/g, ''), 10);
-    // Split on " — " (em-dash with spaces) or sentence-ending period (not in URLs)
-    const firstSentence = item.text.split(/\s—\s|(?<!\w\.\w)(?<=\w)\.\s/)[0].trim();
-
-    if (num >= 9 || [0, 1].includes(num)) {
-      active.push(`- **${item.id}**: ${truncate(firstSentence, 70)}`);
-    } else {
-      deferred.push(`- **${item.id}**: ${truncate(firstSentence, 50)}`);
+  const sectionLines: Record<Bucket, string[]> = { active: [], deferred: [], completed: [] };
+  let current: Bucket | null = 'active';
+  for (const line of content.split('\n')) {
+    const m = line.match(/^##\s+(.+)/);
+    if (m) {
+      current = bucketOf(m[1]);
+      continue;
     }
+    if (current) sectionLines[current].push(line);
   }
 
-  return { active, deferred };
+  // Parse one bucket: explicit-ID items first, then plain "- text" bullets,
+  // then ID-less prose paragraphs. IDs left empty here get positional IDs
+  // assigned globally below (in document order, across buckets).
+  const parseBucket = (lines: string[]): ParsedItem[] => {
+    const text = lines.join('\n');
+    const withIds = parseItems(text);
+    if (withIds.length > 0) return withIds;
+    const bullets = lines
+      .map(l => l.match(/^-\s+(.+)$/))
+      .filter((m): m is RegExpMatchArray => m !== null)
+      .map(m => ({ id: '', text: m[1].trim() }));
+    if (bullets.length > 0) return bullets;
+    return paragraphItems(text, '').map(i => ({ id: '', text: i.text }));
+  };
+
+  const parsed: Record<Bucket, ParsedItem[]> = {
+    active: parseBucket(sectionLines.active),
+    deferred: parseBucket(sectionLines.deferred),
+    completed: parseBucket(sectionLines.completed),
+  };
+
+  let idx = 0;
+  const format = (items: ParsedItem[], max: number): string[] =>
+    items.map(item => {
+      const id = item.id || `G${idx}`;
+      idx++;
+      // Split on " — " (em-dash with spaces) or sentence-ending period (not in URLs)
+      const firstSentence = item.text.split(/\s—\s|(?<!\w\.\w)(?<=\w)\.\s/)[0].trim();
+      return `- **${id}**: ${truncate(firstSentence, max)}`;
+    });
+
+  return {
+    active: format(parsed.active, 70),
+    deferred: format(parsed.deferred, 50),
+    completed: format(parsed.completed, 50),
+  };
 }
 
 /**
@@ -304,6 +342,42 @@ function parseTraumas(): string[] {
 }
 
 /**
+ * Resolve the principal's display name at runtime (issue #1140). No name — and
+ * no installer placeholder — is baked into this source: the installer's
+ * substitution walk doesn't cover LIFEOS/TOOLS, so a baked {{PRINCIPAL_FULL_NAME}}
+ * token ships literal on fresh installs. Resolution order:
+ *   1. PRINCIPAL_IDENTITY.md frontmatter core.full_name
+ *   2. PRINCIPAL_IDENTITY.md H1 ("# Principal Identity — <name>")
+ *   3. PRINCIPAL_IDENTITY.md frontmatter core.name
+ *   4. settings.json principal.name
+ * Returns '' when nothing resolves (title renders without the suffix).
+ */
+function principalDisplayName(): string {
+  const looksLikeToken = (s: string) => s.includes('{{') || s.includes('<INTERVIEW');
+  const idPath = join(paiUserDir(), 'PRINCIPAL', 'PRINCIPAL_IDENTITY.md');
+  let coreName = '';
+  if (existsSync(idPath)) {
+    const content = readFileSync(idPath, 'utf-8');
+    const fm = content.match(/^---\n([\s\S]*?)\n---/);
+    if (fm) {
+      const fullName = fm[1].match(/^\s*full_name:\s*["']?(.+?)["']?\s*$/m);
+      if (fullName && !looksLikeToken(fullName[1])) return fullName[1].trim();
+      const name = fm[1].match(/^\s*name:\s*["']?(.+?)["']?\s*$/m);
+      if (name && !looksLikeToken(name[1])) coreName = name[1].trim();
+    }
+    const h1 = content.match(/^#\s+Principal Identity\s*[—–-]+\s*(.+?)\s*$/m);
+    if (h1 && !looksLikeToken(h1[1])) return h1[1].trim();
+  }
+  if (coreName) return coreName;
+  try {
+    const settings = JSON.parse(readFileSync(join(process.env.HOME!, '.claude', 'settings.json'), 'utf-8'));
+    const name = settings?.principal?.name;
+    if (typeof name === 'string' && name.trim() && !looksLikeToken(name)) return name.trim();
+  } catch { /* no settings.json — fall through */ }
+  return '';
+}
+
+/**
  * Parse models from MODELS.md (first sentence only)
  */
 function parseModels(): string[] {
@@ -317,6 +391,7 @@ function parseModels(): string[] {
 
 function generate(): string {
   const now = new Date().toISOString();
+  const principalName = principalDisplayName();
   const missions = parseMissions();
   const goals = parseGoals();
   const problems = parseProblems();
@@ -333,7 +408,7 @@ function generate(): string {
   const sections = loadTelosSections();
   const coreChecks: Array<[string, string, number]> = [
     ['mission', 'Missions', missions.length],
-    ['goals', 'Goals', goals.active.length + goals.deferred.length],
+    ['goals', 'Goals', goals.active.length + goals.deferred.length + goals.completed.length],
     ['problems', 'Problems', problems.length],
     ['strategies', 'Strategies', strategies.length],
     ['challenges', 'Challenges', challenges.length],
@@ -354,7 +429,7 @@ function generate(): string {
     'generator: LIFEOS/TOOLS/GenerateTelosSummary.ts',
     '---',
     '',
-    '# Principal TELOS — {{PRINCIPAL_FULL_NAME}}',
+    principalName ? `# Principal TELOS — ${principalName}` : '# Principal TELOS',
     '',
     '> Auto-generated from TELOS source files. Do not edit manually.',
     `> Generated: ${now} | Sources: MISSION, GOALS, PROBLEMS, STRATEGIES, NARRATIVES, CHALLENGES, WRONG, TRAUMAS, MODELS`,
@@ -375,6 +450,14 @@ function generate(): string {
       .filter(Boolean)
       .join(', ');
     lines.push('', `_Deferred (full text in TELOS/GOALS.md): ${deferredIds}_`);
+  }
+
+  if (goals.completed.length > 0) {
+    const completedIds = goals.completed
+      .map(line => line.match(/\*\*(\w+)\*\*/)?.[1])
+      .filter(Boolean)
+      .join(', ');
+    lines.push('', `_Completed this year (full text in TELOS/GOALS.md): ${completedIds}_`);
   }
 
   lines.push(

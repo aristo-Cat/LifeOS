@@ -18,7 +18,7 @@
  * --check` confirms nothing else drifted. The _NEWS Anthropic monitor surfaces
  * a proposal when it detects a new model; application is propose-not-auto.
  *
- * NOT IN SCOPE: cross-vendor pins (Forge gpt-5.5, build+audit modes) track their own
+ * NOT IN SCOPE: cross-vendor pins (Forge gpt-5.6-sol, build+audit modes) track their own
  * vendors — recorded here for inventory, never auto-bumped to Claude.
  * ============================================================================
  */
@@ -30,7 +30,7 @@ export type ClaudeTier = "opus" | "sonnet" | "haiku" | "fable";
  * EFFORT LEVELS — the four-level abstraction over the Claude lineup
  * ============================================================================
  *
- * Consumers route by INTENT (max/high/medium/low), never by model name. Two
+ * Consumers name INTENT (max/high/medium/low), never a model name. Two
  * independent edit points keep the system cohesive across model churn:
  *
  *   Layer 1  EFFORT_MODEL  level → tier   edit when the LINEUP changes
@@ -38,108 +38,92 @@ export type ClaudeTier = "opus" | "sonnet" | "haiku" | "fable";
  *                                          subscription, or moves rungs)
  *   Layer 2  CURRENT       tier → ID      edit when a VERSION releases
  *
- * Routing policy (Algorithm doctrine): NATIVE delegated work runs at `high`;
- * Algorithm E1–E3 dispatch at `high`; E4/E5 dispatch at `max`. `medium` and
- * `low` exist for utility inference (classification, summarization, vision
- * triage) so cheap calls never silently ride an expensive model. The
- * Advisor is pinned `max` (keystone commitment call); the TheRouter
- * classifier is pinned `high` (Opus, re-pinned off `max` 2026-07-01) — it
- * fires on every prompt, so the per-prompt keystone stays off the top rung.
+ * NO ROUTING POLICY LIVES HERE (baseline, 2026-07-11, principal directive):
+ * which level a given piece of work gets is {{DA_NAME}}'s per-dispatch judgment —
+ * no hook injection, no classifier, no tier rubric. This table is the dial
+ * behind `Inference.ts --level` and the display labels (statusline,
+ * AgentInvocation logging). `medium`/`low` exist so cheap utility calls
+ * (classification, summarization, vision triage) have named rungs.
  */
 export type EffortLevel = "max" | "high" | "medium" | "low";
 
 /**
  * Level → tier binding. THIS IS THE SINGLE EDIT POINT on a lineup change.
- * Example: Fable exits the subscription → `max: "opus"` and the entire
- * routing system follows; no other code changes.
+ * Example: Fable exits the subscription → `max: "opus"` and every consumer
+ * follows; no other code changes. Fable is the top rung (~2× Opus cost), so
+ * `max` and `high` are distinct models and the Inference.ts max-fallback
+ * (fable→opus) is a genuinely real degraded path.
  *
- * DECISION (2026-07-01, principal): Fable is re-enabled and IS the top rung.
- * `max: "fable"` — the hardest work (Algorithm E4/E5 + every Core-System
- * Override task) auto-dispatches Fable; `high` stays Opus for E1–E3 + NATIVE.
- * This restores a real ladder to the routing system — Fable → Opus → Sonnet →
- * Haiku — reachable with NO new agent (the dispatch-time `model` param carries
- * the rung; agents are personas, model is orthogonal). Fable is ~2× Opus, so
- * the cost lands only on genuinely hard runs. Two guardrails ship with the flip:
- *   (a) the TheRouter classifier is re-pinned to `high` (Opus), NOT `max`,
- *       so the per-prompt keystone stays fast + cheap — "keystone" never meant
- *       "most-expensive rung"; the classifier's model is UNCHANGED from before
- *       the flip (it was Opus via max=opus; it's Opus via high now).
- *   (b) the Advisor stays at `max` (now Fable) — a once-per-deliverable
- *       commitment call, where best judgment is worth the cost.
- * `max` and `high` are now DISTINCT models, so the Inference.ts max-fallback
- * degrades max→high = fable→opus: a genuinely real degraded path.
+ * BASELINE (2026-07-11, principal directive — supersedes every prior routing
+ * decision in this file's history; see ALGORITHM/changelog.md): model
+ * selection is {{DA_NAME}}'s per-dispatch judgment. The saved `/model` default is
+ * Fable 5 [1m] (settings.json). No hook injects models (AgentInvocation
+ * v1.3.0 observes only), no classifier routes tiers, no rubric maps work to
+ * rungs. Unspecified delegate models inherit the session model (harness
+ * behavior).
  *
- * SUPERSEDES the 2026-06-30 decision ("Opus stays top, Fable no longer the
- * intended top model"). That call held while Fable was unavailable; Fable is
- * reachable again (probed 2026-07-01: `claude --model fable` → clean completion)
- * and the principal's directive is that the hardest work should ride it. The
- * prior decision is preserved here in history, not tombstoned.
+ * CARRIER REALITY — tool-contract facts, not steering. THIS COMMENT IS THE
+ * CANONICAL HOME of these facts — prose elsewhere (OPERATIONAL_RULES,
+ * Algorithm §Spend) carries one line + a pointer here, never a restatement.
+ * Freshness: `CarrierProbe.ts` re-probes end-to-end (dispatch → subagent
+ * transcript model read-back) and records to MEMORY/STATE/carrier-probe.json;
+ * /ic fails when the probe is stale (>30d) or contradicts DISPATCH_EXECUTES_FABLE.
+ *
+ * PROBED 2026-07-12 (CarrierProbe.ts first run + manual inheritance leg;
+ * evidence = subagent transcript assistant-message model, no fallback blocks).
+ * This FLIPPED the 2026-07-07/-11 facts — a harness update fixed dispatch:
+ *   - Agent dispatches now execute their model FAITHFULLY: explicit
+ *     `model: fable` executed claude-fable-5, and bare inheritance from a
+ *     Fable main loop executed claude-fable-5. The old downgrade-to-Opus
+ *     behavior is GONE. (History: 07-07/-11 probes showed both paths running
+ *     claude-opus-4-8 with a `fallback` block; see git history of this file.)
+ *   - Genuine Fable carriers are therefore: the main loop, `Inference.ts
+ *     --level max`, AND Agent dispatch. A subagent's self-report is still
+ *     NOT evidence — the transcript is.
+ *   - VERIFICATION (integrity linchpin): Inference.ts reads the executed
+ *     model back from the JSON envelope's modelUsage (verifyExecutedModel —
+ *     filters the background haiku pass, takes the highest-output model as
+ *     the answer's author, checks its family) and logs any downgrade to
+ *     model-verification.jsonl. The system reports what RAN, never what it
+ *     requested.
  */
+
+/** Machine-readable carrier fact: do Agent dispatches execute Fable when asked
+ * (explicitly or via inheritance)? CarrierProbe.ts verdicts compare live
+ * observation against THIS value; the statusline maps fable-labeled and
+ * fable-inherited dispatches to the FABLE rung only when true. Flip ONLY on
+ * transcript evidence from a probe run. Last probe: 2026-07-12 (true). */
+export const DISPATCH_EXECUTES_FABLE = true;
 export const EFFORT_MODEL: Record<EffortLevel, ClaudeTier> = {
-  max: "fable",   // top rung — E4/E5 + Core-System Override dispatch here (~2× Opus, hard work only)
-  high: "opus",   // E1–E3 + NATIVE + the re-pinned TheRouter classifier
+  max: "fable",   // top rung (~2× Opus)
+  high: "opus",
   medium: "sonnet",
   low: "haiku",
 };
 
 /**
- * ============================================================================
- * THE THREE LEVEL AXES — don't conflate them (2026-06-29)
- * ============================================================================
- * LifeOS has three independent "level" dials. They share words ("max", "high")
- * but they are NOT one axis. The statusline shows two of them; this file is the
- * source of truth for the mapping between the first two.
- *
- *   1. MODEL RUNG       EFFORT_MODEL above — which Claude model an agent runs.
- *                       Exactly four, because the lineup has four models
- *                       (fable/opus/sonnet/haiku): max | high | medium | low.
- *
- *   2. REASONING EFFORT HarnessEffort — how hard a model thinks WITHIN itself
- *                       (Claude Code's `--effort` / `/effort` knob). Five:
- *                       low | medium | high | xhigh | max. This is the LEVEL the
- *                       statusline reads from `effort.level`. Claude-Code-owned:
- *                       a UserPromptSubmit hook can read it but CANNOT set the main
- *                       loop's value (hooks doc "Important Limitations") — it's
- *                       `/effort` / settings `effortLevel` / `--effort` /
- *                       `CLAUDE_CODE_EFFORT_LEVEL` only, and the persistent field
- *                       caps at `xhigh` (`max` is `/effort max` interactive-only).
- *                       Only dispatched agents carry a programmable effort
- *                       (Algorithm v6.19.0 § tier table). Because the tier can't
- *                       auto-apply its target, the statusline SURFACES the gap:
- *                       when live effort is below the active Algorithm tier's
- *                       target (E1 low · E2 medium · E3 high · E4 xhigh · E5 xhigh
- *                       — xhigh not max at E5: the nudge only points at a settable
- *                       level; `max` is `/effort max` interactive-only),
- *                       it renders an amber `↑<TARGET>` nudge — the un-settable
- *                       dial made visible, one `/effort` to close it. See
- *                       LIFEOS_StatusLine.sh § "Effort↔tier nudge" (2026-06-29).
- *
- *   3. COMPOSITION      ultracode — whether to fan a task into a multi-agent
- *                       Workflow. NOT an effort level: it rides on xhigh effort
- *                       and is detected via output-style, not `effort.level`
- *                       (LIFEOS_StatusLine.sh promotes XHIGH→ULT). It belongs to
- *                       no rung; it is orthogonal to axes 1 and 2.
- *
- * The crossover that trips people up: dispatching at MODEL RUNG `max` emits
- * REASONING EFFORT `xhigh`, NOT `max` (see LEVEL_TO_HARNESS_EFFORT). "Max model"
- * and "max thinking" are different dials that share a word. LifeOS dispatch
- * deliberately caps reasoning at `xhigh`; harness effort `max` is reachable by a
- * human via `/effort max` but no LifeOS level emits it.
+ * THREE DISTINCT "level" dials — don't conflate (this file maps dials 1↔2):
+ *   1. MODEL RUNG (EFFORT_MODEL above): which Claude model runs — max|high|medium|low.
+ *   2. REASONING EFFORT (HarnessEffort): how hard a model thinks within itself,
+ *      Claude-Code-owned (`/effort`/settings/`--effort`); a hook can read but NOT
+ *      set the main loop's value. LifeOS runs UNIFORMLY at `high` and emits no other
+ *      level (principal directive 2026-07-06); the statusline still shows the full scale.
+ *   3. COMPOSITION (ultracode): whether to fan a task into a multi-agent Workflow —
+ *      not an effort level; rides on `high`, detected via output-style, orthogonal to 1&2.
  */
 
 /** Axis 2: the harness reasoning-effort knob (Claude Code `--effort`). */
 export type HarnessEffort = "low" | "medium" | "high" | "xhigh" | "max";
 
 /**
- * MODEL RUNG → REASONING EFFORT emitted when LifeOS dispatches at that rung.
- * Single source of truth for the crossover (consumed by Inference.ts). Note
- * `max → xhigh`, by design: LifeOS dispatch caps reasoning effort at xhigh.
+ * MODEL RUNG → REASONING EFFORT (consumed by Inference.ts). Uniformly `high` —
+ * every rung thinks at high; the MODEL rung still varies (EFFORT_MODEL).
  */
 export const LEVEL_TO_HARNESS_EFFORT: Record<EffortLevel, HarnessEffort> = {
-  max: "xhigh",
+  max: "high",
   high: "high",
-  medium: "medium",
-  low: "low",
+  medium: "high",   // effort uniformly high 2026-07-06 (model rung still varies via EFFORT_MODEL)
+  low: "high",
 };
 
 /** Auto-tracking alias for an effort level (preferred — never drifts). */
@@ -182,8 +166,9 @@ export const ALIAS: Record<ClaudeTier, string> = {
  * scan can distinguish intentional non-Claude pins from stale Claude pins.
  */
 export const CROSS_VENDOR: Record<string, string> = {
-  forge: "gpt-5.5",  // OpenAI (Tier-2 egress); covers build + audit modes (Cato folded in 2026-06-17)
-  codexResearcher: "gpt-5.5",  // OpenAI (Tier-2 egress)
+  forge: "gpt-5.6-sol",  // OpenAI (Tier-2 egress); covers build + audit modes
+  codexResearcher: "gpt-5.6-sol",  // OpenAI (Tier-2 egress)
+  grokResearcher: "grok-4.5",  // xAI (Tier-2 egress); engine behind Grok.ts — keep in sync with its --model default
   gene: "z-ai/glm-5.2",  // OpenRouter broker (Tier-2, most opaque); GLM 5.2 via OpenRouter.ts; default-pinned US+ZDR (Fireworks) => INTERNAL ceiling, unpinned => PUBLIC
 };
 
@@ -249,7 +234,7 @@ export function isRouteAllowed(r: InferenceRoute, dataClass: DataClass): boolean
 /** Canonical routes for the wired sources. GENE needs a US pin for INTERNAL. */
 export const ROUTES: Record<string, InferenceRoute> = {
   NATIVE:           { source: "NATIVE",   vendor: "anthropic",  model: "claude",        inferenceCountry: "US", companyCountry: "US", residencyGuaranteed: true },
-  FORGE:            { source: "FORGE",    vendor: "openai",     model: "gpt-5.5",       inferenceCountry: "US", companyCountry: "US", residencyGuaranteed: true },
+  FORGE:            { source: "FORGE",    vendor: "openai",     model: "gpt-5.6-sol",   inferenceCountry: "US", companyCountry: "US", residencyGuaranteed: true },
   GENE_PINNED_US:   { source: "GENE",     vendor: "openrouter", model: "z-ai/glm-5.2",  inferenceCountry: "US", companyCountry: "US", residencyGuaranteed: true },  // pinned US+ZDR (default: Fireworks; allowlist in egress-class-core US_ZDR_PROVIDERS); Chinese => INTERNAL
   GENE_UNPINNED:    { source: "GENE",     vendor: "openrouter", model: "z-ai/glm-5.2",  residencyGuaranteed: false },                                                // broker, no guarantee => PUBLIC
 };

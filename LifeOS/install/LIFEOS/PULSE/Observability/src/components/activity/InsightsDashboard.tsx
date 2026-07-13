@@ -85,13 +85,13 @@ function WidgetCard({
       } ${tall ? "min-h-[400px]" : "min-h-[280px]"}`}
     >
       <div className="px-4 py-2.5 border-b border-white/[0.04] flex items-center justify-between">
-        <h3 className="text-xs font-medium text-zinc-400 uppercase tracking-wider">
+        <h3 className="text-xs font-medium text-ink-2 uppercase tracking-wider">
           {title}
         </h3>
       </div>
       <div className="p-4">
         {children || (
-          <div className="flex items-center justify-center h-40 text-zinc-600 text-xs">
+          <div className="flex items-center justify-center h-40 text-ink-3 text-xs">
             Loading {title}...
           </div>
         )}

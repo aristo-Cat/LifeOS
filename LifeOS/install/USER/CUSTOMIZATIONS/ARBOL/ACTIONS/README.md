@@ -1,3 +1,7 @@
+---
+provenance: template
+---
+
 # ACTIONS
 
 **Purpose:** Reusable action modules — atomic units of work that LifeOS pipelines and flows compose into larger workflows.

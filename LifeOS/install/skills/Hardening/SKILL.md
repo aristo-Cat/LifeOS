@@ -1,6 +1,7 @@
 ---
 name: Hardening
-description: Apply hardening techniques to LifeOS's test and code surface — property-based testing via fast-check (ISCs as universally-quantified claims, random inputs shrunk to minimal counterexamples), mutation testing via Stryker, CRAP-complexity scoring, DRY duplication detection, acceptance-test mutation (perturb ISC text to catch fluff). Strengthens existing tests, never adds functionality; detail in body. USE WHEN harden, hardening, property test, property based testing, PBT, fast-check, mutation test, mutation testing, Stryker, CRAP score, CRAP analysis, DRY scan, jscpd, acceptance test mutation, strengthen tests, sharpen ISCs, find bugs example tests miss, universal quantified claim, shrink counterexample, what bugs am I missing, test the tests, test of the test. NOT FOR writing new feature tests (use bun test directly), grading agent output quality (use Evals), UI verification with real Chrome (use Interceptor), finding security vulnerabilities (use _HELIOS), or building new functionality.
+version: 1.0.3
+description: "Hardens LifeOS tests via property/mutation testing. USE WHEN harden, hardening, property test, property based testing, PBT, fast-check, mutation test, mutation testing, Stryker, CRAP score, CRAP analysis, DRY scan, jscpd, acceptance test mutation, strengthen tests, sharpen ISCs, find bugs example tests miss, universal quantified claim, shrink counterexample, what bugs am I missing, test the tests, test of the test. NOT FOR writing new feature tests (use bun test directly), grading agent output quality (use Evals), UI verification with real Chrome (use Interceptor), finding security vulnerabilities (use _HELIOS), or building new functionality."
 ---
 
 # Hardening Skill

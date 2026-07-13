@@ -1,9 +1,10 @@
 ---
-last_updated: 2026-06-21
+last_updated: 2026-07-11
 last_updated_by: kai
 last_reviewed: 2026-07-02
 last_reviewed_by: kai
 convention: pai-freshness-v1
+version: 1.6.17
 ---
 
 # The Pulse System
@@ -36,6 +37,7 @@ Each subsystem runs in its own crash-isolated loop within the single Pulse proce
 | **Worker** | GitHub Issues work polling for LifeOS Workers (optional) | `checks/github-work.ts` |
 | **Assistant** | Digital Assistant identity, heartbeat, scheduling, growth | `Assistant/module.ts` |
 | **UserIndex** | LifeOS USER/ indexer — parses frontmatter + collections into typed JSON; fs.watch live refresh; powers `/life` dashboard + Daemon publish feed | `modules/user-index.ts` |
+| **Doctor** | Read-only System Health surface (2026-07-12, #1461). Serves `GET /api/doctor` → `{ manifest, heartbeat, reconcile }` from the advisory caches written by `LIFEOS/TOOLS/Doctor.ts`; shells `Doctor.ts --reconcile` (30s cache). Holds zero truth of its own. Rendered by `SystemHealthPanel.tsx` on the **System → Hooks** page: capability states + fix commands, doctor heartbeat age (red past 7 days — a dead checker must be loud), and hook reconciliation. Diagnostic register, no scores. | `modules/doctor.ts` |
 
 ---
 
@@ -99,8 +101,8 @@ sendVoiceSummary(ctx, fullText) — fire-and-forget IIFE
 | Concern | Mechanism | Notes |
 |---------|-----------|-------|
 | Voice identity | `KAI_VOICE_ID` resolved at module import from `settings.json` `daidentity.voices.main.voiceId` (same source `VoiceServer` reads) | Public Rachel voice (`21m00Tcm4TlvDq8ikWAM`) is the fallback for fresh installs that haven't populated settings.json. No hardcoded principal-specific literal; release portability without install-time placeholder resolution. |
-| Channel separation | Telegram never calls `/notify`; CLI `/notify` never calls `bot.api.sendVoice`; VoiceServer unmodified by this pipeline | Three layers of defense, in order of failure mode they catch: (1) `env: { LIFEOS_NOTIFICATION_CHANNEL: "telegram" }` on `sdkOptions` propagates to every hook in the subprocess tree — `hooks/VoiceCompletion.hook.ts`, `hooks/StopFailureHandler.hook.ts`, `hooks/PromptProcessing.hook.ts` voice-announcement block, and `hooks/handlers/DocCrossRefIntegrity.ts` all check `isDesktopChannel()` and skip the `/notify` fetch (writing `event_type: 'skipped'` to `voice-events.jsonl` with `reason: 'remote_channel:telegram'`). This is the *hard* barrier — it stops desktop voice at the call site, regardless of what the model is doing. (2) `canUseTool` callback denies any Bash command containing `31337` or `/notify` from the model itself. (3) The Telegram-mode system-prompt rule forbidding `/notify` curls. Layers 2 and 3 are belt-and-suspenders; layer 1 is the load-bearing fix (added 2026-05-24, ISA `MEMORY/WORK/20260524-telegram-voice-channel-isolation-vs-hermes/ISA.md`). Source of truth: `hooks/lib/notification-channel.ts`. |
-| Minimalist remote-channel output | Telegram + iMessage receive plain conversational prose — no CLAUDE.md mode banners (`MINIMAL`/`NATIVE`/`ALGORITHM`), no template fields (`📃 CONTENT:`, `🗣️ {{DA_NAME}}:`), no Algorithm phase headers (`═══`, `━━━`). | Two layers: (1) **Prevention** — `hooks/TheRouter.hook.ts` short-circuits when `LIFEOS_NOTIFICATION_CHANNEL` is set to a remote channel and emits `TELEGRAM_DIRECTIVE` / `IMESSAGE_DIRECTIVE` into `additionalContext` instead of the `MODE:` banner. The model never sees `MODE: ALGORITHM` so doesn't reach for the template. Per-channel ephemeral system prompts get injected at runtime. (2) **Egress sanitizer** — `LIFEOS/PULSE/lib/strip-mode-scaffolding.ts` `stripModeScaffolding()` regex-strips known LifeOS scaffolding markers from `fullText` before `editMessageText` / `reply` / `sendMessage` / `summarizeForVoice`. Telegram + iMessage both apply at the end of their respective SDK loops. On a sanitizer hit, `log("warn", "egress sanitizer stripped mode scaffolding", ...)` records the leak for tuning the Layer 1 directive. (Added 2026-05-24 iteration 2.) |
+| Channel separation | Telegram never calls `/notify`; CLI `/notify` never calls `bot.api.sendVoice`; VoiceServer unmodified by this pipeline | Three layers of defense, in order of failure mode they catch: (1) `env: { LIFEOS_NOTIFICATION_CHANNEL: "telegram" }` on `sdkOptions` propagates to every hook in the subprocess tree — `hooks/VoiceCompletion.hook.ts`, `hooks/PromptProcessing.hook.ts` voice-announcement block (StopFailureHandler merged into EventLogger 2026-07-11), and `hooks/handlers/DocCrossRefIntegrity.ts` all check `isDesktopChannel()` and skip the `/notify` fetch (writing `event_type: 'skipped'` to `voice-events.jsonl` with `reason: 'remote_channel:telegram'`). This is the *hard* barrier — it stops desktop voice at the call site, regardless of what the model is doing. (2) `canUseTool` callback denies any Bash command containing `31337` or `/notify` from the model itself. (3) The Telegram-mode system-prompt rule forbidding `/notify` curls. Layers 2 and 3 are belt-and-suspenders; layer 1 is the load-bearing fix (added 2026-05-24, ISA `MEMORY/WORK/20260524-telegram-voice-channel-isolation-vs-hermes/ISA.md`). Source of truth: `hooks/lib/notification-channel.ts`. |
+| Minimalist remote-channel output | Telegram + iMessage receive plain conversational prose — no CLAUDE.md mode banners (`MINIMAL`/`NATIVE`/`ALGORITHM`), no template fields (`📃 CONTENT:`, `🗣️ {{DA_NAME}}:`), no Algorithm phase headers (`═══`, `━━━`). | Two layers: (1) **Prevention** — the Router hook (`TheRouter.hook.ts`, retired 2026-07-11) short-circuited when `LIFEOS_NOTIFICATION_CHANNEL` is set to a remote channel and emits `TELEGRAM_DIRECTIVE` / `IMESSAGE_DIRECTIVE` into `additionalContext` instead of the `MODE:` banner. The model never sees `MODE: ALGORITHM` so doesn't reach for the template. Per-channel ephemeral system prompts get injected at runtime. (2) **Egress sanitizer** — `LIFEOS/PULSE/lib/strip-mode-scaffolding.ts` `stripModeScaffolding()` regex-strips known LifeOS scaffolding markers from `fullText` before `editMessageText` / `reply` / `sendMessage` / `summarizeForVoice`. Telegram + iMessage both apply at the end of their respective SDK loops. On a sanitizer hit, `log("warn", "egress sanitizer stripped mode scaffolding", ...)` records the leak for tuning the Layer 1 directive. (Added 2026-05-24 iteration 2.) |
 | Memory context | Per-turn `buildLifeosContextBlock()`, module-level cache `cachedContext: { text, builtAt, mtimes }`, 60s TTL, per-source-file mtime invalidation | Stale only across a Pulse restart or genuine source-file change. PROJECTS.md is sliced to "Open Sessions to Resume" only; the rest is reachable on-demand via SDK Read. |
 | Idle-session boundary | `IDLE_TIMEOUT_MS = 60 * 60 * 1000` (1 hour). `lastMessageAt` updated ONLY after fully-successful exchange (not at handler entry — a slow SDK reply during which the next message arrives shouldn't pre-update the clock) | Restart-equivalent: `startTelegram()` initializes `lastMessageAt = null` and `threadStartedAt = Date.now()`, treating fresh boot as fresh thread. Persisted `conversations.json` is untouched — only the per-turn slice is filtered. |
 | Useless-fallback guard | `MIN_FALLBACK_WORDS = 6`, `MEANINGFUL_REPLY_WORDS = 25` — when Sonnet times out and the fallback is a stylistic short intro (e.g., "Busy day.") on a substantive reply, skip ElevenLabs entirely. No voice beats a 0:00 voice stub. | Logged at `info` level with `{ msg: "voice summary skipped — useless fallback against long reply", fallbackSummary, fallbackWords, replyWords, chatId }`. |
@@ -109,7 +111,7 @@ sendVoiceSummary(ctx, fullText) — fire-and-forget IIFE
 ### Release portability (shadow-release readiness)
 
 - `modules/telegram.ts` ships **zero** principal-identifiable literals (no chat IDs, no bot tokens, no principal-specific names). `DenyListCheck` reports 0 real-leaks.
-- Voice ID is read from `settings.json` at module import, not hardcoded — so no `{{...}}` placeholder needs install-time resolution. `LIFEOS_INSTALL/engine/actions.ts substituteTemplates` doesn't need to know about this module.
+- Voice ID is read from `settings.json` at module import, not hardcoded — so no `{{...}}` placeholder needs install-time resolution; the setup-time template substitution doesn't need to know about this module.
 - USER bootstrap templates for the four context-block sources exist at `skills/_LIFEOS/RELEASE_TEMPLATES/USER/{DIGITAL_ASSISTANT/DA_IDENTITY.md, PRINCIPAL/PRINCIPAL_IDENTITY.md, TELOS/PRINCIPAL_TELOS.md, PROJECTS.md}` — a fresh install runs functional from day one, even before `/interview` populates the principal's real content.
 
 ### Adjacent gotchas
@@ -813,7 +815,7 @@ The observability module serves all dashboard data. Full API reference with all 
 | Category | Endpoints | Purpose |
 |----------|-----------|---------|
 | Core Observability | `/api/observability/*`, `/api/events/recent` | Session state, events, voice logs, tool failures |
-| Algorithm & Sessions | `/api/algorithm`, `/api/algorithm/stream` (SSE), `/api/agents`, `/api/novelty`, `/api/ladder` | Work sessions, subagents, learning signals |
+| Algorithm & Sessions | `/api/algorithm`, `/api/algorithm/stream` (SSE), `/api/agents` | Work sessions, subagents, learning signals. `/api/novelty` + `/api/ladder` handlers retained UI-less — surfaces archived as future work 2026-07-08 (`MEMORY/WORK/20260708-hypotheses-novelty-ladder-integration/DESIGN.md`) |
 | Life Dashboard | `/api/life/home`, `/api/life/health`, `/api/life/finances`, `/api/life/business`, `/api/life/work`, `/api/life/goals` | Narrative + domain data powering the `/life` biography dashboard |
 | LifeOS Index | `/api/user-index[?filter=stats\|publish\|stale\|gaps]` | Typed JSON of USER/ tree produced by `modules/user-index.ts` — spec: `LIFEOS/DOCUMENTATION/LifeOs/LifeOsSchema.md` |
 | Security | `/api/security`, `/api/security/patterns`, `/api/security/rules`, `/api/security/hooks-detail` | PATTERNS.yaml + SECURITY_RULES.md CRUD |
@@ -822,6 +824,20 @@ The observability module serves all dashboard data. Full API reference with all 
 | DA | `/assistant/*` | Identity, tasks, diary, opinions, personality |
 | Voice | `/notify`, `/voice` | ElevenLabs TTS notifications |
 | Hook Validation | `/hooks/skill-guard`, `/hooks/agent-guard` | PreToolUse HTTP hooks for Skill/Agent validation |
+| Amber | `/api/amber` | Idea supply chain composite: ledger worker stats, KNOWLEDGE save counts, X-bookmark counts (KV + local), per-path sheet sends — served by `modules/amber.ts`, 60s cache |
+
+### Adding a Dashboard Page (Tab) — the convention
+
+Every Pulse page is two halves: a **data module** in the Bun server and a **static page** in the Next.js export. The pattern (2026-07-09, `/amber` is the reference implementation):
+
+1. **Data module** — `PULSE/modules/<name>.ts` exporting `start()`, `handleRequest(req, pathname): Promise<Response|null>`, `health()`. The module owns ALL data access: file reads, worker fetches, cloud API calls. Secrets (bearer tokens, CF tokens) live only here — never in the page. Fail-soft per probe (independent try/catch, `errors` map in the payload), cache hot responses (~60s). SYSTEM-tree rule: no principal-identifying hostnames/IDs in the module — resolve instance values at runtime from USER-zone configs (`SystemFileGuard` enforces this at write time).
+2. **Wire into `pulse.ts`** — module variable + `loadModules()` import/start + a route block `if (xModule && pathname.startsWith("/api/x"))` BEFORE the observability `/api/*` catch-all (mirror the books/amber blocks).
+3. **Page** — `Observability/src/app/<name>/page.tsx`, a `"use client"` component that fetches `/api/<name>` and holds ZERO data. House style (unified design system, 2026-07-11): build the page from the chrome kit in `src/components/ui/chrome.tsx` — `<PageShell>` + `<PageHeader>` (serif title + subtitle), `Panel`/`PanelHeader` for cards, `StatTile` for numbers, `TabBar`/`Pill` for switchers and chips. Colors come ONLY from the global tokens in `globals.css` (`--ground/--surface-1..3/--line-1..3/--ink-1..3/--accent-blue/--ok/--warn/--err` + the six dimension vars; Tailwind utilities `bg-surface-2`, `border-line-2`, `text-ink-2`, `text-dim-health`, …). No page defines its own palette; no slate/zinc/hex chrome. Token opacity modifiers (`bg-surface-2/50`) don't work — use solid classes or rgba().
+4. **Nav** — add to `src/lib/palette/nav-manifest.ts` (single source of truth for AppHeader AND the ⌘K palette): `tier1Nav` for Life sections, `systemNav` for machine pages (contextual second row, shows only inside System), `metaNav` for always-pinned meta tabs (currently AGENTS, pinned in the header's right cluster on every page; SYSTEM pinned tab lands on `systemHome` = `/assistant`). Rows `flex-wrap` — items roll to additional lines when they overflow; never clip behind hidden scroll.
+5. **Freshness** — register the tab's data sources in `modules/tab-freshness.ts` REGISTRY so the freshness pill resolves.
+6. **Deploy** — `bun run build` in Observability, then restart Pulse (Deployment Procedure above) to load the new module.
+
+Note: static catalogs baked into a page or module (e.g. Amber's 11-input list mirroring `AmberSystem.md` §Inputs) are manually synced — when the source doc gains an entry, the page needs the matching edit.
 
 ### Realtime Phase Tracking (2026-05-24; push trigger 2026-06-10)
 
@@ -833,7 +849,7 @@ The observability module serves all dashboard data. Full API reference with all 
 - **Keepalive:** `: keepalive\n\n` comment every 25s per subscriber so corporate proxies / macOS loopback don't drop idle connections.
 - **Disable:** `LIFEOS_NO_SSE=1` env var → 503 on the endpoint, dashboard falls back to legacy 2s polling identically to pre-change behavior.
 - **Dashboard contract:** `useAlgorithmState` hook tries SSE on mount; on three consecutive `onerror` events drops the EventSource and reverts polling to 2s. While SSE is connected, polling drops to 30s (safety net).
-- **Atomic emitter:** `bun ~/.claude/LIFEOS/TOOLS/AlgoPhase.ts <phase>` writes the current session's phase into `work.json` in ~22ms (p95 27ms). The Algorithm doctrine prescribes invocation at every phase transition. TheRouter pre-emit (`markAlgorithmStarting`) eliminates the wrong-phase window at session start.
+- **Atomic emitter:** `bun ~/.claude/LIFEOS/TOOLS/AlgoPhase.ts <phase>` writes the current session's phase into `work.json` in ~22ms (p95 27ms). The Algorithm doctrine prescribes invocation at every phase transition. (Until 2026-07-11 a `TheRouter.hook.ts` pre-emit via `markAlgorithmStarting` closed the wrong-phase window at session start; that hook was deleted with the mode/tier retirement, so the first `AlgoPhase.ts`/`ISASync` write now sets the phase.)
 
 Full architectural reasoning in `MEMORY/WORK/20260524-072107_pulse-agents-realtime-phase-tracking/ISA.md`.
 

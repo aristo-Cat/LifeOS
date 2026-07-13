@@ -1,21 +1,63 @@
 import AppKit
 import Foundation
 
-// MARK: - State JSON Model
+// ============================================================================
+// LifeOS Pulse — menu bar app
+//
+// Rich dropdown: a per-subsystem counts row over a chronological activity feed
+// (Amber, Conduit, Memory, Work, System), fed by the Pulse endpoint /api/menubar.
+// A numeric badge on the icon counts unseen feed events since the menu was last
+// opened; opening the menu clears it. Falls back to a direct state.json read when
+// the Pulse API is unreachable, so the menu always opens.
+// ============================================================================
+
+let PULSE_API = "http://localhost:31337/api/menubar"
+let PULSE_DASHBOARD = "http://localhost:31337"
+let LAST_SEEN_KEY = "lifeos.pulse.menubar.lastSeenMs"
+
+// MARK: - /api/menubar payload
+
+struct MenuBarPayload: Codable {
+    let daemon: Daemon
+    let counts: Counts
+    let feed: [FeedItem]
+
+    struct Daemon: Codable {
+        let status: String
+        let label: String
+        let uptimeSec: Double
+        let failingJobs: Int
+        let jobCount: Int
+    }
+    struct Counts: Codable {
+        let amber: Int
+        let conduitMinutes: Int
+        let memory: Int
+        let memoryPending: Int
+        let work: Int
+    }
+    struct FeedItem: Codable {
+        let subsystem: String
+        let glyph: String
+        let title: String
+        let tsMs: Double
+        let ago: String
+        let actionable: Bool
+    }
+}
+
+// MARK: - Offline fallback state (state.json)
 
 struct PulseState: Codable {
     let version: Int
     let jobs: [String: JobState]
     let startedAt: Double
-
     struct JobState: Codable {
         let lastRun: Double
         let lastResult: String
         let consecutiveFailures: Int
     }
 }
-
-// MARK: - PULSE.toml Job Definition
 
 struct HeartbeatJob {
     let name: String
@@ -24,43 +66,7 @@ struct HeartbeatJob {
     let enabled: Bool
 }
 
-// MARK: - Pulse Status
-
-enum PulseStatus {
-    case running(uptime: TimeInterval)
-    case stale
-    case failing(count: Int)
-    case stopped
-
-    var iconName: String {
-        switch self {
-        case .running: return "waveform.path.ecg"
-        case .stale: return "waveform.path.ecg"
-        case .failing: return "waveform.path.ecg"
-        case .stopped: return "waveform.path.ecg"
-        }
-    }
-
-    var iconColor: NSColor {
-        switch self {
-        case .running: return .systemGreen
-        case .stale: return .systemYellow
-        case .failing: return .systemRed
-        case .stopped: return .systemGray
-        }
-    }
-
-    var label: String {
-        switch self {
-        case .running(let uptime): return "Running -- \(formatDuration(uptime))"
-        case .stale: return "Running -- tick stale"
-        case .failing(let n): return "Failing -- \(n) job\(n == 1 ? "" : "s") in error"
-        case .stopped: return "Stopped"
-        }
-    }
-}
-
-// MARK: - Formatting Helpers
+// MARK: - Formatting helpers
 
 func formatDuration(_ seconds: TimeInterval) -> String {
     let s = Int(seconds)
@@ -74,182 +80,89 @@ func formatDuration(_ seconds: TimeInterval) -> String {
     return "\(d)d \(h % 24)h"
 }
 
-func formatAgo(_ epochMs: Double) -> String {
-    let secondsAgo = (Date().timeIntervalSince1970 * 1000 - epochMs) / 1000
-    if secondsAgo < 0 { return "just now" }
-    if secondsAgo < 5 { return "just now" }
-    if secondsAgo < 60 { return "\(Int(secondsAgo))s ago" }
-    let minutes = Int(secondsAgo) / 60
-    if minutes < 60 { return "\(minutes)m ago" }
-    let hours = minutes / 60
-    return "\(hours)h \(minutes % 60)m ago"
-}
-
 func cronToHuman(_ expr: String) -> String {
     let parts = expr.trimmingCharacters(in: .whitespaces).split(separator: " ").map(String.init)
     guard parts.count == 5 else { return expr }
-
     let (minute, hour, dom, month, dow) = (parts[0], parts[1], parts[2], parts[3], parts[4])
-
-    // */N * * * * -> every Nmin
     if minute.hasPrefix("*/"), hour == "*", dom == "*", month == "*", dow == "*" {
-        let n = String(minute.dropFirst(2))
-        return "every \(n)min"
+        return "every \(String(minute.dropFirst(2)))min"
     }
-
-    // N H * * * -> daily at H:MM
     if dom == "*", month == "*", dow == "*", !hour.contains("*"), !minute.contains("*"),
        let h = Int(hour), let m = Int(minute) {
         let ampm = h >= 12 ? "pm" : "am"
         let displayH = h == 0 ? 12 : (h > 12 ? h - 12 : h)
-        if m == 0 {
-            return "daily at \(displayH)\(ampm)"
-        }
-        return "daily at \(displayH):\(String(format: "%02d", m))\(ampm)"
+        return m == 0 ? "daily at \(displayH)\(ampm)" : "daily at \(displayH):\(String(format: "%02d", m))\(ampm)"
     }
-
-    // 0 H,H,H * * * -> daily at Xam, Ypm, Zpm
-    if dom == "*", month == "*", dow == "*", !hour.contains("*"), minute == "0" {
-        let hours = hour.split(separator: ",").compactMap { Int($0) }
-        if !hours.isEmpty {
-            let formatted = hours.map { h -> String in
-                let ampm = h >= 12 ? "pm" : "am"
-                let displayH = h == 0 ? 12 : (h > 12 ? h - 12 : h)
-                return "\(displayH)\(ampm)"
-            }
-            return "daily at \(formatted.joined(separator: ", "))"
-        }
-    }
-
     return expr
 }
-
-// MARK: - TOML Parser (minimal, handles PULSE.toml structure)
 
 func parseHeartbeatJobs(from path: String) -> [HeartbeatJob] {
     let fm = FileManager.default
     guard let data = fm.contents(atPath: path),
           let content = String(data: data, encoding: .utf8) else { return [] }
-
     var jobs: [HeartbeatJob] = []
     var currentJob: [String: String]? = nil
-
+    func flush() {
+        if let job = currentJob, let name = job["name"], let schedule = job["schedule"] {
+            jobs.append(HeartbeatJob(name: name, schedule: schedule, type: job["type"] ?? "script", enabled: job["enabled"] != "false"))
+        }
+    }
     for line in content.split(separator: "\n", omittingEmptySubsequences: false).map(String.init) {
         let trimmed = line.trimmingCharacters(in: .whitespaces)
-
-        // Skip comments and empty lines
         if trimmed.isEmpty || trimmed.hasPrefix("#") { continue }
-
-        // New job section
-        if trimmed == "[[job]]" {
-            // Save previous job
-            if let job = currentJob, let name = job["name"], let schedule = job["schedule"] {
-                jobs.append(HeartbeatJob(
-                    name: name,
-                    schedule: schedule,
-                    type: job["type"] ?? "script",
-                    enabled: job["enabled"] != "false"
-                ))
-            }
-            currentJob = [:]
-            continue
-        }
-
-        // Parse key = value within a job
+        if trimmed == "[[job]]" { flush(); currentJob = [:]; continue }
         guard currentJob != nil else { continue }
-        let parts = trimmed.split(separator: "=", maxSplits: 1).map {
-            $0.trimmingCharacters(in: .whitespaces)
-        }
+        let parts = trimmed.split(separator: "=", maxSplits: 1).map { $0.trimmingCharacters(in: .whitespaces) }
         guard parts.count == 2 else { continue }
-
-        let key = parts[0]
         var value = parts[1]
-
-        // Strip quotes
-        if value.hasPrefix("\"") && value.hasSuffix("\"") && value.count >= 2 {
-            value = String(value.dropFirst().dropLast())
-        }
-
-        currentJob?[key] = value
+        if value.hasPrefix("\"") && value.hasSuffix("\"") && value.count >= 2 { value = String(value.dropFirst().dropLast()) }
+        currentJob?[parts[0]] = value
     }
-
-    // Save last job
-    if let job = currentJob, let name = job["name"], let schedule = job["schedule"] {
-        jobs.append(HeartbeatJob(
-            name: name,
-            schedule: schedule,
-            type: job["type"] ?? "script",
-            enabled: job["enabled"] != "false"
-        ))
-    }
-
+    flush()
     return jobs
 }
 
-// MARK: - Status Determination
-
-func determinePulseStatus(pulseDir: String) -> (PulseStatus, PulseState?) {
+/// Offline status label from state.json (used only when the Pulse API is unreachable).
+func offlineStatus(pulseDir: String) -> (label: String, color: NSColor, state: PulseState?) {
     let fm = FileManager.default
     let statePath = "\(pulseDir)/state/state.json"
-    let pidPath = "\(pulseDir)/state/pulse.pid"
+    guard fm.fileExists(atPath: statePath),
+          let attrs = try? fm.attributesOfItem(atPath: statePath),
+          let modDate = attrs[.modificationDate] as? Date,
+          let data = fm.contents(atPath: statePath),
+          let state = try? JSONDecoder().decode(PulseState.self, from: data)
+    else { return ("Stopped", .systemGray, nil) }
 
-    // Check if state.json exists
-    guard fm.fileExists(atPath: statePath) else {
-        return (.stopped, nil)
-    }
+    var alive = false
+    if let pidData = fm.contents(atPath: "\(pulseDir)/state/pulse.pid"),
+       let pidStr = String(data: pidData, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines),
+       let pid = Int32(pidStr) { alive = kill(pid, 0) == 0 }
 
-    // Check file modification time
-    guard let attrs = try? fm.attributesOfItem(atPath: statePath),
-          let modDate = attrs[.modificationDate] as? Date else {
-        return (.stopped, nil)
-    }
-
-    let staleSeconds: TimeInterval = 120 // 2 minutes
-    let fileAge = Date().timeIntervalSince(modDate)
-
-    // Parse state JSON
-    guard let data = fm.contents(atPath: statePath),
-          let state = try? JSONDecoder().decode(PulseState.self, from: data) else {
-        // File exists but corrupt
-        return (.stopped, nil)
-    }
-
-    // Check PID file for process liveness
-    var processAlive = false
-    if let pidData = fm.contents(atPath: pidPath),
-       let pidString = String(data: pidData, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines),
-       let pid = Int32(pidString) {
-        processAlive = kill(pid, 0) == 0
-    }
-
-    // If process is not alive and state is stale, it's stopped
-    if !processAlive && fileAge > staleSeconds {
-        return (.stopped, state)
-    }
-
-    // Count failing jobs (consecutiveFailures >= 3)
-    let failingJobs = state.jobs.values.filter { $0.consecutiveFailures >= 3 }
-    if !failingJobs.isEmpty {
-        return (.failing(count: failingJobs.count), state)
-    }
-
-    // Check staleness
-    if fileAge > staleSeconds {
-        return (.stale, state)
-    }
-
-    // Running normally
+    let age = Date().timeIntervalSince(modDate)
+    if !alive && age > 120 { return ("Stopped", .systemGray, state) }
+    let failing = state.jobs.values.filter { $0.consecutiveFailures >= 3 }.count
+    if failing > 0 { return ("Failing — \(failing) job\(failing == 1 ? "" : "s")", .systemRed, state) }
+    if age > 120 { return ("Running — tick stale", .systemYellow, state) }
     let uptime = Date().timeIntervalSince1970 - state.startedAt / 1000
-    return (.running(uptime: uptime), state)
+    return ("Running — \(formatDuration(uptime))", .systemGreen, state)
+}
+
+func statusColor(_ status: String) -> NSColor {
+    switch status {
+    case "running": return .systemGreen
+    case "stale": return .systemYellow
+    case "failing": return .systemRed
+    default: return .systemGray
+    }
 }
 
 // MARK: - App Delegate
 
-class PulseMenuBarApp: NSObject, NSApplicationDelegate {
+class PulseMenuBarApp: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var statusItem: NSStatusItem!
     private var pollTimer: Timer?
-    private var currentStatus: PulseStatus = .stopped
-    private var currentState: PulseState?
+    private var payload: MenuBarPayload?
+    private var apiReachable = false
 
     private let pulseDir: String
     private let pollInterval: TimeInterval = 5.0
@@ -262,228 +175,281 @@ class PulseMenuBarApp: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-
         updateIcon()
         rebuildMenu()
-
         pollTimer = Timer.scheduledTimer(withTimeInterval: pollInterval, repeats: true) { [weak self] _ in
-            self?.refreshStatus()
+            self?.fetchAndRefresh()
         }
-
-        refreshStatus()
+        fetchAndRefresh()
     }
 
-    // MARK: - Status Refresh
+    // MARK: - Fetch
 
-    private func refreshStatus() {
-        let (status, state) = determinePulseStatus(pulseDir: pulseDir)
-        self.currentStatus = status
-        self.currentState = state
-        updateIcon()
-        rebuildMenu()
+    private func fetchAndRefresh() {
+        guard let url = URL(string: PULSE_API) else { return }
+        var req = URLRequest(url: url)
+        req.timeoutInterval = 4.0
+        URLSession.shared.dataTask(with: req) { [weak self] data, resp, _ in
+            guard let self = self else { return }
+            var newPayload: MenuBarPayload? = nil
+            if let http = resp as? HTTPURLResponse, http.statusCode == 200, let data = data {
+                newPayload = try? JSONDecoder().decode(MenuBarPayload.self, from: data)
+            }
+            DispatchQueue.main.async {
+                self.apiReachable = (newPayload != nil)
+                if let p = newPayload { self.payload = p }
+                self.updateIcon()
+                self.rebuildMenu()
+            }
+        }.resume()
     }
 
-    // MARK: - Icon
+    // MARK: - Unseen badge accounting
+
+    private var lastSeenMs: Double {
+        // Absent → 0, so on first launch the whole feed counts as unseen and the badge
+        // is immediately meaningful. Cleared to `now` the first time the menu is opened.
+        return UserDefaults.standard.double(forKey: LAST_SEEN_KEY)
+    }
+
+    private func unseenCount() -> Int {
+        guard let feed = payload?.feed else { return 0 }
+        let seen = lastSeenMs
+        return feed.filter { $0.tsMs > seen }.count
+    }
+
+    private func markSeen() {
+        UserDefaults.standard.set(Date().timeIntervalSince1970 * 1000, forKey: LAST_SEEN_KEY)
+    }
+
+    // MARK: - Icon (LifeOS glyph + numeric badge)
+
+    private func baseIcon() -> NSImage {
+        let iconPath = Bundle.main.path(forResource: "icon@2x", ofType: "png")
+            ?? Bundle.main.path(forResource: "icon", ofType: "png")
+        if let path = iconPath, let image = NSImage(contentsOfFile: path) {
+            image.isTemplate = false
+            return image
+        }
+        let color = apiReachable ? statusColor(payload?.daemon.status ?? "stopped") : offlineStatus(pulseDir: pulseDir).color
+        let fallback = NSImage(systemSymbolName: "waveform.path.ecg", accessibilityDescription: "LifeOS Pulse")
+        let cfg = NSImage.SymbolConfiguration(pointSize: 14, weight: .medium)
+        let img = fallback?.withSymbolConfiguration(cfg) ?? NSImage()
+        // tint
+        let tinted = NSImage(size: NSSize(width: 18, height: 18))
+        tinted.lockFocus()
+        color.set()
+        let rect = NSRect(x: 0, y: 0, width: 18, height: 18)
+        img.draw(in: rect)
+        rect.fill(using: .sourceAtop)
+        tinted.unlockFocus()
+        return tinted
+    }
 
     private func updateIcon() {
         guard let button = statusItem.button else { return }
-
-        // Load LifeOS logo template image from app bundle Resources
-        let iconPath = Bundle.main.path(forResource: "icon@2x", ofType: "png")
-            ?? Bundle.main.path(forResource: "icon", ofType: "png")
-
-        if let path = iconPath, let image = NSImage(contentsOfFile: path) {
-            image.isTemplate = false  // Keep original LifeOS brand colors
-            image.size = NSSize(width: 18, height: 18)
-            button.image = image
-        } else {
-            // Fallback to SF Symbol if icon file not found
-            let fallback = NSImage(systemSymbolName: "waveform.path.ecg", accessibilityDescription: "LifeOS Pulse")
-            let config = NSImage.SymbolConfiguration(pointSize: 14, weight: .medium)
-            button.image = fallback?.withSymbolConfiguration(config)
-            button.contentTintColor = currentStatus.iconColor
+        let badge = unseenCount()
+        let base = baseIcon()
+        let glyphSize: CGFloat = 18
+        let width: CGFloat = badge > 0 ? glyphSize + 8 : glyphSize
+        let composed = NSImage(size: NSSize(width: width, height: glyphSize))
+        composed.lockFocus()
+        base.draw(in: NSRect(x: 0, y: 0, width: glyphSize, height: glyphSize),
+                  from: .zero, operation: .sourceOver, fraction: 1.0)
+        if badge > 0 {
+            let txt = badge > 99 ? "99+" : "\(badge)"
+            let d: CGFloat = 13
+            let bx = width - d
+            let by = glyphSize - d
+            let circle = NSBezierPath(ovalIn: NSRect(x: bx, y: by, width: d, height: d))
+            NSColor.systemRed.setFill()
+            circle.fill()
+            let attrs: [NSAttributedString.Key: Any] = [
+                .font: NSFont.boldSystemFont(ofSize: badge > 9 ? 7 : 8.5),
+                .foregroundColor: NSColor.white,
+            ]
+            let s = NSAttributedString(string: txt, attributes: attrs)
+            let ssz = s.size()
+            s.draw(at: NSPoint(x: bx + (d - ssz.width) / 2, y: by + (d - ssz.height) / 2 - 0.5))
         }
+        composed.unlockFocus()
+        composed.isTemplate = false
+        button.image = composed
     }
 
-    // MARK: - Menu Construction
+    // MARK: - Menu
+
+    private func disabledItem(_ title: String, indent: Int = 0, color: NSColor? = nil, size: CGFloat = 12) -> NSMenuItem {
+        let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+        item.isEnabled = false
+        item.indentationLevel = indent
+        var attrs: [NSAttributedString.Key: Any] = [.font: NSFont.menuFont(ofSize: size)]
+        if let c = color { attrs[.foregroundColor] = c }
+        item.attributedTitle = NSAttributedString(string: title, attributes: attrs)
+        return item
+    }
 
     private func rebuildMenu() {
         let menu = NSMenu()
+        menu.delegate = self
 
         // Header
         let header = NSMenuItem(title: "LifeOS Pulse", action: nil, keyEquivalent: "")
-        header.attributedTitle = NSAttributedString(
-            string: "LifeOS Pulse",
-            attributes: [.font: NSFont.boldSystemFont(ofSize: 13)]
-        )
+        header.attributedTitle = NSAttributedString(string: "LifeOS Pulse",
+            attributes: [.font: NSFont.boldSystemFont(ofSize: 13)])
         menu.addItem(header)
 
-        // Status line
-        let statusLine = NSMenuItem(title: currentStatus.label, action: nil, keyEquivalent: "")
-        statusLine.indentationLevel = 1
-        menu.addItem(statusLine)
+        // Status line with colored dot
+        let statusLabel: String
+        let dotColor: NSColor
+        if apiReachable, let d = payload?.daemon {
+            statusLabel = d.label
+            dotColor = statusColor(d.status)
+        } else {
+            let off = offlineStatus(pulseDir: pulseDir)
+            statusLabel = apiReachable ? off.label : "\(off.label)  ·  API offline"
+            dotColor = off.color
+        }
+        let statusItemLine = NSMenuItem(title: statusLabel, action: nil, keyEquivalent: "")
+        statusItemLine.isEnabled = false
+        statusItemLine.indentationLevel = 1
+        let dot = NSAttributedString(string: "● ", attributes: [.foregroundColor: dotColor, .font: NSFont.menuFont(ofSize: 11)])
+        let rest = NSAttributedString(string: statusLabel, attributes: [.foregroundColor: NSColor.secondaryLabelColor, .font: NSFont.menuFont(ofSize: 11)])
+        let combined = NSMutableAttributedString(); combined.append(dot); combined.append(rest)
+        statusItemLine.attributedTitle = combined
+        menu.addItem(statusItemLine)
 
         menu.addItem(NSMenuItem.separator())
 
-        // Jobs section
-        let heartbeatPath = "\(pulseDir)/PULSE.toml"
-        let heartbeatJobs = parseHeartbeatJobs(from: heartbeatPath)
+        // Counts row + activity feed (only when API reachable)
+        if apiReachable, let p = payload {
+            var countBits: [String] = []
+            countBits.append("Amber \(p.counts.amber)")
+            countBits.append("Conduit \(p.counts.conduitMinutes)m")
+            var memBit = "Mem \(p.counts.memory)"
+            if p.counts.memoryPending > 0 { memBit += " · \(p.counts.memoryPending) pending" }
+            countBits.append(memBit)
+            countBits.append("Work \(p.counts.work)")
+            let countsItem = disabledItem(countBits.joined(separator: "    "), indent: 1, color: .labelColor, size: 12)
+            menu.addItem(countsItem)
 
-        if !heartbeatJobs.isEmpty {
-            let jobsHeader = NSMenuItem(title: "Jobs", action: nil, keyEquivalent: "")
-            jobsHeader.attributedTitle = NSAttributedString(
-                string: "Jobs",
-                attributes: [.font: NSFont.boldSystemFont(ofSize: 11), .foregroundColor: NSColor.secondaryLabelColor]
-            )
-            menu.addItem(jobsHeader)
+            menu.addItem(NSMenuItem.separator())
+            menu.addItem(disabledItem("RECENT", indent: 1, color: .tertiaryLabelColor, size: 10))
 
-            for job in heartbeatJobs {
-                let jobState = currentState?.jobs[job.name]
-
-                // Build status indicator
-                let indicator: String
-                if !job.enabled {
-                    indicator = "-- "  // disabled
-                } else if let js = jobState {
-                    if js.consecutiveFailures >= 3 {
-                        indicator = "!! "  // failing
-                    } else if js.lastResult == "error" {
-                        indicator = "!  "  // single error
-                    } else {
-                        indicator = "ok "  // healthy
-                    }
-                } else {
-                    indicator = "   "  // no state yet
+            if p.feed.isEmpty {
+                menu.addItem(disabledItem("Quiet — nothing recent", indent: 1, color: .tertiaryLabelColor))
+            } else {
+                for f in p.feed.prefix(10) {
+                    let line = "\(f.glyph)  \(f.title)"
+                    let item = NSMenuItem(title: line, action: nil, keyEquivalent: "")
+                    item.isEnabled = false
+                    item.indentationLevel = 1
+                    let color: NSColor = f.actionable ? .systemOrange : .labelColor
+                    let attr = NSMutableAttributedString(
+                        string: line,
+                        attributes: [.font: NSFont.menuFont(ofSize: 12), .foregroundColor: color])
+                    attr.append(NSAttributedString(
+                        string: "   \(f.ago)",
+                        attributes: [.font: NSFont.menuFont(ofSize: 10), .foregroundColor: NSColor.tertiaryLabelColor]))
+                    item.attributedTitle = attr
+                    menu.addItem(item)
                 }
-
-                // Build info string
-                var info = cronToHuman(job.schedule)
-                if let js = jobState {
-                    info += "  |  \(formatAgo(js.lastRun))"
-                    if js.consecutiveFailures > 0 {
-                        info += "  |  \(js.consecutiveFailures)x fail"
-                    }
-                }
-
-                let title = "\(indicator) \(job.name)  --  \(info)"
-                let menuItem = NSMenuItem(title: title, action: nil, keyEquivalent: "")
-                menuItem.indentationLevel = 1
-
-                // Style based on state
-                if !job.enabled {
-                    menuItem.attributedTitle = NSAttributedString(
-                        string: title,
-                        attributes: [.foregroundColor: NSColor.tertiaryLabelColor]
-                    )
-                } else if let js = jobState, js.consecutiveFailures >= 3 {
-                    menuItem.attributedTitle = NSAttributedString(
-                        string: title,
-                        attributes: [.foregroundColor: NSColor.systemRed]
-                    )
-                }
-
-                menu.addItem(menuItem)
             }
-
             menu.addItem(NSMenuItem.separator())
         }
 
-        // Control buttons
-        switch currentStatus {
-        case .running, .stale, .failing:
-            let restartItem = NSMenuItem(title: "Restart Pulse", action: #selector(restartPulse), keyEquivalent: "r")
-            restartItem.target = self
-            menu.addItem(restartItem)
+        // Open dashboard
+        let dash = NSMenuItem(title: "Open Pulse Dashboard", action: #selector(openDashboard), keyEquivalent: "d")
+        dash.target = self
+        menu.addItem(dash)
 
-            let stopItem = NSMenuItem(title: "Stop Pulse", action: #selector(stopPulse), keyEquivalent: "")
-            stopItem.target = self
-            menu.addItem(stopItem)
-
-        case .stopped:
-            let startItem = NSMenuItem(title: "Start Pulse", action: #selector(startPulse), keyEquivalent: "s")
-            startItem.target = self
-            menu.addItem(startItem)
+        // Jobs submenu (full detail preserved)
+        let jobs = parseHeartbeatJobs(from: "\(pulseDir)/PULSE.toml")
+        if !jobs.isEmpty {
+            let state = apiReachable ? offlineStatus(pulseDir: pulseDir).state : offlineStatus(pulseDir: pulseDir).state
+            let jobsItem = NSMenuItem(title: "Jobs (\(jobs.count))", action: nil, keyEquivalent: "")
+            let sub = NSMenu()
+            for job in jobs {
+                let js = state?.jobs[job.name]
+                var info = cronToHuman(job.schedule)
+                if let js = js, js.consecutiveFailures > 0 { info += "  ·  \(js.consecutiveFailures)x fail" }
+                let mark = !job.enabled ? "○" : (js?.consecutiveFailures ?? 0) >= 3 ? "●" : "•"
+                let line = "\(mark)  \(job.name)  —  \(info)"
+                let it = NSMenuItem(title: line, action: nil, keyEquivalent: "")
+                it.isEnabled = false
+                let color: NSColor = !job.enabled ? .tertiaryLabelColor : ((js?.consecutiveFailures ?? 0) >= 3 ? .systemRed : .labelColor)
+                it.attributedTitle = NSAttributedString(string: line, attributes: [.foregroundColor: color, .font: NSFont.menuFont(ofSize: 12)])
+                sub.addItem(it)
+            }
+            jobsItem.submenu = sub
+            menu.addItem(jobsItem)
         }
 
         menu.addItem(NSMenuItem.separator())
 
-        // Utility items
-        let logsItem = NSMenuItem(title: "Open Logs...", action: #selector(openLogs), keyEquivalent: "l")
-        logsItem.target = self
-        menu.addItem(logsItem)
+        // Daemon controls (based on best status we have)
+        let isStopped = (apiReachable ? payload?.daemon.status : nil) == "stopped"
+            || (!apiReachable && offlineStatus(pulseDir: pulseDir).color == .systemGray)
+        if isStopped {
+            let start = NSMenuItem(title: "Start Pulse", action: #selector(startPulse), keyEquivalent: "s")
+            start.target = self; menu.addItem(start)
+        } else {
+            let restart = NSMenuItem(title: "Restart Pulse", action: #selector(restartPulse), keyEquivalent: "r")
+            restart.target = self; menu.addItem(restart)
+            let stop = NSMenuItem(title: "Stop Pulse", action: #selector(stopPulse), keyEquivalent: "")
+            stop.target = self; menu.addItem(stop)
+        }
 
-        let heartbeatItem = NSMenuItem(title: "Open PULSE.toml...", action: #selector(openHeartbeat), keyEquivalent: ",")
-        heartbeatItem.target = self
-        menu.addItem(heartbeatItem)
+        let logs = NSMenuItem(title: "Open Logs…", action: #selector(openLogs), keyEquivalent: "l")
+        logs.target = self; menu.addItem(logs)
+        let cfg = NSMenuItem(title: "Open PULSE.toml…", action: #selector(openHeartbeat), keyEquivalent: ",")
+        cfg.target = self; menu.addItem(cfg)
 
         menu.addItem(NSMenuItem.separator())
-
-        let quitItem = NSMenuItem(title: "Quit Menu Bar", action: #selector(quitApp), keyEquivalent: "q")
-        quitItem.target = self
-        menu.addItem(quitItem)
+        let quit = NSMenuItem(title: "Quit Menu Bar", action: #selector(quitApp), keyEquivalent: "q")
+        quit.target = self; menu.addItem(quit)
 
         statusItem.menu = menu
     }
 
+    // MARK: - NSMenuDelegate — clear badge on open
+
+    func menuWillOpen(_ menu: NSMenu) {
+        markSeen()
+        updateIcon()          // badge clears immediately
+        fetchAndRefresh()     // freshest content while open
+    }
+
     // MARK: - Actions
 
-    @objc private func startPulse() {
-        runManageScript(command: "start")
+    @objc private func openDashboard() {
+        if let url = URL(string: PULSE_DASHBOARD) { NSWorkspace.shared.open(url) }
     }
-
-    @objc private func stopPulse() {
-        runManageScript(command: "stop")
-    }
-
-    @objc private func restartPulse() {
-        runManageScript(command: "restart")
-    }
+    @objc private func startPulse() { runManageScript(command: "start") }
+    @objc private func stopPulse() { runManageScript(command: "stop") }
+    @objc private func restartPulse() { runManageScript(command: "restart") }
 
     @objc private func openLogs() {
-        let logPath = "\(pulseDir)/logs/pulse-stdout.log"
         let fm = FileManager.default
-        if fm.fileExists(atPath: logPath) {
-            NSWorkspace.shared.open(URL(fileURLWithPath: logPath))
-        } else {
-            // Open the logs directory if the specific file doesn't exist
-            let logsDir = "\(pulseDir)/logs"
-            if fm.fileExists(atPath: logsDir) {
-                NSWorkspace.shared.open(URL(fileURLWithPath: logsDir))
-            }
-        }
+        let logPath = "\(pulseDir)/logs/pulse-stdout.log"
+        if fm.fileExists(atPath: logPath) { NSWorkspace.shared.open(URL(fileURLWithPath: logPath)) }
+        else if fm.fileExists(atPath: "\(pulseDir)/logs") { NSWorkspace.shared.open(URL(fileURLWithPath: "\(pulseDir)/logs")) }
     }
-
     @objc private func openHeartbeat() {
-        let configPath = "\(pulseDir)/PULSE.toml"
-        NSWorkspace.shared.open(URL(fileURLWithPath: configPath))
+        NSWorkspace.shared.open(URL(fileURLWithPath: "\(pulseDir)/PULSE.toml"))
     }
-
-    @objc private func quitApp() {
-        NSApplication.shared.terminate(nil)
-    }
-
-    // MARK: - Shell Out to manage.sh
+    @objc private func quitApp() { NSApplication.shared.terminate(nil) }
 
     private func runManageScript(command: String) {
         let scriptPath = "\(pulseDir)/manage.sh"
-
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             let process = Process()
             process.executableURL = URL(fileURLWithPath: "/bin/bash")
             process.arguments = [scriptPath, command]
             process.environment = ProcessInfo.processInfo.environment
-
-            do {
-                try process.run()
-                process.waitUntilExit()
-            } catch {
-                // Silently handle -- next refresh will show the real state
-            }
-
-            // Refresh after command completes
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                self?.refreshStatus()
-            }
+            try? process.run()
+            process.waitUntilExit()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { self?.fetchAndRefresh() }
         }
     }
 }

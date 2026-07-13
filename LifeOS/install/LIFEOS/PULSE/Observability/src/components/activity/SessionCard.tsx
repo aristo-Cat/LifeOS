@@ -102,7 +102,7 @@ function AlgorithmSessionCard({ session }: { session: AlgorithmState }) {
 
         <ModeBadge mode="algorithm" size="prominent" />
 
-        <span className="text-base font-medium text-zinc-200 truncate flex-1 min-w-0 uppercase tracking-wide">
+        <span className="text-base font-medium text-ink-1 truncate flex-1 min-w-0 uppercase tracking-wide">
           {sessionName}
         </span>
 
@@ -114,8 +114,8 @@ function AlgorithmSessionCard({ session }: { session: AlgorithmState }) {
         {/* Criteria progress */}
         {totalCount > 0 && (
           <div className="flex items-center gap-1.5 shrink-0">
-            <span className="text-sm font-mono text-zinc-400">
-              {completedCount}<span className="text-zinc-600">/{totalCount}</span>
+            <span className="text-sm font-mono text-ink-2">
+              {completedCount}<span className="text-ink-3">/{totalCount}</span>
             </span>
             <div className="w-10">
               <Progress value={progressPct} className="h-1 [&>div]:bg-purple-400" />
@@ -124,7 +124,7 @@ function AlgorithmSessionCard({ session }: { session: AlgorithmState }) {
         )}
 
         {/* Elapsed */}
-        <span className="text-xs text-zinc-600 font-mono shrink-0 tabular-nums">
+        <span className="text-xs text-ink-3 font-mono shrink-0 tabular-nums">
           {elapsed}
         </span>
       </div>

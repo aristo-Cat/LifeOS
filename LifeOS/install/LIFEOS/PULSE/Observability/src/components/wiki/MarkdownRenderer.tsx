@@ -33,7 +33,7 @@ function stripFrontmatter(content: string): string {
 const components: Components = {
   h1: ({ children }) => (
     <h1
-      className="text-2xl font-bold tracking-wide text-white mb-6 pb-3 border-b border-slate-700/50"
+      className="text-2xl font-bold tracking-wide text-ink-1 mb-6 pb-3 border-b border-line-2"
       style={{ fontFamily: "'advocate-c14', sans-serif" }}
     >
       {children}
@@ -41,7 +41,7 @@ const components: Components = {
   ),
   h2: ({ children }) => (
     <h2
-      className="text-xl font-semibold tracking-wide text-white mt-8 mb-4"
+      className="text-xl font-semibold tracking-wide text-ink-1 mt-8 mb-4"
       style={{ fontFamily: "'advocate-c14', sans-serif" }}
     >
       {children}
@@ -49,7 +49,7 @@ const components: Components = {
   ),
   h3: ({ children }) => (
     <h3
-      className="text-lg font-semibold text-slate-200 mt-6 mb-3"
+      className="text-lg font-semibold text-ink-1 mt-6 mb-3"
       style={{ fontFamily: "'concourse-t3', sans-serif" }}
     >
       {children}
@@ -57,7 +57,7 @@ const components: Components = {
   ),
   h4: ({ children }) => (
     <h4
-      className="text-base font-semibold text-slate-300 mt-5 mb-2"
+      className="text-base font-semibold text-ink-2 mt-5 mb-2"
       style={{ fontFamily: "'concourse-t3', sans-serif" }}
     >
       {children}
@@ -65,7 +65,7 @@ const components: Components = {
   ),
   p: ({ children }) => (
     <p
-      className="text-sm text-slate-300 leading-relaxed mb-4"
+      className="text-sm text-ink-2 leading-relaxed mb-4"
       style={{ fontFamily: "'concourse-t3', sans-serif" }}
     >
       {children}
@@ -115,31 +115,31 @@ const components: Components = {
       );
     }
     return (
-      <code className="px-1.5 py-0.5 text-xs rounded bg-slate-800 text-sky-300 border border-slate-700/50">
+      <code className="px-1.5 py-0.5 text-xs rounded bg-surface-3 text-sky-300 border border-line-2">
         {children}
       </code>
     );
   },
   pre: ({ children }) => (
-    <pre className="rounded-lg bg-slate-900/80 border border-slate-700/50 p-4 mb-4 overflow-x-auto text-xs leading-relaxed">
+    <pre className="rounded-lg bg-surface-1 border border-line-2 p-4 mb-4 overflow-x-auto text-xs leading-relaxed">
       {children}
     </pre>
   ),
   table: ({ children }) => (
     <div className="overflow-x-auto mb-4">
-      <table className="w-full text-xs border-collapse rounded-lg overflow-hidden bg-slate-900/50 border border-slate-700/50">
+      <table className="w-full text-xs border-collapse rounded-lg overflow-hidden bg-surface-2 border border-line-2">
         {children}
       </table>
     </div>
   ),
   thead: ({ children }) => (
-    <thead className="bg-slate-800/80">
+    <thead className="bg-surface-1">
       {children}
     </thead>
   ),
   th: ({ children }) => (
     <th
-      className="px-3 py-2 text-left text-sky-400 font-medium tracking-wide border-b border-slate-700/50"
+      className="px-3 py-2 text-left text-sky-400 font-medium tracking-wide border-b border-line-2"
       style={{ fontFamily: "'concourse-t3', sans-serif" }}
     >
       {children}
@@ -147,19 +147,19 @@ const components: Components = {
   ),
   td: ({ children }) => (
     <td
-      className="px-3 py-2 text-slate-300 border-b border-slate-800/50"
+      className="px-3 py-2 text-ink-2 border-b border-line-1"
       style={{ fontFamily: "'concourse-t3', sans-serif" }}
     >
       {children}
     </td>
   ),
   tr: ({ children }) => (
-    <tr className="hover:bg-slate-800/30 transition-colors">
+    <tr className="hover:bg-surface-3 transition-colors">
       {children}
     </tr>
   ),
   blockquote: ({ children }) => (
-    <blockquote className="border-l-2 border-purple-500/50 pl-4 py-1 my-4 bg-purple-500/5 rounded-r italic text-slate-400">
+    <blockquote className="border-l-2 border-purple-500/50 pl-4 py-1 my-4 bg-purple-500/5 rounded-r italic text-ink-2">
       {children}
     </blockquote>
   ),
@@ -169,28 +169,28 @@ const components: Components = {
     </ul>
   ),
   ol: ({ children }) => (
-    <ol className="list-decimal space-y-1 mb-4 pl-6 text-sm text-slate-300 marker:text-sky-500">
+    <ol className="list-decimal space-y-1 mb-4 pl-6 text-sm text-ink-2 marker:text-sky-500">
       {children}
     </ol>
   ),
   li: ({ children }) => (
-    <li className="text-sm text-slate-300 leading-relaxed relative pl-3 before:content-['▸'] before:absolute before:left-0 before:text-sky-500/60 before:text-[13px] before:top-[3px]"
+    <li className="text-sm text-ink-2 leading-relaxed relative pl-3 before:content-['▸'] before:absolute before:left-0 before:text-sky-500/60 before:text-[13px] before:top-[3px]"
       style={{ fontFamily: "'concourse-t3', sans-serif" }}
     >
       {children}
     </li>
   ),
   hr: () => (
-    <hr className="border-slate-700/50 my-6" />
+    <hr className="border-line-2 my-6" />
   ),
   img: ({ src, alt }) => (
-    <img src={src} alt={alt || ""} className="rounded-lg border border-slate-700/50 max-w-full my-4" />
+    <img src={src} alt={alt || ""} className="rounded-lg border border-line-2 max-w-full my-4" />
   ),
   strong: ({ children }) => (
-    <strong className="text-white font-semibold">{children}</strong>
+    <strong className="text-ink-1 font-semibold">{children}</strong>
   ),
   em: ({ children }) => (
-    <em className="text-slate-400 italic">{children}</em>
+    <em className="text-ink-2 italic">{children}</em>
   ),
 };
 

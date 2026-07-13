@@ -1,4 +1,5 @@
 ---
+provenance: template
 dimension: freedom
 kind: metric
 classification: private

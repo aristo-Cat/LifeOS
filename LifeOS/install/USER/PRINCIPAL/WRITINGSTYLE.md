@@ -1,3 +1,7 @@
+---
+provenance: template
+---
+
 # Writing Style — User
 
 > Bootstrap default. Run `/interview` to capture your real voice.

@@ -1,4 +1,11 @@
 #!/usr/bin/env bun
+// Normalize env path vars Claude Code may inject unexpanded — literal $HOME/${HOME}
+// in LIFEOS_DIR/LIFEOS_CONFIG_DIR/PROJECTS_DIR resolves to a shadow dir (#1404 / PR #1451, author jbmml).
+for (const __k of ["LIFEOS_DIR", "LIFEOS_CONFIG_DIR", "PROJECTS_DIR"]) {
+  const __v = process.env[__k];
+  if (__v && /^\$\{?HOME\}?(\/|$)/.test(__v)) process.env[__k] = __v.replace(/^\$\{?HOME\}?/, process.env.HOME ?? "~");
+}
+
 /**
  * ============================================================================
  * THE ALGORITHM CLI — Run the LifeOS Algorithm in Loop or Interactive mode
@@ -49,8 +56,16 @@
 import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync, appendFileSync, renameSync } from "fs";
 import { resolve, basename, join, dirname } from "path";
 import { spawnSync, spawn } from "child_process";
+import { resolveClaudeBin } from "./Inference";  // absolute claude path — ENOENT-safe under launchd/cron (PR #1460, author asdf8675309)
 import { randomUUID } from "crypto";
 import { generateISATemplate } from "../../../.claude/hooks/lib/isa-template";
+
+// Normalize env path vars that Claude Code injects without shell expansion (LifeOS#1404)
+for (const k of ["LIFEOS_DIR", "LIFEOS_CONFIG_DIR", "PROJECTS_DIR"]) {
+  const v = process.env[k];
+  if (v && /^\$\{?HOME\}?(\/|$)/.test(v)) process.env[k] = v.replace(/^\$\{?HOME\}?/, process.env.HOME ?? "~");
+}
+
 
 // ─── Paths ───────────────────────────────────────────────────────────────────
 
@@ -835,7 +850,7 @@ async function runParallelIteration(
   const processes = assignments.map(assignment => {
     const criterion = assignment.criteriaDetails[0]; // One criterion per agent
     const prompt = buildWorkerPrompt(isaPath, assignment.agentId, criterion, iteration);
-    const proc = Bun.spawn(["claude", "-p", prompt,
+    const proc = Bun.spawn([resolveClaudeBin(), "-p", prompt,
       "--allowedTools", "Edit,Write,Bash,Read,Glob,Grep,WebFetch,WebSearch,NotebookEdit",
     ], {
       cwd: dirname(isaPath),
@@ -1317,13 +1332,20 @@ async function runLoop(isaPath: string, maxOverride?: number, agentCount: number
     // ── Sequential path: single agent (existing behavior) ──
     const prompt = buildIterationPrompt(absPath, newIteration, max);
 
-    const result = spawnSync("claude", [
-      "-p", "--bare", prompt,
+    // BILLING: subscription, not API. No --bare (forces ANTHROPIC_API_KEY),
+    // strip the key from inherited env (bun auto-loads .env). Mirrors the
+    // parallel path above.
+    const workerEnv: Record<string, string> = { ...process.env } as Record<string, string>;
+    delete workerEnv.ANTHROPIC_API_KEY;
+
+    const result = spawnSync(resolveClaudeBin(), [
+      "-p", prompt,
       "--allowedTools", "Edit,Write,Bash,Read,Glob,Grep,WebFetch,WebSearch,Task,TaskCreate,TaskUpdate,TaskList,NotebookEdit",
     ], {
       stdio: ["pipe", "pipe", "pipe"],
       timeout: 600_000, // 10 minute timeout per iteration
       cwd: dirname(absPath), // Run from ISA's directory context
+      env: workerEnv,
     });
 
     const iterEndTime = Date.now();
@@ -1430,7 +1452,7 @@ function runInteractive(isaPath: string): void {
   console.log(`  Launching claude...\n`);
 
   // Launch interactive claude session with ISA context
-  const child = spawn("claude", [
+  const child = spawn(resolveClaudeBin(), [
     prompt,
     "--allowedTools", "Edit,Write,Bash,Read,Glob,Grep,WebFetch,WebSearch,Task,TaskCreate,TaskUpdate,TaskList,NotebookEdit",
   ], {
@@ -1496,7 +1518,7 @@ function runIdeate(
   console.log(`  Launching claude...\n`);
 
   // Launch interactive claude session with ideate context
-  const child = spawn("claude", [
+  const child = spawn(resolveClaudeBin(), [
     prompt,
     "--allowedTools", "Edit,Write,Bash,Read,Glob,Grep,WebFetch,WebSearch,Task,TaskCreate,TaskUpdate,TaskList,NotebookEdit",
   ], {

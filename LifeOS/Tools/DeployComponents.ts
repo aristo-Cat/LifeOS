@@ -41,7 +41,26 @@ import { copyMissing, detectDevTree } from "./InstallEngine";
 // Enhancement components are the à-la-carte half of setup. The "LifeOS Core"
 // (skills + system prompt + base settings + CLAUDE.md) is installed by Setup's
 // core steps; these are the opt-in extras the user (or their AI) picks some/all/none of.
-const KNOWN_COMPONENTS = ["statusline", "tooltips", "spinnerverbs", "agents", "pulse", "worksweep", "derivedsync"] as const;
+//
+// Two kinds:
+// - Non-launchd: statusline, tooltips, spinnerverbs, agents, commands — settings.json merges + file copies
+// - Launchd services: delegated to Services.ts (single source of truth for all 16 background services)
+//
+// Component names for launchd services are their short labels (pulse, worksweep, amberroute, etc.)
+// or the full label (com.lifeos.pulse). Services.ts handles the mapping.
+const NON_LAUNCHD_COMPONENTS = ["statusline", "tooltips", "spinnerverbs", "agents", "commands"] as const;
+type NonLaunchdComponent = (typeof NON_LAUNCHD_COMPONENTS)[number];
+
+// Launchd components — kept in sync with Services.ts. The install for these is delegated to Services.ts.
+// Short labels (without com.lifeos. prefix) for convenience; Services.ts accepts both forms.
+const LAUNCHD_COMPONENTS = [
+  "pulse", "pulse-menubar", "deriver", "conduit", "conduit.insight", "synthesis",
+  "worksweep", "derivedsync", "healthsync", "codexupdate", "commitmentsweep",
+  "blogdiscovery", "usage-aggregator", "bookmark-watchdog", "backups", "amberroute"
+] as const;
+type LaunchdComponent = (typeof LAUNCHD_COMPONENTS)[number];
+
+const KNOWN_COMPONENTS = [...NON_LAUNCHD_COMPONENTS, ...LAUNCHD_COMPONENTS] as const;
 type Component = (typeof KNOWN_COMPONENTS)[number];
 
 interface Ctx {
@@ -50,6 +69,7 @@ interface Ctx {
   payloadRoot: string; // <skillRoot>/install/LIFEOS — the shipped runtime tree
   installRoot: string; // <skillRoot>/install — settings.enhancements.json + agents/ live here
   home: string;
+  bun: string; // resolved bun binary path — substituted for __BUN_PATH__ in launchd plists
   launchAgents: string;
   apply: boolean;
   platform: NodeJS.Platform;
@@ -204,63 +224,6 @@ function deployPulseWindows(ctx: Ctx): ComponentResult {
   return r;
 }
 
-/** Pulse: ensure the PULSE tree is laid down, then install + load its plist. */
-function deployPulse(ctx: Ctx): ComponentResult {
-  if (ctx.platform === "win32") return deployPulseWindows(ctx);
-
-  const r: ComponentResult = { component: "pulse", ready: false, actions: [], blockers: [] };
-  const av = availability("PULSE", ctx);
-  const pulseDir = join(ctx.lifeosDir, "PULSE");
-  const plistDst = join(ctx.launchAgents, "com.lifeos.pulse.plist");
-
-  if (!av.inLive && !av.inPayload) {
-    r.blockers.push(`PULSE not in live tree (${pulseDir}) or payload (${join(ctx.payloadRoot, "PULSE")})`);
-    return r;
-  }
-  r.ready = true;
-  if (!ctx.apply) {
-    if (!av.inLive) r.actions.push(`copy PULSE from payload → ${pulseDir}`);
-    r.actions.push(`materialize ${plistDst} (__HOME__ → ${ctx.home})`, "launchctl bootstrap gui/<uid> (skip if already loaded + unchanged)", "poll 127.0.0.1:31337/healthz until 200");
-    return r;
-  }
-
-  try {
-    ensurePresent("PULSE", ctx);
-    const plistSrc = join(pulseDir, "com.lifeos.pulse.plist");
-    if (!existsSync(plistSrc)) throw new Error(`plist template missing at ${plistSrc}`);
-    const materialized = readFileSync(plistSrc, "utf-8").replaceAll("__HOME__", ctx.home);
-    const u = uid();
-    const sameOnDisk = existsSync(plistDst) && readFileSync(plistDst, "utf-8") === materialized;
-    const alreadyLoaded = launchctl(["print", `gui/${u}/com.lifeos.pulse`]).ok;
-
-    // Idempotent: a loaded service with an identical plist is left running.
-    if (sameOnDisk && alreadyLoaded) {
-      r.applied = false;
-      r.probe = { name: "pulse-healthz", passed: httpCode("http://127.0.0.1:31337/healthz") === "200", detail: "already loaded, plist unchanged (idempotent)" };
-      return r;
-    }
-
-    if (existsSync(plistDst) && !sameOnDisk) backup(plistDst);
-    mkdirSync(ctx.launchAgents, { recursive: true });
-    writeFileSync(plistDst, materialized);
-    if (alreadyLoaded) launchctl(["bootout", `gui/${u}`, plistDst]);
-    const boot = launchctl(["bootstrap", `gui/${u}`, plistDst]);
-    r.applied = true;
-
-    // Readiness poll: launchd bootstrap returns before Pulse binds :31337.
-    let code = "000";
-    for (let i = 0; i < 12; i++) {
-      code = httpCode("http://127.0.0.1:31337/healthz");
-      if (code === "200") break;
-      Bun.sleepSync(500);
-    }
-    r.probe = { name: "pulse-healthz", passed: code === "200", detail: `healthz → ${code}${boot.ok ? "" : ` (bootstrap: ${boot.out.trim()})`}` };
-  } catch (err) {
-    r.error = err instanceof Error ? err.message : String(err);
-  }
-  return r;
-}
-
 /** Statusline: place the script, chmod +x, wire settings.json statusLine. */
 function deployStatusline(ctx: Ctx): ComponentResult {
   const r: ComponentResult = { component: "statusline", ready: false, actions: [], blockers: [] };
@@ -318,52 +281,6 @@ function deployStatusline(ctx: Ctx): ComponentResult {
       try { execFileSync("test", ["-x", scriptPath]); runnable = true; } catch { runnable = false; }
     }
     r.probe = { name: "statusline-wired", passed: wired && runnable, detail: `wired=${wired} runnable=${runnable}${alreadyWired ? " (idempotent)" : ""}` };
-  } catch (err) {
-    r.error = err instanceof Error ? err.message : String(err);
-  }
-  return r;
-}
-
-/** Delegate a launchd job to its own standalone installer (no-arg = install). */
-function deployLaunchdJob(component: Component, installerRel: string, ctx: Ctx): ComponentResult {
-  const r: ComponentResult = { component, ready: false, actions: [], blockers: [] };
-  if (ctx.platform !== "darwin") {
-    r.ready = true;
-    r.applied = false;
-    r.actions.push(`${component} is macOS launchd-only; skipped on ${ctx.platform}`);
-    r.probe = { name: `${component}-skipped`, passed: true, detail: `launchd unavailable on ${ctx.platform}` };
-    return r;
-  }
-
-  const av = availability(installerRel, ctx);
-  // The installer needs sibling TOOLS files (templates, WorkSweep.ts, …), so the
-  // unit of staging is the whole TOOLS dir — uniform with pulse/statusline.
-  const toolsAv = availability("TOOLS", ctx);
-  const installer = join(ctx.lifeosDir, installerRel);
-
-  if (!av.inLive && !toolsAv.inPayload) {
-    r.blockers.push(`${installerRel} not in live tree and TOOLS not in payload (${join(ctx.payloadRoot, "TOOLS")}) — runtime tree not staged`);
-    return r;
-  }
-  r.ready = true;
-  if (!ctx.apply) {
-    if (!av.inLive) r.actions.push(`stage TOOLS from payload → ${join(ctx.lifeosDir, "TOOLS")}`);
-    r.actions.push(`bun ${installer}  (delegates plist materialize + launchctl bootstrap)`);
-    return r;
-  }
-
-  try {
-    if (!existsSync(installer)) ensurePresent("TOOLS", ctx);
-    if (!existsSync(installer)) {
-      r.blockers.push(`installer still missing after staging: ${installer}`);
-      return r;
-    }
-    const out = execFileSync("bun", [installer], { stdio: ["pipe", "pipe", "pipe"], timeout: 60000 }).toString();
-    r.applied = true;
-    // Confirm the job actually loaded, not just that the installer exited 0.
-    const label = component === "worksweep" ? "com.lifeos.worksweep" : "com.lifeos.derivedsync";
-    const loaded = launchctl(["print", `gui/${uid()}/${label}`]).ok;
-    r.probe = { name: `${component}-loaded`, passed: loaded, detail: loaded ? `${label} loaded` : `installer exit 0 but ${label} not loaded: ${out.trim().split("\n").slice(-1)[0]}` };
   } catch (err) {
     r.error = err instanceof Error ? err.message : String(err);
   }
@@ -446,16 +363,122 @@ function deployAgents(ctx: Ctx): ComponentResult {
   return r;
 }
 
+// commands mirrors agents exactly: copy the payload's install/commands/ into the
+// user's ~/.claude/commands/, never overwriting. The payload is already filtered
+// at emit time to public commands only (a command ships iff its target skill
+// ships), so there is nothing private-pointing to guard against here.
+function deployCommands(ctx: Ctx): ComponentResult {
+  const r: ComponentResult = { component: "commands", ready: false, actions: [], blockers: [] };
+  const src = join(ctx.installRoot, "commands");
+  const dst = join(ctx.configRoot, "commands");
+  if (!existsSync(src) && !existsSync(dst)) {
+    r.blockers.push(`commands not in payload (${src}) and not already installed (${dst})`);
+    return r;
+  }
+  r.ready = true;
+  if (!ctx.apply) {
+    r.actions.push(existsSync(src) ? `copyMissing commands → ${dst} (never overwrites existing)` : `commands already present at ${dst} — no-op`);
+    return r;
+  }
+  try {
+    if (!existsSync(src)) {
+      r.applied = false;
+      r.probe = { name: "commands-present", passed: true, detail: `already present at ${dst} (no payload to copy)` };
+      return r;
+    }
+    const { copied, failures } = copyMissing(src, dst);
+    r.applied = copied > 0;
+    r.probe = { name: "commands-copied", passed: failures.length === 0 && existsSync(dst), detail: `${copied} command file(s) copied${failures.length ? `, ${failures.length} failed` : ""}` };
+  } catch (err) {
+    r.error = err instanceof Error ? err.message : String(err);
+  }
+  return r;
+}
+
+/**
+ * Delegate launchd service install to Services.ts — single source of truth for all 16 services.
+ * This keeps DeployComponents focused on non-launchd components (settings merges, file copies)
+ * while Services.ts owns the full launchd machinery.
+ */
+function deployViaServices(component: LaunchdComponent, ctx: Ctx): ComponentResult {
+  const r: ComponentResult = { component, ready: false, actions: [], blockers: [] };
+  const servicesTs = join(ctx.lifeosDir, "TOOLS", "Services.ts");
+
+  // Services.ts must be present (either in live tree or staged from payload)
+  const av = availability("TOOLS", ctx);
+  if (!av.inLive && !av.inPayload) {
+    r.blockers.push(`TOOLS not in live tree (${join(ctx.lifeosDir, "TOOLS")}) or payload`);
+    return r;
+  }
+  r.ready = true;
+
+  // Build the label — Services.ts accepts short form (pulse) or full (com.lifeos.pulse)
+  const label = component.startsWith("com.lifeos.") ? component : `com.lifeos.${component}`;
+
+  if (!ctx.apply) {
+    if (!av.inLive) r.actions.push(`stage TOOLS from payload → ${join(ctx.lifeosDir, "TOOLS")}`);
+    r.actions.push(`bun ${servicesTs.replace(ctx.home, "~")} install --only ${component} --yes`);
+    return r;
+  }
+
+  try {
+    ensurePresent("TOOLS", ctx);
+    if (!existsSync(servicesTs)) {
+      r.blockers.push(`Services.ts still missing after staging: ${servicesTs}`);
+      return r;
+    }
+    // Delegate to Services.ts
+    const out = execFileSync("bun", [servicesTs, "install", "--only", component, "--yes"], {
+      stdio: ["pipe", "pipe", "pipe"],
+      timeout: 120000, // some services take longer (e.g. Pulse waits for healthz)
+      cwd: dirname(servicesTs),
+    }).toString();
+    r.applied = true;
+    // Confirm the job actually loaded
+    const loaded = launchctl(["print", `gui/${uid()}/${label}`]).ok;
+    r.probe = { name: `${component}-loaded`, passed: loaded, detail: loaded ? `${label} loaded via Services.ts` : `Services.ts exit 0 but ${label} not loaded: ${out.trim().split("\n").slice(-1)[0]}` };
+  } catch (err) {
+    r.error = err instanceof Error ? err.message : String(err);
+  }
+  return r;
+}
+
+function isLaunchdComponent(c: Component): c is LaunchdComponent {
+  return (LAUNCHD_COMPONENTS as readonly string[]).includes(c);
+}
+
 function deploy(component: Component, ctx: Ctx): ComponentResult {
+  // Windows: launchd is unavailable. Route pulse to its PowerShell manager
+  // (deployPulseWindows) and skip every other launchd service — deployViaServices
+  // → Services.ts is pure macOS (launchctl / Library/LaunchAgents). Non-launchd
+  // components fall through to the shared switch below (statusline already handles win32).
+  if (ctx.platform === "win32") {
+    if (component === "pulse") return deployPulseWindows(ctx);
+    if (isLaunchdComponent(component)) {
+      return {
+        component,
+        ready: true,
+        applied: false,
+        actions: [`${component} is macOS launchd-only; skipped on ${ctx.platform}`],
+        blockers: [],
+        probe: { name: `${component}-skipped`, passed: true, detail: `launchd unavailable on ${ctx.platform}` },
+      };
+    }
+  }
+  // Non-launchd components: handled directly
   switch (component) {
-    case "pulse": return deployPulse(ctx);
     case "statusline": return deployStatusline(ctx);
     case "tooltips": return deploySettingsKey("tooltips", "spinnerTipsOverride", ctx);
     case "spinnerverbs": return deploySettingsKey("spinnerverbs", "spinnerVerbs", ctx);
     case "agents": return deployAgents(ctx);
-    case "worksweep": return deployLaunchdJob("worksweep", join("TOOLS", "InstallWorkSweep.ts"), ctx);
-    case "derivedsync": return deployLaunchdJob("derivedsync", join("TOOLS", "InstallDerivedSync.ts"), ctx);
+    case "commands": return deployCommands(ctx);
   }
+  // Launchd components: delegate to Services.ts
+  if (isLaunchdComponent(component)) {
+    return deployViaServices(component, ctx);
+  }
+  // Fallback (shouldn't reach here with proper types, but TypeScript wants exhaustiveness)
+  return { component, ready: false, actions: [], blockers: [`unknown component: ${component}`] };
 }
 
 // ── main ─────────────────────────────────────────────────────────────
@@ -502,6 +525,10 @@ function main(): void {
       : join(skillRoot, "install", "LifeOS"),
     installRoot: join(skillRoot, "install"),
     home,
+    // launchd runs the plist with a minimal PATH, so ProgramArguments[0] must be an
+    // absolute bun path. Prefer the interpreter running this installer; fall back to
+    // the standard bun install location.
+    bun: /\/bun$/.test(process.execPath) ? process.execPath : join(home, ".bun", "bin", "bun"),
     launchAgents: join(home, "Library", "LaunchAgents"),
     apply,
     platform: process.platform,

@@ -1,3 +1,7 @@
+---
+version: 1.3.1
+---
+
 # Terminal Tab State System
 
 ## Overview
@@ -72,20 +76,22 @@ function detectResponseState(lastMessage, transcriptPath): ResponseState {
 - **Working state:** Uses Unicode Mathematical Italic (`𝘈𝘉𝘊...`) for italic appearance
 - **Question state:** Uses Unicode Mathematical Bold (`𝗔𝗕𝗖...`) in ALL CAPS
 
-## Mode/Tier Token (title prefix)
+## Mode/Tier Token (title prefix) — RETIRED 2026-07-11
 
-Every tab title leads with a **mode/tier token** so you can see at a glance what kind of turn each tab is running:
+> **History only.** The mode/tier token was retired 2026-07-11 when mode/tier classification (MINIMAL/NATIVE/ALGORITHM, E1–E5) was abolished system-wide and `TheRouter.hook.ts` — the authoritative classifier described below — was deleted. No successor stamps an `E{tier}`/`N` token. Some token plumbing (`setModeToken`, `MODE_TOKEN_RE`, the `native` tab color) still lingers in `tab-setter.ts`/`PromptProcessing.hook.ts` but nothing classifies into it. The Algorithm Phase Tab System below still runs (phase icons/colors), minus the tier-token prefix. The description below is kept for history.
+
+Every tab title used to lead with a **mode/tier token** so you could see at a glance what kind of turn each tab was running:
 
 - **`N`** — a NATIVE turn. Rendered in a lighter, brighter orange (`#C2660A`, the `native` state in `TAB_COLORS`) so native work is visually distinct from Algorithm's darker build/execute oranges.
 - **`E1`–`E5`** — an ALGORITHM run at that effort tier.
 
 Canonical title format: **`{TOKEN} {ICON} {summary}`** — e.g. `N ⚙️ Fixing tab titles.` or `E3 🔨 Building phase tabs.`
 
-**Single authority (2026-07-01 coordination fix).** The mode/tier token is owned by ONE writer — `TheRouter.hook.ts`, the authoritative classifier — so the tab, `work.json`, and the Pulse Agents/Lattice page all project the SAME decision. Before this fix, `PromptProcessing.hook.ts` stamped the token from its own 8-verb `isNativeMode()` shadow-classifier, which diverged from TheRouter and showed `N` on ALGORITHM turns (e.g. a prompt like "analyze… and fix" has none of the 8 verbs); the correct tier token only appeared once an ISA existed and its phase advanced.
+**Single authority (2026-07-01 coordination fix; moot since the 2026-07-11 retirement).** The mode/tier token was owned by ONE writer — `TheRouter.hook.ts`, the authoritative classifier — so the tab, `work.json`, and the Pulse Agents/Lattice page all projected the SAME decision. Before this fix, `PromptProcessing.hook.ts` stamped the token from its own 8-verb `isNativeMode()` shadow-classifier, which diverged from TheRouter and showed `N` on ALGORITHM turns (e.g. a prompt like "analyze… and fix" has none of the 8 verbs); the correct tier token only appeared once an ISA existed and its phase advanced.
 
-Where the token comes from now:
+Where the token came from (all historical — TheRouter deleted 2026-07-11):
 
-- **TheRouter (authority)** — the instant it classifies, `TheRouter.hook.ts` calls `setModeToken(sessionId, token)` (`tab-setter.ts`): `E{tier}` for ALGORITHM, `N` for NATIVE (MINIMAL leaves the tab). `setModeToken` sets/replaces ONLY the leading token, preserves the live working description, and clears any prior-turn `✅ completed` state — so a stale "done" can't linger into live work, in EITHER direction (an ALGORITHM turn never shows `N`, a NATIVE turn after an ALGORITHM turn clears the stale `E{tier}`/`✅`). TheRouter also persists the tier into `work.json` (`markAlgorithmStarting(uuid, hint, tier)`) so the Agents page is tier-correct before any ISA exists.
+- **TheRouter (authority)** — the instant it classified, `TheRouter.hook.ts` calls `setModeToken(sessionId, token)` (`tab-setter.ts`): `E{tier}` for ALGORITHM, `N` for NATIVE (MINIMAL leaves the tab). `setModeToken` sets/replaces ONLY the leading token, preserves the live working description, and clears any prior-turn `✅ completed` state — so a stale "done" can't linger into live work, in EITHER direction (an ALGORITHM turn never shows `N`, a NATIVE turn after an ALGORITHM turn clears the stale `E{tier}`/`✅`). TheRouter also persists the tier into `work.json` (`markAlgorithmStarting(uuid, hint, tier)`) so the Agents page is tier-correct before any ISA exists.
 - **PromptProcessing (description only)** — sets the working gerund description; it no longer classifies mode. It recovers the token TheRouter stamped via `extractModeToken(readTabState())`, but ONLY when the tab shows live work — a stale completion/idle token is dropped (TheRouter re-stamps the authoritative one ~concurrently). This is the race contract: TheRouter owns the token, PromptProcessing owns the description, each preserves the other's field.
 - **AlgoPhase + ISASync (phase)** — both stamp `setPhaseTab(phase, sessionUUID, undefined, eLevel)` at transitions (idempotent, same `E{tier}`+phase-icon output): `AlgoPhase.ts` on the explicit CLI phase write (the SAME write that updates `work.json`, keeping tab ↔ Agents-page congruent), `ISASync.hook.ts` on the ISA-edit phase change (catches the scaffold and manual edits). `eLevel` comes from the row `effort` / ISA frontmatter via `effortToCanonicalELevel()`.
 - **Completion** — `handlers/TabState.ts` calls `setPhaseTab('COMPLETE', …)` with no `eLevel`; `setPhaseTab` recovers the existing token (`extractModeToken`), so `N`/`E3` carries through to the green done state.
@@ -134,23 +140,25 @@ kitten @ set-tab-color --self \
 
 ### Hook Files
 
+Tab painting was consolidated into one hook, `TabState.hook.ts`, on 2026-07-10 — it dispatches on `hook_event_name`, merging the three former painters (`SetQuestionTab`, `QuestionAnswered`, `ResponseTabReset`, all deleted). Working-state on prompt submit stays in `PromptProcessing.hook.ts`.
+
 | File | Event | Purpose |
 |------|-------|---------|
-| `SessionAnalysis.hook.ts` | UserPromptSubmit | Set working state (italic text) |
-| `SetQuestionTab.hook.ts` | PreToolUse (AskUserQuestion) | Set question state (bold caps) |
-| `SessionAnalysis.hook.ts` → `handlers/TabState.ts` | Stop | Set final state |
+| `PromptProcessing.hook.ts` | UserPromptSubmit | Set working state (italic text) |
+| `TabState.hook.ts` (← `SetQuestionTab`) | PreToolUse (AskUserQuestion) | Set question state (teal); save previousTitle for restore |
+| `TabState.hook.ts` (← `QuestionAnswered`) | PostToolUse (AskUserQuestion) | Restore working/orange state after the answer |
+| `TabState.hook.ts` (← `ResponseTabReset`) → `handlers/TabState.ts` | Stop | Set final/completion state |
 
 ### Color Constants
 
 ```typescript
-// In SessionAnalysis.hook.ts
-const TAB_WORKING_BG = '#804000';      // Dark orange (inactive tabs only)
-const TAB_INFERENCE_BG = '#1E0A3C';    // Dark purple (AI thinking)
-const ACTIVE_TAB_BG = '#002B80';       // Dark blue (always for active tab)
-const ACTIVE_TEXT = '#FFFFFF';          // White
+// hooks/lib/tab-constants.ts — single source of truth for tab colors/states
+working:   { inactiveBg: '#804000', inactiveFg: '#A0A0A0', label: 'orange' },
+thinking:  { inactiveBg: '#1E0A3C', inactiveFg: '#A0A0A0', label: 'purple' },
+// full state map + active-tab colors live in the same file
 const INACTIVE_TEXT = '#A0A0A0';        // Gray
 
-// In SetQuestionTab.hook.ts (via lib/tab-constants.ts)
+// In TabState.hook.ts PreToolUse branch (via lib/tab-constants.ts)
 const TAB_AWAITING_BG = '#0D4F4F';     // Dark teal (waiting for input)
 
 // In handlers/TabState.ts (via lib/tab-constants.ts)

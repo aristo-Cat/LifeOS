@@ -1,53 +1,44 @@
 # Council Members
 
-Council members are ALWAYS custom-composed agents created via the Agents skill's ComposeAgent tool. They are NEVER built-in agent types.
+Council members are custom agents you write inline, then launch with `subagent_type: "general-purpose"`. There is no composition tool and no trait matrix — you write each member's brief directly, tailored to the topic. A capable model writes a sharper, more topic-specific persona than any generic trait lookup, so this is both simpler and better.
 
-## CRITICAL: No Built-In Agent Types
+## Why inline briefs, not built-in types
 
-**NEVER use built-in agent types (Architect, Designer, Engineer, PerplexityResearcher, etc.) for council members.** Built-in types are generic — they have no knowledge of the debate topic and produce shallow, generic perspectives.
-
-Council members MUST be composed using ComposeAgent with topic-specific traits so they have:
-- Unique personalities and voices matched to the debate
-- Domain expertise relevant to the specific topic
-- Distinct analytical approaches that create genuine friction
+A bare built-in agent type (or a generic `general-purpose` with no persona) has no stake in the topic and produces bland agreement. Council needs members who disagree on the merits. The friction comes from each member having a distinct role, expertise, and stance — which you supply in the brief. Write four different briefs; never launch four identical agents.
 
 ## How to Create Council Members
 
 ### Step 1: Analyze the Topic
 
-Before composing agents, determine what perspectives would create the most productive friction for THIS specific debate. Don't use generic roles — design roles around the topic.
+Decide what perspectives would create the most productive friction for THIS specific debate. Design the roles around the topic, not from a generic list.
 
 **Example — "Should we use WebSockets or SSE?"**
-- Agent 1: Real-time systems architect (traits: `technical,analytical,systematic`)
-- Agent 2: Frontend DX advocate (traits: `ux,enthusiastic,pragmatic`)
-- Agent 3: Ops/reliability skeptic (traits: `technical,skeptical,cautious`)
-- Agent 4: Industry researcher (traits: `research,comparative,thorough`)
+- Real-time systems architect who defends push-first bidirectional transport
+- Frontend-DX advocate who wants the simplest thing that ships
+- Ops/reliability skeptic who distrusts long-lived connections
+- Industry researcher who weighs precedent and adoption data
 
 **Example — "Is AI overhyped?"**
-- Agent 1: AI infrastructure builder (traits: `technical,enthusiastic,systematic`)
-- Agent 2: Security practitioner skeptic (traits: `security,skeptical,meticulous`)
-- Agent 3: Pragmatic engineer (traits: `technical,pragmatic,analytical`)
-- Agent 4: Evidence-based researcher (traits: `research,analytical,comparative`)
+- AI infrastructure builder who ships with these tools daily
+- Security practitioner skeptic who has seen the failure modes
+- Pragmatic engineer focused on real-world trade-offs
+- Evidence-based researcher who wants the numbers
 
-### Step 2: Compose Each Agent via ComposeAgent
+### Step 2: Write Each Member's Brief
 
-```bash
-bun run ~/.claude/skills/Agents/Tools/ComposeAgent.ts \
-  --traits "technical,analytical,systematic" \
-  --task "Debate: Should we use WebSockets or SSE?" \
-  --output json
-```
+For each member, write 2–4 sentences: a name, their role/expertise, the stance they hold, and what they'll push on and attack. That paragraph IS the persona.
 
-Each call returns: name, voice, voice_id, color, traits, and a full prompt with unique personality.
+Example brief:
+> **Mara — real-time systems architect.** Believes push-first. Will defend WebSocket bidirectionality and attack SSE's connection-count limits and reconnection story. Speaks precisely, cites protocol behavior.
 
 ### Step 3: Launch with general-purpose
 
-**ALWAYS use `subagent_type: "general-purpose"` — NEVER use static types.**
+Spawn each member with the brief you wrote as the system context, plus the round instructions and topic. Always `subagent_type: "general-purpose"`.
 
 ```typescript
 Agent({
   description: "Council member 1 - systems architect",
-  prompt: <composedAgentPrompt + round instructions + topic context>,
+  prompt: <member brief> + <round instructions> + <topic context>,
   subagent_type: "general-purpose",
   model: "sonnet"
 })
@@ -55,22 +46,13 @@ Agent({
 
 ## Default Perspective Slots
 
-When the user doesn't specify council members, compose 4 agents covering these perspective types (but with topic-specific traits):
+When the user doesn't specify members, cover these four perspectives — but write each one tailored to the topic, not as a generic role:
 
-| Slot | Purpose | Example Trait Combos |
-|------|---------|---------------------|
-| **Builder** | Has built things in this domain | `technical,enthusiastic,systematic` |
-| **Skeptic** | Challenges assumptions, finds flaws | `[domain],skeptical,meticulous` |
-| **Pragmatist** | Implementation reality, trade-offs | `technical,pragmatic,analytical` |
-| **Analyst** | Data, precedent, external evidence | `research,analytical,comparative` |
+| Slot | Purpose |
+|------|---------|
+| **Builder** | Has built things in this domain; argues from what actually ships |
+| **Skeptic** | Challenges assumptions, finds the flaws and failure modes |
+| **Pragmatist** | Implementation reality, cost, and trade-offs |
+| **Analyst** | Data, precedent, and external evidence |
 
-The specific traits should be tailored to the topic, not generic.
-
-## Anti-Patterns
-
-| Scenario | WRONG | RIGHT |
-|----------|-------|-------|
-| Any council debate | a static built-in type (e.g. the retired `Architect`) | ComposeAgent → `Agent(subagent_type="general-purpose")` |
-| Security topic | `Agent(subagent_type="general-purpose")` | ComposeAgent with `security,adversarial,bold` traits |
-| Design question | a static built-in type (e.g. the retired `Designer`) | ComposeAgent with `ux,enthusiastic,exploratory` traits |
-| Research needed | `Agent(subagent_type="PerplexityResearcher")` | ComposeAgent with `research,thorough,comparative` traits |
+The slots are a starting guide. Adjust the mix to the topic — a pure design question may want two builders and a user advocate instead.

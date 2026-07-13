@@ -1,11 +1,10 @@
 #!/usr/bin/env bun
 
 /**
- * LifeOS Banner - Dynamic Multi-Design Neofetch Banner
- * Randomly selects from curated designs based on terminal size
- *
- * Large terminals (85+ cols): Navy, Electric, Teal, Ice themes
- * Small terminals (<85 cols): Minimal, Vertical, Wrapping layouts
+ * LifeOS Banner - Responsive Neofetch-style launch banner (Navy theme)
+ * Routes by terminal width: full (85+) → medium (70+) → compact (55+) →
+ * minimal (45+) → ultra-compact (<45). Force a variant with --design=<name>,
+ * render all variants with --test.
  */
 
 import { existsSync, readFileSync } from "fs";
@@ -76,13 +75,9 @@ function getTerminalWidth(): number {
 
 const RESET = "\x1b[0m";
 const BOLD = "\x1b[1m";
-const DIM = "\x1b[2m";
 const ITALIC = "\x1b[3m";
 
 const rgb = (r: number, g: number, b: number) => `\x1b[38;2;${r};${g};${b}m`;
-
-// Sparkline characters
-const SPARK = ["\u2581", "\u2582", "\u2583", "\u2584", "\u2585", "\u2586", "\u2587", "\u2588"];
 
 // Box drawing
 const BOX = {
@@ -147,11 +142,6 @@ interface SystemStats {
   repoUrl: string;
   skills: number;
   hooks: number;
-  sessions: number;
-  model: string;
-  platform: string;
-  arch: string;
-  ccVersion: string;
   paiVersion: string;
   algorithmVersion: string;
 }
@@ -197,7 +187,7 @@ function getStats(): SystemStats {
   // Only `skills` and `hooks` are rendered by any banner design, so we use
   // `--single` mode (~20ms each) instead of the full multi-key walk which
   // recursed into LIFEOS/USER/ (123k files) for keys nothing displays.
-  let skills = 0, hooks = 0, sessions = 0;
+  let skills = 0, hooks = 0;
   const getCountsPath = join(CLAUDE_DIR, "LIFEOS", "TOOLS", "GetCounts.ts");
   try {
     const r = spawnSync("bun", [getCountsPath, "--single", "skills"], { encoding: "utf-8", timeout: 1000 });
@@ -208,39 +198,12 @@ function getStats(): SystemStats {
     if (r.stdout) hooks = parseInt(r.stdout.trim(), 10) || 0;
   } catch {}
 
-  try {
-    const historyFile = join(CLAUDE_DIR, "history.jsonl");
-    if (existsSync(historyFile)) {
-      const content = readFileSync(historyFile, "utf-8");
-      sessions = content.split("\n").filter(line => line.trim()).length;
-    }
-  } catch {}
-
-  // Get platform info
-  const platform = process.platform === "darwin" ? "macOS" : process.platform;
-  const arch = process.arch;
-
-  // Try to get Claude Code version
-  let ccVersion = "2.0";
-  try {
-    const result = spawnSync("claude", ["--version"], { encoding: "utf-8" });
-    if (result.stdout) {
-      const match = result.stdout.match(/(\d+\.\d+\.\d+)/);
-      if (match) ccVersion = match[1];
-    }
-  } catch {}
-
   return {
     name,
     catchphrase,
     repoUrl,
     skills,
     hooks,
-    sessions,
-    model: "Opus 4.5",
-    platform,
-    arch,
-    ccVersion,
     paiVersion,
     algorithmVersion,
   };
@@ -258,28 +221,10 @@ function padEnd(str: string, width: number): string {
   return str + " ".repeat(Math.max(0, width - visibleLength(str)));
 }
 
-function padStart(str: string, width: number): string {
-  return " ".repeat(Math.max(0, width - visibleLength(str))) + str;
-}
-
 function center(str: string, width: number): string {
   const visible = visibleLength(str);
   const left = Math.floor((width - visible) / 2);
   return " ".repeat(Math.max(0, left)) + str + " ".repeat(Math.max(0, width - visible - left));
-}
-
-function randomHex(len: number = 4): string {
-  return Array.from({ length: len }, () =>
-    Math.floor(Math.random() * 16).toString(16).toUpperCase()
-  ).join("");
-}
-
-function sparkline(length: number, colors?: string[]): string {
-  return Array.from({ length }, (_, i) => {
-    const level = Math.floor(Math.random() * 8);
-    const color = colors ? colors[i % colors.length] : "";
-    return `${color}${SPARK[level]}${RESET}`;
-  }).join("");
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -349,8 +294,6 @@ function createNavyBanner(stats: SystemStats, width: number): string {
   // Frame dimensions
   const frameWidth = 70;
   const framePad = " ".repeat(Math.floor((width - frameWidth) / 2));
-  const cornerLen = 3; // Length of corner pieces
-  const innerSpace = frameWidth - (cornerLen * 2);
 
   const lines: string[] = [""];
 
@@ -400,206 +343,6 @@ function createNavyBanner(stats: SystemStats, width: number): string {
   // Bottom border with full horizontal line and reticle corners
   const bottomBorder = `${C.steel}${RETICLE.bl}${RETICLE.h.repeat(frameWidth - 2)}${RETICLE.br}${RESET}`;
   lines.push(`${framePad}${bottomBorder}`);
-  lines.push("");
-
-  return lines.join("\n");
-}
-
-// Design 14: Electric/Neon Blue Theme
-function createElectricBanner(stats: SystemStats, width: number): string {
-  const P = {
-    logoP: rgb(0, 80, 180),
-    logoA: rgb(0, 191, 255),
-    logoI: rgb(125, 249, 255),
-    electricBlue: rgb(0, 191, 255),
-    neonBlue: rgb(30, 144, 255),
-    ultraBlue: rgb(0, 255, 255),
-    electric: rgb(125, 249, 255),
-    plasma: rgb(0, 150, 255),
-    glow: rgb(100, 200, 255),
-    midBase: rgb(20, 40, 80),
-    active: rgb(0, 255, 136),
-  };
-
-  // LifeOS logo \u2014 ascending-staircase mark
-  const logo = lifeosLogoSmall();
-  const LOGO_WIDTH = 10;
-
-  const hex1 = randomHex(4);
-  const hex2 = randomHex(4);
-  const SYM = { user: "\u25c6", skills: "\u26a1", hooks: "\u2699", learn: "\u25c8", files: "\u25a0", model: "\u25ce", link: "\u21e2", pulse: "\u25cf", target: "\u25ce" };
-
-  const infoLines = [
-    `${P.electricBlue}${SYM.user}${RESET} ${BOLD}${P.electric}${stats.name}${RESET}${P.glow}@${RESET}${P.ultraBlue}lifeos${RESET} ${P.midBase}[0x${hex1}]${RESET}`,
-    `${P.plasma}${BOX.h.repeat(32)}${RESET}`,
-    `${P.neonBlue}${SYM.target}${RESET} ${P.glow}OS${RESET}         ${P.electric}LifeOS ${stats.paiVersion}${RESET}`,
-    `${P.neonBlue}${SYM.skills}${RESET} ${P.glow}Skills${RESET}     ${BOLD}${P.electricBlue}${stats.skills}${RESET} ${P.active}${SYM.pulse}${RESET}`,
-    `${P.neonBlue}${SYM.hooks}${RESET} ${P.glow}Hooks${RESET}      ${BOLD}${P.electricBlue}${stats.hooks}${RESET}`,
-    `${P.neonBlue}${SYM.model}${RESET} ${P.glow}Model${RESET}      ${BOLD}${P.ultraBlue}${stats.model}${RESET}`,
-    `${P.plasma}${BOX.h.repeat(32)}${RESET}`,
-    `${sparkline(24, [P.plasma, P.neonBlue, P.electricBlue, P.electric, P.ultraBlue])}`,
-    `${P.neonBlue}${SYM.link}${RESET} ${P.midBase}${stats.repoUrl}${RESET} ${P.midBase}[0x${hex2}]${RESET}`,
-  ];
-
-  const gap = "   ";
-  const logoTopPad = Math.floor((infoLines.length - logo.length) / 2);
-  const contentWidth = LOGO_WIDTH + 3 + 45;
-  const leftPad = Math.floor((width - contentWidth) / 2);
-  const pad = " ".repeat(Math.max(2, leftPad));
-
-  const lines: string[] = [""];
-  for (let i = 0; i < infoLines.length; i++) {
-    const logoIndex = i - logoTopPad;
-    const logoRow = (logoIndex >= 0 && logoIndex < logo.length) ? logo[logoIndex] : " ".repeat(LOGO_WIDTH);
-    lines.push(`${pad}${padEnd(logoRow, LOGO_WIDTH)}${gap}${infoLines[i]}`);
-  }
-
-  const footerWidth = Math.min(width - 4, 65);
-  const paiText = `${BOLD}${lifeosWordmark()}`;
-  const footer = `${P.electric}\u26a1${RESET} ${paiText} ${P.plasma}${BOX.v}${RESET} ${ITALIC}${P.glow}Electric Blue Theme${RESET} ${P.electric}\u26a1${RESET}`;
-  lines.push("");
-  lines.push(`${pad}${P.plasma}${BOX.tl}${BOX.h.repeat(footerWidth - 2)}${BOX.tr}${RESET}`);
-  lines.push(`${pad}${P.plasma}${BOX.v}${RESET}${center(footer, footerWidth - 2)}${P.plasma}${BOX.v}${RESET}`);
-  lines.push(`${pad}${P.plasma}${BOX.bl}${BOX.h.repeat(footerWidth - 2)}${BOX.br}${RESET}`);
-  lines.push("");
-
-  return lines.join("\n");
-}
-
-// Design 15: Teal/Aqua Theme
-function createTealBanner(stats: SystemStats, width: number): string {
-  const P = {
-    logoP: rgb(0, 77, 77),
-    logoA: rgb(32, 178, 170),
-    logoI: rgb(127, 255, 212),
-    teal: rgb(0, 128, 128),
-    mediumTeal: rgb(32, 178, 170),
-    aqua: rgb(0, 255, 255),
-    aquamarine: rgb(127, 255, 212),
-    turquoise: rgb(64, 224, 208),
-    paleAqua: rgb(175, 238, 238),
-    midSea: rgb(20, 50, 60),
-    active: rgb(50, 205, 50),
-  };
-
-  const WAVE = ["\u2248", "\u223c", "\u2307", "\u2312"];
-  const wavePattern = (length: number): string => {
-    return Array.from({ length }, (_, i) => {
-      const wave = WAVE[i % WAVE.length];
-      const color = i % 2 === 0 ? P.turquoise : P.aquamarine;
-      return `${color}${wave}${RESET}`;
-    }).join("");
-  };
-
-  // LifeOS logo \u2014 ascending-staircase mark
-  const logo = lifeosLogoSmall();
-  const LOGO_WIDTH = 10;
-
-  const SYM = { user: "\u2756", skills: "\u25c6", hooks: "\u2699", learn: "\u25c7", files: "\u25a2", model: "\u25ce", link: "\u27a4", wave: "\u223c", drop: "\u25cf" };
-
-  const infoLines = [
-    `${P.aquamarine}${SYM.user}${RESET} ${BOLD}${P.turquoise}${stats.name}${RESET}${P.mediumTeal}@${RESET}${P.aqua}lifeos${RESET}`,
-    `${P.teal}${BOX.h.repeat(28)}${RESET}`,
-    `${P.mediumTeal}${SYM.wave}${RESET} ${P.paleAqua}OS${RESET}         ${P.aquamarine}LifeOS ${stats.paiVersion}${RESET}`,
-    `${P.mediumTeal}${SYM.skills}${RESET} ${P.paleAqua}Skills${RESET}     ${BOLD}${P.turquoise}${stats.skills}${RESET} ${P.active}${SYM.drop}${RESET}`,
-    `${P.mediumTeal}${SYM.hooks}${RESET} ${P.paleAqua}Hooks${RESET}      ${BOLD}${P.turquoise}${stats.hooks}${RESET}`,
-    `${P.mediumTeal}${SYM.model}${RESET} ${P.paleAqua}Model${RESET}      ${BOLD}${P.aquamarine}${stats.model}${RESET}`,
-    `${P.teal}${BOX.h.repeat(28)}${RESET}`,
-    `${sparkline(20, [P.logoP, P.teal, P.mediumTeal, P.turquoise, P.aquamarine])}`,
-    `${P.mediumTeal}${SYM.link}${RESET} ${P.midSea}${stats.repoUrl}${RESET}`,
-  ];
-
-  const gap = "   ";
-  const logoTopPad = Math.floor((infoLines.length - logo.length) / 2);
-  const contentWidth = LOGO_WIDTH + 3 + 35;
-  const leftPad = Math.floor((width - contentWidth) / 2);
-  const pad = " ".repeat(Math.max(2, leftPad));
-
-  const lines: string[] = [""];
-  for (let i = 0; i < infoLines.length; i++) {
-    const logoIndex = i - logoTopPad;
-    const logoRow = (logoIndex >= 0 && logoIndex < logo.length) ? logo[logoIndex] : " ".repeat(LOGO_WIDTH);
-    lines.push(`${pad}${padEnd(logoRow, LOGO_WIDTH)}${gap}${infoLines[i]}`);
-  }
-
-  const footerWidth = Math.min(width - 4, 60);
-  const paiText = `${BOLD}${lifeosWordmark()}`;
-  const waves = wavePattern(3);
-  const footer = `${waves} ${paiText} ${P.teal}${BOX.v}${RESET} ${ITALIC}${P.paleAqua}Teal Aqua Theme${RESET} ${waves}`;
-  lines.push("");
-  lines.push(`${pad}${P.teal}${BOX.tl}${BOX.h.repeat(footerWidth - 2)}${BOX.tr}${RESET}`);
-  lines.push(`${pad}${P.teal}${BOX.v}${RESET}${center(footer, footerWidth - 2)}${P.teal}${BOX.v}${RESET}`);
-  lines.push(`${pad}${P.teal}${BOX.bl}${BOX.h.repeat(footerWidth - 2)}${BOX.br}${RESET}`);
-  lines.push("");
-
-  return lines.join("\n");
-}
-
-// Design 16: Ice/Frost Theme
-function createIceBanner(stats: SystemStats, width: number): string {
-  const P = {
-    logoP: rgb(135, 160, 190),
-    logoA: rgb(173, 216, 230),
-    logoI: rgb(240, 248, 255),
-    deepIce: rgb(176, 196, 222),
-    iceBlue: rgb(173, 216, 230),
-    frost: rgb(200, 230, 255),
-    paleFrost: rgb(220, 240, 255),
-    white: rgb(248, 250, 252),
-    pureWhite: rgb(255, 255, 255),
-    glacierBlue: rgb(135, 206, 235),
-    slateBlue: rgb(106, 135, 165),
-    active: rgb(100, 200, 150),
-  };
-
-  const CRYSTAL = ["\u2727", "\u2728", "\u2729", "\u272a", "\u00b7", "\u2022"];
-  const crystalPattern = (length: number): string => {
-    return Array.from({ length }, (_, i) => {
-      const crystal = CRYSTAL[i % CRYSTAL.length];
-      const color = i % 2 === 0 ? P.frost : P.white;
-      return `${color}${crystal}${RESET}`;
-    }).join(" ");
-  };
-
-  // LifeOS logo \u2014 ascending-staircase mark
-  const logo = lifeosLogoSmall();
-  const LOGO_WIDTH = 10;
-
-  const SYM = { user: "\u2727", skills: "\u2726", hooks: "\u2699", learn: "\u25c7", files: "\u25a1", model: "\u25cb", link: "\u2192", snow: "\u2022", crystal: "\u2729" };
-
-  const infoLines = [
-    `${P.white}${SYM.user}${RESET} ${BOLD}${P.pureWhite}${stats.name}${RESET}${P.frost}@${RESET}${P.paleFrost}lifeos${RESET}`,
-    `${P.deepIce}${BOX.h.repeat(28)}${RESET}`,
-    `${P.iceBlue}${SYM.crystal}${RESET} ${P.frost}OS${RESET}         ${P.white}LifeOS ${stats.paiVersion}${RESET}`,
-    `${P.iceBlue}${SYM.skills}${RESET} ${P.frost}Skills${RESET}     ${BOLD}${P.pureWhite}${stats.skills}${RESET} ${P.active}${SYM.snow}${RESET}`,
-    `${P.iceBlue}${SYM.hooks}${RESET} ${P.frost}Hooks${RESET}      ${BOLD}${P.pureWhite}${stats.hooks}${RESET}`,
-    `${P.iceBlue}${SYM.model}${RESET} ${P.frost}Model${RESET}      ${BOLD}${P.glacierBlue}${stats.model}${RESET}`,
-    `${P.deepIce}${BOX.h.repeat(28)}${RESET}`,
-    `${sparkline(20, [P.slateBlue, P.deepIce, P.iceBlue, P.frost, P.paleFrost])}`,
-    `${P.iceBlue}${SYM.link}${RESET} ${P.slateBlue}${stats.repoUrl}${RESET}`,
-  ];
-
-  const gap = "   ";
-  const logoTopPad = Math.floor((infoLines.length - logo.length) / 2);
-  const contentWidth = LOGO_WIDTH + 3 + 35;
-  const leftPad = Math.floor((width - contentWidth) / 2);
-  const pad = " ".repeat(Math.max(2, leftPad));
-
-  const lines: string[] = [""];
-  for (let i = 0; i < infoLines.length; i++) {
-    const logoIndex = i - logoTopPad;
-    const logoRow = (logoIndex >= 0 && logoIndex < logo.length) ? logo[logoIndex] : " ".repeat(LOGO_WIDTH);
-    lines.push(`${pad}${padEnd(logoRow, LOGO_WIDTH)}${gap}${infoLines[i]}`);
-  }
-
-  const footerWidth = Math.min(width - 4, 60);
-  const paiText = `${BOLD}${lifeosWordmark()}`;
-  const crystals = crystalPattern(2);
-  const footer = `${crystals} ${paiText} ${P.deepIce}${BOX.v}${RESET} ${ITALIC}${P.frost}Ice Frost Theme${RESET} ${crystals}`;
-  lines.push("");
-  lines.push(`${pad}${P.deepIce}${BOX.tl}${BOX.h.repeat(footerWidth - 2)}${BOX.tr}${RESET}`);
-  lines.push(`${pad}${P.deepIce}${BOX.v}${RESET}${center(footer, footerWidth - 2)}${P.deepIce}${BOX.v}${RESET}`);
-  lines.push(`${pad}${P.deepIce}${BOX.bl}${BOX.h.repeat(footerWidth - 2)}${BOX.br}${RESET}`);
   lines.push("");
 
   return lines.join("\n");
@@ -795,8 +538,8 @@ const BREAKPOINTS = {
   // Below 45: Ultra-compact text only
 };
 
-type DesignName = "navy" | "navy-medium" | "navy-compact" | "navy-minimal" | "navy-ultra" | "electric" | "teal" | "ice";
-const ALL_DESIGNS: DesignName[] = ["navy", "navy-medium", "navy-compact", "navy-minimal", "navy-ultra", "electric", "teal", "ice"];
+type DesignName = "navy" | "navy-medium" | "navy-compact" | "navy-minimal" | "navy-ultra";
+const ALL_DESIGNS: DesignName[] = ["navy", "navy-medium", "navy-compact", "navy-minimal", "navy-ultra"];
 
 function createBanner(forceDesign?: string): string {
   const width = getTerminalWidth();
@@ -810,9 +553,6 @@ function createBanner(forceDesign?: string): string {
       case "navy-compact": return createNavyCompactBanner(stats, width);
       case "navy-minimal": return createNavyMinimalBanner(stats, width);
       case "navy-ultra": return createNavyUltraCompactBanner(stats, width);
-      case "electric": return createElectricBanner(stats, width);
-      case "teal": return createTealBanner(stats, width);
-      case "ice": return createIceBanner(stats, width);
     }
   }
 

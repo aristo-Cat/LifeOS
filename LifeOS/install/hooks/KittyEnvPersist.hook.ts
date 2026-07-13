@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 /**
+ * @version 1.4.13
  * KittyEnvPersist.hook.ts - Kitty terminal env persistence + tab reset (SessionStart)
  *
  * PURPOSE:

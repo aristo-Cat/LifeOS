@@ -1,3 +1,7 @@
+---
+version: 1.1.9
+---
+
 # LifeOS Containment Policy
 
 > Containment zones draw the Life OS boundary at release time (`LIFEOS/DOCUMENTATION/LifeOs/LifeOsThesis.md`): the OS ships; the life never does.

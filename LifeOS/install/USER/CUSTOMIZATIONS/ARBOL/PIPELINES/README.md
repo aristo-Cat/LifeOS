@@ -1,3 +1,7 @@
+---
+provenance: template
+---
+
 # PIPELINES
 
 **Purpose:** Sequential processing chains that compose actions into linear workflows where the output of one action feeds directly into the next.

@@ -15,7 +15,7 @@
  * @version 1.0.0
  */
 
-import { execSync } from 'child_process';
+import { execFileSync } from 'child_process';
 import { writeFileSync } from 'fs';
 
 const HELP = `
@@ -64,7 +64,8 @@ const outputFile = saveIndex !== -1 ? args[saveIndex + 1] : null;
 console.log(`📺 Extracting transcript from: ${url}`);
 
 try {
-  const transcript = execSync(`fabric -y "${url}"`, {
+  // execFileSync with array args: url is passed directly to fabric, never through a shell
+  const transcript = execFileSync('fabric', ['-y', url], {
     encoding: 'utf-8',
     timeout: 120000, // 2 minute timeout
     maxBuffer: 10 * 1024 * 1024 // 10MB buffer for long transcripts

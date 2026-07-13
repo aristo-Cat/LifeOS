@@ -1,9 +1,9 @@
 /**
  * InstallEngine — shared install logic for the LifeOS bare-skill installer.
  *
- * This is a standalone, adapted subset of the legacy installer engine at
- * `PAI/LIFEOS_INSTALL/engine/` (detect.ts + the relevant types), reshaped for the
- * bare-skill context: no web/electron wizard, no separate types module, plus
+ * This is a standalone install engine, reshaped for the bare-skill context
+ * from the now-retired pre-6.x GUI installer engine (detect logic + types):
+ * no web/electron wizard, no separate types module, plus
  * the bare-skill extras the wizard never needed — harness detection (the skill
  * installs into Claude Code / Hermes / Cursor / OpenClaw) and dev-tree refusal
  * (never mutate the author's source repo).
@@ -34,7 +34,7 @@ export interface ToolInfo {
   path?: string;
 }
 
-export type Harness = "claude-code" | "codex" | "hermes" | "cursor" | "cline" | "gemini" | "openclaw" | "unknown";
+export type Harness = "claude-code" | "opencode" | "codex" | "hermes" | "cursor" | "cline" | "gemini" | "openclaw" | "unknown";
 
 export interface HarnessInfo {
   name: Harness;
@@ -42,6 +42,13 @@ export interface HarnessInfo {
   skillsDir?: string;
   /** The config root the harness resolves (e.g. ~/.claude). */
   configRoot?: string;
+  /**
+   * "detected" = the harness binary was found on PATH; "assumed" = inferred
+   * from a config dir alone, or the clean-machine default. The Setup workflow
+   * must confirm an "assumed" harness with the user before branching (#1448 —
+   * a leftover ~/.claude dir sent an OpenCode install down the Claude Code path).
+   */
+  confidence: "detected" | "assumed";
 }
 
 export interface EnvDetection {
@@ -110,45 +117,62 @@ export function detectTool(name: string, versionCmd: string): ToolInfo {
 
 /**
  * Detect which harness is hosting this install and where it loads skills from.
- * Order: explicit env (CLAUDE_CONFIG_DIR) → Claude Code (~/.claude) →
- * Hermes (~/.hermes) → Cursor (~/.cursor) → OpenClaw (~/.openclaw) → unknown.
+ * Signal strength (#1448): config dir + harness binary on PATH beats config dir
+ * alone beats binary alone — a leftover ~/.claude dir on a machine without the
+ * claude CLI must not out-rank a live OpenCode install. Anything short of a
+ * binary match is reported as confidence "assumed", never as fact.
  */
 export function detectHarness(home: string): HarnessInfo {
+  // Port early-returns (re-injected on upstream's confidence skeleton): an explicit
+  // env override or the module's own install location is a decisive signal → "detected".
   if (process.env.CLAUDE_CONFIG_DIR) {
     const root = process.env.CLAUDE_CONFIG_DIR;
-    return { name: "claude-code", configRoot: root, skillsDir: join(root, "skills") };
+    return { name: "claude-code", configRoot: root, skillsDir: join(root, "skills"), confidence: "detected" };
   }
   if (process.env.CODEX_HOME) {
     const root = process.env.CODEX_HOME;
-    return { name: "codex", configRoot: root, skillsDir: join(root, "skills") };
+    return { name: "codex", configRoot: root, skillsDir: join(root, "skills"), confidence: "detected" };
   }
 
   const moduleDir = import.meta.dir.replace(/\\/g, "/").toLowerCase();
   if (moduleDir.includes("/.codex/")) {
     const root = join(home, ".codex");
-    return { name: "codex", configRoot: root, skillsDir: join(root, "skills") };
+    return { name: "codex", configRoot: root, skillsDir: join(root, "skills"), confidence: "detected" };
   }
   if (moduleDir.includes("/.claude/")) {
     const root = join(home, ".claude");
-    return { name: "claude-code", configRoot: root, skillsDir: join(root, "skills") };
+    return { name: "claude-code", configRoot: root, skillsDir: join(root, "skills"), confidence: "detected" };
   }
 
-  const candidates: Array<{ name: Harness; root: string; skills: string }> = [
-    { name: "claude-code", root: join(home, ".claude"), skills: "skills" },
-    { name: "codex", root: join(home, ".codex"), skills: "skills" },
-    { name: "hermes", root: join(home, ".hermes"), skills: "skills" },
-    { name: "cursor", root: join(home, ".cursor"), skills: "skills" },
-    { name: "cline", root: join(home, ".cline"), skills: "skills" },
-    { name: "gemini", root: join(home, ".gemini"), skills: "skills" },
-    { name: "openclaw", root: join(home, ".openclaw"), skills: "skills" },
+  const candidates: Array<{ name: Harness; root: string; skills: string; bin: string }> = [
+    { name: "claude-code", root: process.env.CLAUDE_CONFIG_DIR || join(home, ".claude"), skills: "skills", bin: "claude" },
+    { name: "opencode", root: process.env.OPENCODE_CONFIG_DIR || join(home, ".config", "opencode"), skills: "skills", bin: "opencode" },
+    { name: "codex", root: process.env.CODEX_HOME || join(home, ".codex"), skills: "skills", bin: "codex" },
+    { name: "hermes", root: join(home, ".hermes"), skills: "skills", bin: "hermes" },
+    { name: "cursor", root: join(home, ".cursor"), skills: "skills", bin: "cursor" },
+    { name: "cline", root: join(home, ".cline"), skills: "skills", bin: "cline" },
+    { name: "gemini", root: join(home, ".gemini"), skills: "skills", bin: "gemini" },
+    { name: "openclaw", root: join(home, ".openclaw"), skills: "skills", bin: "openclaw" },
   ];
+  const hasBin = (c: (typeof candidates)[number]) =>
+    !!tryExec(process.platform === "win32" ? `where ${c.bin}` : `command -v ${c.bin}`);
+  const info = (c: (typeof candidates)[number], confidence: HarnessInfo["confidence"]): HarnessInfo => ({
+    name: c.name,
+    configRoot: c.root,
+    skillsDir: join(c.root, c.skills),
+    confidence,
+  });
   for (const c of candidates) {
-    if (existsSync(c.root)) {
-      return { name: c.name, configRoot: c.root, skillsDir: join(c.root, c.skills) };
-    }
+    if (existsSync(c.root) && hasBin(c)) return info(c, "detected");
+  }
+  for (const c of candidates) {
+    if (existsSync(c.root)) return info(c, "assumed");
+  }
+  for (const c of candidates) {
+    if (hasBin(c)) return info(c, "detected");
   }
   // Default assumption when nothing is present yet (a clean machine pre-bootstrap).
-  return { name: "claude-code", configRoot: join(home, ".claude"), skillsDir: join(home, ".claude", "skills") };
+  return { name: "claude-code", configRoot: join(home, ".claude"), skillsDir: join(home, ".claude", "skills"), confidence: "assumed" };
 }
 
 /**
@@ -336,7 +360,7 @@ import { cpSync, lstatSync, mkdirSync, readdirSync, readlinkSync, realpathSync, 
 import { dirname } from "node:path";
 
 const TEMPLATE_EXTENSIONS = new Set([".md", ".json", ".txt", ".ts", ".toml", ".yaml", ".yml", ".sh"]);
-const SKIP_DIRS = new Set(["node_modules", ".git", "LIFEOS_INSTALL", "MEMORY"]);
+const SKIP_DIRS = new Set(["node_modules", ".git", "MEMORY"]);
 
 /**
  * Recursive, existsSync-GUARDED copy. Copies only files/dirs absent at dst —

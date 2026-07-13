@@ -23,6 +23,8 @@
  */
 
 import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { getDAName } from "../../hooks/lib/identity"
+
 import { join as pathJoin, resolve as pathResolve } from "node:path";
 import { homedir } from "node:os";
 import {
@@ -253,7 +255,7 @@ function relTime(iso: string | null): string {
 
 function renderText(r: StatusReport): string {
   const out: string[] = [];
-  out.push("kai status — LifeOS memory subsystem");
+  out.push(`${getDAName().toLowerCase()} status — LifeOS memory subsystem`);
   out.push("─".repeat(48));
   out.push("");
   out.push("Hot-layer memory files:");

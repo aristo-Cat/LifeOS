@@ -282,7 +282,7 @@ export default function EventRow({ event }: EventRowProps) {
                           ? "#7dcfff"
                           : event.hook_event_type === "Completed"
                           ? "#9ece6a"
-                          : "#9aa5ce",
+                          : "var(--ink-2)",
                     }}
                   >
                     {toolInfo.detail}
@@ -301,7 +301,7 @@ export default function EventRow({ event }: EventRowProps) {
           </div>
 
           {/* Timestamp */}
-          <span className="text-xs text-[#414868] font-medium whitespace-nowrap">
+          <span className="text-xs text-[var(--line-2)] font-medium whitespace-nowrap">
             {formatTime(event.timestamp)}
           </span>
         </div>
@@ -311,7 +311,7 @@ export default function EventRow({ event }: EventRowProps) {
           <div className="mt-3 pt-3 border-t border-white/[0.04] space-y-3">
             <div>
               <div className="flex items-center justify-between mb-2">
-                <h4 className="text-sm font-medium text-[#9aa5ce] flex items-center gap-1.5">
+                <h4 className="text-sm font-medium text-[var(--ink-2)] flex items-center gap-1.5">
                   <Package size={14} strokeWidth={2} />
                   Payload
                 </h4>
@@ -320,7 +320,7 @@ export default function EventRow({ event }: EventRowProps) {
                     e.stopPropagation();
                     copyPayload();
                   }}
-                  className="px-3 py-1.5 text-xs font-medium rounded-lg flex items-center gap-1.5 text-[#9aa5ce] hover:text-white bg-white/[0.03] hover:bg-white/[0.06] transition-colors"
+                  className="px-3 py-1.5 text-xs font-medium rounded-lg flex items-center gap-1.5 text-[var(--ink-2)] hover:text-white bg-white/[0.03] hover:bg-white/[0.06] transition-colors"
                 >
                   <Copy size={12} strokeWidth={2} />
                   {copyText}

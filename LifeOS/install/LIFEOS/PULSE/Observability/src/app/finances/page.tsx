@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   DollarSign,
   Landmark,
@@ -43,6 +43,17 @@ import {
 } from "recharts";
 import { FreshnessIndicator, type FreshnessData } from "@/components/FreshnessIndicator";
 import EmptyStateGuide from "@/components/EmptyStateGuide";
+import {
+  PageShell,
+  PageHeader,
+  Panel,
+  PanelHeader,
+  StatTile,
+  TabBar,
+  Pill,
+  type Dim,
+  type TabSpec,
+} from "@/components/ui/chrome";
 
 // ─── Types matching /api/life/finances v2 envelope ───
 
@@ -145,6 +156,12 @@ interface FinancesDataV2 {
   investments?: Section[];
   taxes?: Section[];
   overview?: Section[];
+  plan?: {
+    present: boolean;
+    flywheel: { n: number; stage: string; text: string }[];
+    targets: { headers: string[]; rows: string[][] } | null;
+    sections: Section[];
+  };
   incomeStreams?: Stream[];
   expenseCategories?: Stream[];
   annualIncome?: number;
@@ -160,6 +177,7 @@ interface FinancesDataV2 {
     accounts?: FreshnessData;
     investments?: FreshnessData;
     taxes?: FreshnessData;
+    plan?: FreshnessData;
   };
 }
 
@@ -186,7 +204,9 @@ function fmtPct(rate: number | null | undefined): string {
   return `${(n * 100).toFixed(1)}%`;
 }
 
-// ─── Palette — v8 dimensions, with coral reserved for outbound/net-negative ───
+// ─── Palette — chart color scales (kept as literals; the Sankey/line series
+// coloring keys off these exact values). Semantic dimension/status/chrome
+// colors elsewhere on the page come from the design tokens in globals.css. ───
 
 const DIMENSION_PALETTE = ["#34D399", "#E0A458", "#7DD3FC", "#F87B7B", "#B794F4", "#2DD4BF"];
 const SANKEY_INCOME_PALETTE = ["#34D399", "#E0A458"];
@@ -259,34 +279,29 @@ function KpiChip({
   tone: "income" | "outbound" | "net" | "neutral";
   sensitive?: boolean;
 }) {
-  const toneColor =
+  const dim: Dim | undefined =
     tone === "income"
-      ? "#E0A458"
+      ? "money"
       : tone === "outbound"
-        ? "#F87B7B"
+        ? "creative"
         : tone === "net"
-          ? "#7DD3FC"
-          : "#E8EFFF";
+          ? "freedom"
+          : undefined;
   return (
-    <div className="flex flex-col gap-0.5">
-      <span className="text-[13px] font-medium uppercase tracking-wider muted">{label}</span>
-      <span
-        className="text-lg font-medium tabular-nums"
-        style={{ color: toneColor }}
-        {...(sensitive ? { "data-sensitive": true } : {})}
-      >
-        {value}
-      </span>
-    </div>
+    <StatTile
+      label={label}
+      dim={dim}
+      value={sensitive ? <span data-sensitive>{value}</span> : value}
+    />
   );
 }
 
 function SourceBadge({ source }: { source: string }) {
-  return <span className="pill pill-rhythms">{source}</span>;
+  return <Pill dim="rhythms">{source}</Pill>;
 }
 
 function ScopeBadge({ scope }: { scope: string }) {
-  return <span className="pill pill-money">{scope}</span>;
+  return <Pill dim="money">{scope}</Pill>;
 }
 
 function LineRow({ line, tone }: { line: ResolvedLine; tone: "income" | "outbound" }) {
@@ -295,9 +310,11 @@ function LineRow({ line, tone }: { line: ResolvedLine; tone: "income" | "outboun
     tone === "income" ? INCOME_ICON : OUTBOUND_ICON,
     tone === "income" ? Wallet : Receipt,
   );
-  const toneColor = tone === "income" ? "#E0A458" : "#F87B7B";
+  const toneColor = tone === "income" ? "var(--money)" : "var(--creative)";
+  const accentClass =
+    tone === "income" ? "[border-left-color:var(--money)]" : "[border-left-color:var(--creative)]";
   return (
-    <div className={`telos-card dim-${tone === "income" ? "money" : "creative"}`} style={{ cursor: "default", padding: 16, gap: 6, borderLeft: `3px solid ${toneColor}` }}>
+    <Panel className={`p-4 border-l-[3px] ${accentClass}`}>
       <div className="flex items-start gap-3">
         <Icon className="w-4 h-4 mt-1 shrink-0" color={toneColor} />
         <div className="flex-1 min-w-0">
@@ -314,44 +331,44 @@ function LineRow({ line, tone }: { line: ResolvedLine; tone: "income" | "outboun
             >
               {fmtHero(line.monthly_usd)}
             </span>
-            <span className="text-xs muted">/mo</span>
-            <span className="ml-auto text-xs tabular-nums muted" data-sensitive>
+            <span className="text-xs text-ink-2">/mo</span>
+            <span className="ml-auto text-xs tabular-nums text-ink-2" data-sensitive>
               {fmtHero(line.annual_usd)}/yr
             </span>
           </div>
           {line.notes && (
-            <p className="mt-1 text-[12px] line-clamp-2 muted">{line.notes}</p>
+            <p className="mt-1 text-[12px] line-clamp-2 text-ink-2">{line.notes}</p>
           )}
         </div>
       </div>
-    </div>
+    </Panel>
   );
 }
 
 function StreamCard({ stream }: { stream: Stream }) {
   const Icon = pickIcon(stream.label, INCOME_ICON, Wallet);
   return (
-    <div className="telos-card dim-money" style={{ cursor: "default", padding: 16, gap: 6, borderLeft: "3px solid #E0A458" }}>
+    <Panel className="p-4 border-l-[3px] [border-left-color:var(--money)]">
       <div className="flex items-start gap-3">
-        <Icon className="w-4 h-4 mt-1 shrink-0" color="#E0A458" />
+        <Icon className="w-4 h-4 mt-1 shrink-0" color="var(--money)" />
         <div className="flex-1 min-w-0">
           <span className="text-sm font-medium truncate block">{stream.label}</span>
           <div className="mt-1 flex items-baseline gap-2">
             <span
               className="text-lg font-medium tabular-nums"
-              style={{ color: "#E0A458" }}
+              style={{ color: "var(--money)" }}
               data-sensitive
             >
               {fmtHero(stream.annual)}
             </span>
-            <span className="text-xs muted">/yr</span>
-            <span className="ml-auto text-xs tabular-nums muted" data-sensitive>
+            <span className="text-xs text-ink-2">/yr</span>
+            <span className="ml-auto text-xs tabular-nums text-ink-2" data-sensitive>
               {fmtHero(stream.annual / 12)}/mo
             </span>
           </div>
         </div>
       </div>
-    </div>
+    </Panel>
   );
 }
 
@@ -365,36 +382,33 @@ function IncomeHero({
   freshness?: FreshnessData;
 }) {
   return (
-    <div className="telos-card dim-money relative" style={{ cursor: "default", borderLeft: "3px solid #E0A458" }}>
+    <Panel className="relative border-l-[3px] [border-left-color:var(--money)]">
       <div className="absolute top-5 right-5 md:top-6 md:right-6 z-10">
         <FreshnessIndicator freshness={freshness} />
       </div>
-      <span className="text-[13px] font-medium uppercase tracking-wider muted">Total Annual Income</span>
+      <span className="text-[13px] font-medium uppercase tracking-wider text-ink-2">Total Annual Income</span>
       <div className="flex items-baseline gap-3 mt-1">
         <span
           className="text-5xl font-medium tabular-nums"
-          style={{ color: "#E0A458", letterSpacing: "-0.02em" }}
+          style={{ color: "var(--money)", letterSpacing: "-0.02em" }}
           data-sensitive
         >
           {fmtHero(data.annual)}
         </span>
-        <span className="text-sm muted" data-sensitive>
+        <span className="text-sm text-ink-2" data-sensitive>
           {fmtHero(data.monthly)}/mo
         </span>
       </div>
-      <span className="text-sm mt-1 block muted">
+      <span className="text-sm mt-1 block text-ink-2">
         <Lock className="inline w-3 h-3 mr-1" /> Private. Toggle Observer mode to blur.
       </span>
-      <div
-        className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-4"
-        style={{ borderTop: "1px solid #1A2A4D" }}
-      >
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-5">
         <KpiChip label="Monthly Recurring" value={fmtHero(data.mrr_monthly)} tone="income" />
         <KpiChip label="MRR Annualized" value={fmtHero(data.mrr_annual)} tone="income" />
         <KpiChip label="Streams" value={`${data.streams.length}`} tone="neutral" sensitive={false} />
         <KpiChip label="Monthly Income" value={fmtHero(data.monthly)} tone="income" />
       </div>
-    </div>
+    </Panel>
   );
 }
 
@@ -406,30 +420,27 @@ function OutboundHero({
   freshness?: FreshnessData;
 }) {
   return (
-    <div className="telos-card dim-creative relative" style={{ cursor: "default", borderLeft: "3px solid #F87B7B" }}>
+    <Panel className="relative border-l-[3px] [border-left-color:var(--creative)]">
       <div className="absolute top-5 right-5 md:top-6 md:right-6 z-10">
         <FreshnessIndicator freshness={freshness} />
       </div>
-      <span className="text-[13px] font-medium uppercase tracking-wider muted">Total Annual Expenses</span>
+      <span className="text-[13px] font-medium uppercase tracking-wider text-ink-2">Total Annual Expenses</span>
       <div className="flex items-baseline gap-3 mt-1">
         <span
           className="text-5xl font-medium tabular-nums"
-          style={{ color: "#F87B7B", letterSpacing: "-0.02em" }}
+          style={{ color: "var(--creative)", letterSpacing: "-0.02em" }}
           data-sensitive
         >
           {fmtHero(data.annual)}
         </span>
-        <span className="text-sm muted" data-sensitive>
+        <span className="text-sm text-ink-2" data-sensitive>
           {fmtHero(data.monthly)}/mo
         </span>
       </div>
-      <span className="text-sm mt-1 block muted">
+      <span className="text-sm mt-1 block text-ink-2">
         <Lock className="inline w-3 h-3 mr-1" /> Sum of vendors, personal obligations, and other.
       </span>
-      <div
-        className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-4"
-        style={{ borderTop: "1px solid #1A2A4D" }}
-      >
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-5">
         <KpiChip label="Vendors" value={fmtHero(data.vendors_annual)} tone="outbound" />
         <KpiChip label="Obligations" value={fmtHero(data.obligations_annual)} tone="outbound" />
         <KpiChip label="Other" value={fmtHero(data.other_annual)} tone="outbound" />
@@ -440,7 +451,7 @@ function OutboundHero({
           sensitive={false}
         />
       </div>
-    </div>
+    </Panel>
   );
 }
 
@@ -455,13 +466,13 @@ function OverallHero({
 }) {
   const pre = periodView === "monthly" ? data.net_pre_tax_monthly : data.net_pre_tax_annual;
   const post = periodView === "monthly" ? data.net_post_tax_monthly : data.net_post_tax_annual;
-  const preColor = pre >= 0 ? "#7DD3FC" : "#F87B7B";
+  const preColor = pre >= 0 ? "var(--freedom)" : "var(--creative)";
   return (
-    <div className="telos-card dim-freedom relative" style={{ cursor: "default", borderLeft: "3px solid #7DD3FC" }}>
+    <Panel className="relative border-l-[3px] [border-left-color:var(--freedom)]">
       <div className="absolute top-5 right-5 md:top-6 md:right-6 z-10">
         <FreshnessIndicator freshness={freshness} />
       </div>
-      <span className="text-[13px] font-medium uppercase tracking-wider muted">
+      <span className="text-[13px] font-medium uppercase tracking-wider text-ink-2">
         Net ({periodView === "monthly" ? "Monthly" : "Annual"})
       </span>
       <div className="flex items-baseline gap-3 mt-1">
@@ -472,12 +483,9 @@ function OverallHero({
         >
           {fmtHero(pre)}
         </span>
-        <span className="text-sm muted">pre-tax</span>
+        <span className="text-sm text-ink-2">pre-tax</span>
       </div>
-      <div
-        className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-4"
-        style={{ borderTop: "1px solid #1A2A4D" }}
-      >
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-5">
         <KpiChip
           label="Post-Tax Net"
           value={fmtHero(post)}
@@ -504,7 +512,7 @@ function OverallHero({
           tone="net"
         />
       </div>
-    </div>
+    </Panel>
   );
 }
 
@@ -512,39 +520,37 @@ function OverallHero({
 
 function TrendChart({ trend }: { trend: TrendPoint[] }) {
   return (
-    <div className="telos-card dim-money" style={{ cursor: "default", borderLeft: "3px solid #E0A458" }}>
-      <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
-        <ArrowLeftRight className="w-4 h-4" color="#B794F4" /> Income vs Expenses — 12 Month Trend
-      </h3>
+    <Panel className="border-l-[3px] [border-left-color:var(--money)]">
+      <PanelHeader icon={ArrowLeftRight} title="Income vs Expenses — 12 Month Trend" />
       <div className="w-full h-64" data-sensitive>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={trend}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#1A2A4D" />
-            <XAxis dataKey="month" stroke="#6B80AB" fontSize={11} />
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--line-1)" />
+            <XAxis dataKey="month" stroke="var(--ink-3)" fontSize={11} />
             <YAxis
-              stroke="#6B80AB"
+              stroke="var(--ink-3)"
               fontSize={11}
               tickFormatter={(v) => `$${Math.round(v / 1000)}K`}
             />
             <Tooltip
               contentStyle={{
-                backgroundColor: "#0F1A33",
-                border: "1px solid #1A2A4D",
+                backgroundColor: "var(--surface-1)",
+                border: "1px solid var(--line-1)",
                 borderRadius: 8,
-                color: "#E8EFFF",
+                color: "var(--ink-1)",
               }}
             />
-            <Legend wrapperStyle={{ fontSize: 12, color: "#9BB0D6" }} />
-            <Line type="monotone" dataKey="income" stroke="#E0A458" strokeWidth={2} dot={false} name="Income" />
-            <Line type="monotone" dataKey="outbound" stroke="#F87B7B" strokeWidth={2} dot={false} name="Expenses" />
-            <Line type="monotone" dataKey="net" stroke="#7DD3FC" strokeWidth={2} dot={false} name="Net" />
+            <Legend wrapperStyle={{ fontSize: 12, color: "var(--ink-2)" }} />
+            <Line type="monotone" dataKey="income" stroke="var(--money)" strokeWidth={2} dot={false} name="Income" />
+            <Line type="monotone" dataKey="outbound" stroke="var(--creative)" strokeWidth={2} dot={false} name="Expenses" />
+            <Line type="monotone" dataKey="net" stroke="var(--freedom)" strokeWidth={2} dot={false} name="Net" />
           </LineChart>
         </ResponsiveContainer>
       </div>
-      <p className="text-[12px] mt-2 muted">
+      <p className="text-[12px] mt-2 text-ink-2">
         Flat baseline until Phase 2 collectors accumulate historical monthly data.
       </p>
-    </div>
+    </Panel>
   );
 }
 
@@ -595,7 +601,7 @@ function SankeyNode(props: SankeyNodeProps) {
         y={y + height / 2}
         textAnchor={isLeft ? "end" : "start"}
         dominantBaseline="central"
-        fill="#E8EFFF"
+        fill="var(--ink-1)"
         fontSize={12}
         fontWeight={500}
       >
@@ -606,7 +612,7 @@ function SankeyNode(props: SankeyNodeProps) {
         y={y + height / 2 + 16}
         textAnchor={isLeft ? "end" : "start"}
         dominantBaseline="central"
-        fill="#9BB0D6"
+        fill="var(--ink-2)"
         fontSize={11}
         data-sensitive
       >
@@ -717,7 +723,7 @@ function FinancesSankey({
   if (data.nodes.length === 0) return null;
 
   return (
-    <div className="telos-card" style={{ cursor: "default", padding: 16 }}>
+    <Panel className="p-4">
       <div className="w-full h-[460px]" data-sensitive>
         <Sankey
           width={1200}
@@ -730,97 +736,33 @@ function FinancesSankey({
         >
           <Tooltip
             contentStyle={{
-              backgroundColor: "#0F1A33",
-              border: "1px solid #1A2A4D",
+              backgroundColor: "var(--surface-1)",
+              border: "1px solid var(--line-1)",
               borderRadius: 8,
-              color: "#E8EFFF",
+              color: "var(--ink-1)",
             }}
             formatter={(v: number) => fmtExact(v)}
           />
         </Sankey>
       </div>
-    </div>
+    </Panel>
   );
 }
 
-// ─── Inline Tabs (no new dep) ───
+// ─── Tabs ───
 
-type TabKey = "income" | "outbound" | "overall";
-const TABS: { key: TabKey; label: string; icon: LucideIcon }[] = [
-  { key: "income", label: "Income", icon: ArrowUpCircle },
-  { key: "outbound", label: "Expenses", icon: ArrowDownCircle },
-  { key: "overall", label: "Overall", icon: ArrowLeftRight },
+type TabKey = "income" | "outbound" | "overall" | "plan";
+const TABS: TabSpec<TabKey>[] = [
+  { id: "income", label: "Income", icon: ArrowUpCircle, dim: "money", hint: "1" },
+  { id: "outbound", label: "Expenses", icon: ArrowDownCircle, dim: "creative", hint: "2" },
+  { id: "overall", label: "Overall", icon: ArrowLeftRight, dim: "freedom", hint: "3" },
+  { id: "plan", label: "Flywheel", icon: TrendingUp, dim: "relationships", hint: "4" },
 ];
 
-function TabBar({
-  active,
-  onChange,
-}: {
-  active: TabKey;
-  onChange: (k: TabKey) => void;
-}) {
-  return (
-    <div
-      className="inline-flex items-center gap-1 p-1 rounded-lg"
-      style={{ background: "#0F1A33", border: "1px solid #1A2A4D" }}
-    >
-      {TABS.map((t, i) => {
-        const Icon = t.icon;
-        const isActive = active === t.key;
-        return (
-          <button
-            key={t.key}
-            onClick={() => onChange(t.key)}
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors"
-            style={{
-              background: isActive ? "#17284A" : "transparent",
-              color: isActive ? "#E8EFFF" : "#9BB0D6",
-            }}
-            aria-selected={isActive}
-            aria-label={`${t.label} tab (shortcut ${i + 1})`}
-            role="tab"
-          >
-            <Icon className="w-4 h-4" />
-            {t.label}
-            <span className="text-[12px] muted ml-1">{i + 1}</span>
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-function PeriodToggle({
-  value,
-  onChange,
-}: {
-  value: "monthly" | "annual";
-  onChange: (v: "monthly" | "annual") => void;
-}) {
-  return (
-    <div
-      className="inline-flex items-center gap-1 p-1 rounded-lg"
-      style={{ background: "#0F1A33", border: "1px solid #1A2A4D" }}
-    >
-      {(["monthly", "annual"] as const).map((v) => {
-        const isActive = value === v;
-        return (
-          <button
-            key={v}
-            onClick={() => onChange(v)}
-            className="px-3 py-1 rounded-md text-xs font-medium transition-colors"
-            style={{
-              background: isActive ? "#17284A" : "transparent",
-              color: isActive ? "#E8EFFF" : "#9BB0D6",
-            }}
-          >
-            {v === "monthly" ? "Monthly" : "Annual"}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
+const PERIOD_TABS: TabSpec<"monthly" | "annual">[] = [
+  { id: "monthly", label: "Monthly", dim: "freedom" },
+  { id: "annual", label: "Annual", dim: "freedom" },
+];
 
 // ─── Section renderers ───
 
@@ -837,26 +779,32 @@ function SectionGroup({
 }) {
   if (!items || items.length === 0) return null;
   const accent =
-    title === "Investments" ? "#34D399" : title === "Goals" ? "#B794F4" : "#F0A35E";
+    title === "Investments" ? "var(--health)" : title === "Goals" ? "var(--relationships)" : "var(--money)";
+  const accentClass =
+    title === "Investments"
+      ? "[border-left-color:var(--health)]"
+      : title === "Goals"
+        ? "[border-left-color:var(--relationships)]"
+        : "[border-left-color:var(--money)]";
   return (
     <section>
       <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-        <h2 className="text-sm font-medium uppercase tracking-widest muted flex items-center gap-2">
+        <h2 className="text-sm font-medium uppercase tracking-widest text-ink-2 flex items-center gap-2">
           <Icon className="w-4 h-4" color={accent} /> {title}
         </h2>
         {freshness && <FreshnessIndicator freshness={freshness} />}
       </div>
       <div className="prob-grid">
         {items.map((item, i) => (
-          <div key={i} className="telos-card" style={{ cursor: "default", borderLeft: `3px solid ${accent}` }}>
+          <Panel key={i} className={`border-l-[3px] ${accentClass}`}>
             <h3 className="text-sm font-medium mb-1">{item.heading}</h3>
             <div
-              className="text-xs whitespace-pre-wrap line-clamp-5 muted"
+              className="text-xs whitespace-pre-wrap line-clamp-5 text-ink-2"
               data-sensitive
             >
               {item.body}
             </div>
-          </div>
+          </Panel>
         ))}
       </div>
     </section>
@@ -874,14 +822,11 @@ function AccountCategory({ item }: { item: Section }) {
   const Icon = ACCOUNT_ICON[item.heading] || DollarSign;
   const subs = parseSubheadings(item.body);
   return (
-    <div
-      className="telos-card dim-money"
-      style={{ cursor: "default", borderLeft: "3px solid #E0A458" }}
-    >
+    <Panel className="border-l-[3px] [border-left-color:var(--money)]">
       <div className="flex items-center gap-2 mb-1">
-        <Icon className="w-4 h-4" color="#E0A458" />
+        <Icon className="w-4 h-4" color="var(--money)" />
         <h3 className="text-sm font-medium uppercase tracking-wider">{item.heading}</h3>
-        <span className="ml-auto text-xs muted">
+        <span className="ml-auto text-xs text-ink-2">
           {subs.length > 0 ? `${subs.length} items` : ""}
         </span>
       </div>
@@ -891,7 +836,7 @@ function AccountCategory({ item }: { item: Section }) {
             <div key={i} className="flex items-center gap-2 text-sm">
               <span
                 className="w-1.5 h-1.5 rounded-full shrink-0"
-                style={{ backgroundColor: "#2DD4BF", opacity: 0.6 }}
+                style={{ backgroundColor: "var(--rhythms)", opacity: 0.6 }}
               />
               <span>{s}</span>
             </div>
@@ -899,13 +844,13 @@ function AccountCategory({ item }: { item: Section }) {
         </div>
       ) : (
         <div
-          className="text-xs whitespace-pre-wrap line-clamp-5 muted"
+          className="text-xs whitespace-pre-wrap line-clamp-5 text-ink-2"
           data-sensitive
         >
           {item.body}
         </div>
       )}
-    </div>
+    </Panel>
   );
 }
 
@@ -920,8 +865,8 @@ function IncomeTab({ data }: { data: FinancesDataV2 }) {
       {income && <IncomeHero data={income} freshness={incomeFreshness} />}
       {streams.length > 0 && (
         <section>
-          <h2 className="text-sm font-medium uppercase tracking-widest muted mb-4 flex items-center gap-2">
-            <TrendingUp className="w-4 h-4" color="#E0A458" /> Income Streams
+          <h2 className="text-sm font-medium uppercase tracking-widest text-ink-2 mb-4 flex items-center gap-2">
+            <TrendingUp className="w-4 h-4" color="var(--money)" /> Income Streams
           </h2>
           <div className="prob-grid">
             {streams.map((s) => (
@@ -948,10 +893,10 @@ function OutboundSubgroup({
   return (
     <section>
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-medium uppercase tracking-widest muted flex items-center gap-2">
-          <Icon className="w-4 h-4" color="#F87B7B" /> {title}
+        <h3 className="text-sm font-medium uppercase tracking-widest text-ink-2 flex items-center gap-2">
+          <Icon className="w-4 h-4" color="var(--creative)" /> {title}
         </h3>
-        <span className="text-xs tabular-nums muted" data-sensitive>
+        <span className="text-xs tabular-nums text-ink-2" data-sensitive>
           {fmtHero(total / 12)}/mo · {fmtHero(total)}/yr
         </span>
       </div>
@@ -977,17 +922,20 @@ function InsightLineRow({ line, accent }: { line: InsightLine; accent: string })
           ? `${line.charge_count}× in 1mo · observed only`
           : "one-time";
   const confidenceColor =
-    line.confidence === "high" ? "#34D399" : line.confidence === "medium" ? "#E0A458" : "#9BB0D6";
+    line.confidence === "high" ? "var(--health)" : line.confidence === "medium" ? "var(--money)" : "var(--ink-2)";
   return (
-    <div className="telos-card" style={{ cursor: "default", padding: 14, gap: 4, borderLeft: `3px solid ${accent}` }}>
+    <div
+      className="bg-surface-2 border border-line-2 rounded-xl p-3.5 border-l-[3px]"
+      style={{ borderLeftColor: accent }}
+    >
       <div className="flex items-baseline justify-between gap-2 flex-wrap">
         <span className="text-sm font-medium truncate">{line.display}</span>
         <span className="text-base font-medium tabular-nums" style={{ color: accent }} data-sensitive>
           {isUncertain ? fmtHero(line.observed_usd) : fmtHero(line.annual_usd)}
-          <span className="text-[12px] muted ml-1">{isUncertain ? "observed" : "/yr"}</span>
+          <span className="text-[12px] text-ink-2 ml-1">{isUncertain ? "observed" : "/yr"}</span>
         </span>
       </div>
-      <div className="flex items-center gap-2 text-[12px] muted flex-wrap">
+      <div className="flex items-center gap-2 text-[12px] text-ink-2 flex-wrap mt-1">
         {!isUncertain && line.monthly_usd > 0 && (
           <>
             <span data-sensitive>{fmtHero(line.monthly_usd)}/mo</span>
@@ -1005,7 +953,7 @@ function InsightLineRow({ line, accent }: { line: InsightLine; accent: string })
         )}
       </div>
       {line.reason && (
-        <p className="text-[12px] mt-1" style={{ color: "#FCA5A5" }}>{line.reason}</p>
+        <p className="text-[12px] mt-1" style={{ color: "var(--err)" }}>{line.reason}</p>
       )}
     </div>
   );
@@ -1030,21 +978,21 @@ function InsightSection({
     <section>
       <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
         <div>
-          <h3 className="text-sm font-medium uppercase tracking-widest muted flex items-center gap-2">
+          <h3 className="text-sm font-medium uppercase tracking-widest text-ink-2 flex items-center gap-2">
             <Icon className="w-4 h-4" color={accent} /> {title}
           </h3>
-          {description && <p className="text-[12px] muted mt-1">{description}</p>}
+          {description && <p className="text-[12px] text-ink-2 mt-1">{description}</p>}
         </div>
         {lines.length > 0 && (
-          <span className="text-xs tabular-nums muted" data-sensitive>
+          <span className="text-xs tabular-nums text-ink-2" data-sensitive>
             {fmtHero(lines.reduce((s, l) => s + l.annual_usd, 0))}/yr · {lines.length} item{lines.length === 1 ? "" : "s"}
           </span>
         )}
       </div>
       {lines.length === 0 ? (
-        <div className="telos-card" style={{ cursor: "default", padding: 16 }}>
-          <p className="text-xs muted">{emptyHint}</p>
-        </div>
+        <Panel className="p-4">
+          <p className="text-xs text-ink-2">{emptyHint}</p>
+        </Panel>
       ) : (
         <div className="prob-grid">
           {lines.map((l, i) => (
@@ -1070,12 +1018,12 @@ function CategoryBreakdown({ categories, total }: { categories: SpendInsights["b
   return (
     <section>
       <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-        <h3 className="text-sm font-medium uppercase tracking-widest muted flex items-center gap-2">
-          <PieChart className="w-4 h-4" color="#B794F4" /> Spending By Category
+        <h3 className="text-sm font-medium uppercase tracking-widest text-ink-2 flex items-center gap-2">
+          <PieChart className="w-4 h-4" color="var(--relationships)" /> Spending By Category
         </h3>
-        <span className="text-xs tabular-nums muted" data-sensitive>{fmtHero(total)}/yr total observed</span>
+        <span className="text-xs tabular-nums text-ink-2" data-sensitive>{fmtHero(total)}/yr total observed</span>
       </div>
-      <div className="telos-card" style={{ cursor: "default", padding: 16 }}>
+      <Panel className="p-4">
         <div className="flex flex-col gap-2.5">
           {categories.map((c) => {
             const pct = total > 0 ? Math.round((c.annual_usd / total) * 100) : 0;
@@ -1084,40 +1032,40 @@ function CategoryBreakdown({ categories, total }: { categories: SpendInsights["b
               <div key={c.category} className="flex flex-col gap-1">
                 <div className="flex items-baseline justify-between text-xs">
                   <span className="font-medium">{CATEGORY_LABEL[c.category] ?? c.category}</span>
-                  <span className="tabular-nums muted" data-sensitive>
+                  <span className="tabular-nums text-ink-2" data-sensitive>
                     {fmtHero(c.annual_usd)}/yr · {c.merchants} {c.merchants === 1 ? "merchant" : "merchants"} · {pct}%
                   </span>
                 </div>
-                <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "#0F1A33" }}>
+                <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "var(--surface-1)" }}>
                   <div
                     className="h-full"
-                    style={{ width: `${barPct}%`, background: "#F0A35E", opacity: 0.8 }}
+                    style={{ width: `${barPct}%`, background: "var(--money)", opacity: 0.8 }}
                   />
                 </div>
               </div>
             );
           })}
         </div>
-      </div>
+      </Panel>
     </section>
   );
 }
 
 function SpendInsightsSection({ insights }: { insights: SpendInsights }) {
   return (
-    <div className="space-y-6 pt-4" style={{ borderTop: "1px solid #1A2A4D" }}>
+    <div className="space-y-6 pt-4" style={{ borderTop: "1px solid var(--line-1)" }}>
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
-          <h2 className="text-sm font-medium uppercase tracking-widest muted flex items-center gap-2">
-            <Sparkles className="w-4 h-4" color="#F0A35E" /> Spending Analysis
+          <h2 className="text-sm font-medium uppercase tracking-widest text-ink-2 flex items-center gap-2">
+            <Sparkles className="w-4 h-4" color="var(--money)" /> Spending Analysis
           </h2>
-          <p className="text-[12px] muted mt-1">
-            Derived from statement CSVs in <code style={{ color: "#9BB0D6" }}>FINANCES/Statements/*</code>.
-            Re-run with <code style={{ color: "#9BB0D6" }}>bun ~/.claude/LIFEOS/USER/TELOS/FINANCES/Tools/StatementAnalyzer.ts</code>.
+          <p className="text-[12px] text-ink-2 mt-1">
+            Derived from statement CSVs in <code className="text-ink-1">FINANCES/Statements/*</code>.
+            Re-run with <code className="text-ink-1">bun ~/.claude/LIFEOS/USER/TELOS/FINANCES/Tools/StatementAnalyzer.ts</code>.
           </p>
         </div>
         {insights.statement_spend.generated_at && (
-          <span className="text-[12px] muted">
+          <span className="text-[12px] text-ink-2">
             {insights.statement_spend.record_count} merchants · generated{" "}
             {new Date(insights.statement_spend.generated_at).toLocaleDateString("en-US", {
               month: "short", day: "numeric", year: "numeric",
@@ -1131,7 +1079,7 @@ function SpendInsightsSection({ insights }: { insights: SpendInsights }) {
       <InsightSection
         title="Top Bills"
         icon={Trophy}
-        accent="#F0A35E"
+        accent="var(--money)"
         description="Highest annualized spend across all sources (transfers excluded)."
         lines={insights.top_bills}
         emptyHint="No statement aggregate yet — run StatementAnalyzer.ts to populate."
@@ -1140,7 +1088,7 @@ function SpendInsightsSection({ insights }: { insights: SpendInsights }) {
       <InsightSection
         title="Top AI Services"
         icon={Cpu}
-        accent="#B794F4"
+        accent="var(--relationships)"
         description="What the AI stack actually costs — sorted by annualized spend."
         lines={insights.top_ai_services}
         emptyHint="No AI services detected yet. Drop more CSV exports under FINANCES/Statements/."
@@ -1149,7 +1097,7 @@ function SpendInsightsSection({ insights }: { insights: SpendInsights }) {
       <InsightSection
         title="Top Infrastructure Services"
         icon={Server}
-        accent="#7DD3FC"
+        accent="var(--freedom)"
         description="Cloud, hosting, dev, monitoring, networking."
         lines={insights.top_infrastructure_services}
         emptyHint="No infrastructure services detected yet."
@@ -1158,7 +1106,7 @@ function SpendInsightsSection({ insights }: { insights: SpendInsights }) {
       <InsightSection
         title="Cut Candidates"
         icon={Scissors}
-        accent="#F87B7B"
+        accent="var(--creative)"
         description="Subscriptions flagged for review — single-use annuals, low-value recurring, overlapping tools."
         lines={insights.cut_candidates}
         emptyHint="No obvious cut candidates. Stack is lean (or analyzer needs more data)."
@@ -1172,15 +1120,15 @@ function OutboundTab({ data }: { data: FinancesDataV2 }) {
   const outboundFreshness = data.freshness_per_card?.outbound ?? data.freshness;
   if (!outbound) {
     return (
-      <div className="telos-card" style={{ cursor: "default" }}>
-        <p className="text-sm text-center muted">
+      <Panel>
+        <p className="text-sm text-center text-ink-2">
           Expenses data unavailable. Check{" "}
-          <code style={{ color: "#E8EFFF" }}>
+          <code className="text-ink-1">
             ~/.claude/LIFEOS/USER/TELOS/FINANCES/vendors.yaml
           </code>
           .
         </p>
-      </div>
+      </Panel>
     );
   }
   return (
@@ -1216,15 +1164,15 @@ function OverallTab({
   const outbound = data.outbound;
   if (!overall || !income || !outbound) {
     return (
-      <div className="telos-card" style={{ cursor: "default" }}>
-        <p className="text-sm text-center muted">Overall data unavailable.</p>
-      </div>
+      <Panel>
+        <p className="text-sm text-center text-ink-2">Overall data unavailable.</p>
+      </Panel>
     );
   }
   return (
     <div className="space-y-6">
       <div className="flex justify-end">
-        <PeriodToggle value={periodView} onChange={onPeriodChange} />
+        <TabBar tabs={PERIOD_TABS} active={periodView} onChange={onPeriodChange} />
       </div>
       <OverallHero
         data={overall}
@@ -1240,8 +1188,8 @@ function OverallTab({
       {data.accounts && data.accounts.length > 0 && (
         <section>
           <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-            <h2 className="text-sm font-medium uppercase tracking-widest muted flex items-center gap-2">
-              <Landmark className="w-4 h-4" color="#E0A458" /> Accounts
+            <h2 className="text-sm font-medium uppercase tracking-widest text-ink-2 flex items-center gap-2">
+              <Landmark className="w-4 h-4" color="var(--money)" /> Accounts
             </h2>
             <FreshnessIndicator freshness={data.freshness_per_card?.accounts} />
           </div>
@@ -1269,6 +1217,180 @@ function OverallTab({
   );
 }
 
+// ─── Plan tab (forward financial model + flywheel) ───
+
+// Minimal inline-markdown renderer: **bold**, `- bullets`, pipe-tables, and
+// paragraphs. Presentation only — every string comes from PLAN.md via the API.
+function boldify(text: string) {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((p, i) =>
+    p.startsWith("**") && p.endsWith("**") ? (
+      <strong key={i} className="text-ink-1">{p.slice(2, -2)}</strong>
+    ) : (
+      <span key={i}>{p}</span>
+    )
+  );
+}
+
+function PlanBody({ body }: { body: string }) {
+  const lines = body.split("\n");
+  const blocks: ReactNode[] = [];
+  let i = 0;
+  let key = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    if (line.trim().startsWith("|")) {
+      const tbl: string[] = [];
+      while (i < lines.length && lines[i].trim().startsWith("|")) { tbl.push(lines[i].trim()); i++; }
+      const cells = (l: string) => l.split("|").slice(1, -1).map((c) => c.replace(/\*\*/g, "").trim());
+      const isSep = (l: string) => /^\|[\s|:-]+\|?$/.test(l);
+      const rows = tbl.filter((l) => !isSep(l)).map(cells);
+      if (rows.length) {
+        const [head, ...rest] = rows;
+        blocks.push(
+          <div key={key++} className="overflow-x-auto my-2">
+            <table className="w-full text-sm" style={{ borderCollapse: "collapse" }}>
+              <thead>
+                <tr>{head.map((h, j) => (
+                  <th key={j} className="text-left px-2 py-1.5 text-xs uppercase tracking-wide text-ink-2" style={{ borderBottom: "1px solid var(--line-1)" }}>{h}</th>
+                ))}</tr>
+              </thead>
+              <tbody>{rest.map((r, ri) => (
+                <tr key={ri}>{r.map((c, ci) => (
+                  <td key={ci} className="px-2 py-1.5" style={{ color: ci === 0 ? "var(--ink-1)" : "var(--ink-2)", borderBottom: "1px solid var(--line-1)" }}>{c}</td>
+                ))}</tr>
+              ))}</tbody>
+            </table>
+          </div>
+        );
+      }
+      continue;
+    }
+    if (line.trim().startsWith("- ")) {
+      const items: string[] = [];
+      while (i < lines.length && lines[i].trim().startsWith("- ")) { items.push(lines[i].trim().slice(2)); i++; }
+      blocks.push(
+        <ul key={key++} className="list-disc pl-5 space-y-1 my-2 text-ink-2">
+          {items.map((it, j) => <li key={j}>{boldify(it)}</li>)}
+        </ul>
+      );
+      continue;
+    }
+    if (line.trim()) {
+      blocks.push(<p key={key++} className="my-2 text-ink-2">{boldify(line.trim())}</p>);
+    }
+    i++;
+  }
+  return <>{blocks}</>;
+}
+
+function FlywheelLoop({ stages }: { stages: { n: number; stage: string; text: string }[] }) {
+  if (!stages.length) return null;
+  // Distinct per-stage loop colors (chart-style scale, not semantic tokens).
+  const palette = ["#4F8CFF", "#3FB68B", "#E0A458", "#B98CFF", "#4FC3E0", "#F2789F"];
+  return (
+    <section>
+      <div className="flex items-center gap-2 mb-4">
+        <TrendingUp className="w-4 h-4" color="var(--accent-blue)" />
+        <h2 className="text-sm font-medium uppercase tracking-widest text-ink-2">The Flywheel</h2>
+        <span className="text-[12px] text-ink-2 ml-1">↻ each turn spins the next</span>
+      </div>
+      <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
+        {stages.map((s, i) => {
+          const color = palette[i % palette.length];
+          return (
+            <div
+              key={s.n}
+              className="bg-surface-2 border border-line-2 rounded-xl p-5 border-t-[3px]"
+              style={{ borderTopColor: color }}
+            >
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-semibold"
+                  style={{ background: color, color: "var(--ground)" }}>{s.n}</span>
+                <span className="font-medium text-ink-1">{s.stage}</span>
+                <span className="ml-auto text-lg" style={{ color, opacity: 0.7 }}>
+                  {i === stages.length - 1 ? "↻" : "→"}
+                </span>
+              </div>
+              <p className="text-sm text-ink-2">{s.text}</p>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function PlanTab({ data }: { data: FinancesDataV2 }) {
+  const plan = data.plan;
+  if (!plan || !plan.present) {
+    return (
+      <Panel>
+        <p className="text-sm text-center text-ink-2">
+          No plan yet. Create <code>USER/TELOS/FINANCES/PLAN.md</code> — the flywheel, targets, and product ladder render here.
+        </p>
+      </Panel>
+    );
+  }
+  const special = /^(flywheel|targets)$/i;
+  const about = plan.sections.find((s) => /^about/i.test(s.heading));
+  const rest = plan.sections.filter((s) => !special.test(s.heading) && !/^about/i.test(s.heading));
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-end">
+        <FreshnessIndicator freshness={data.freshness_per_card?.plan} />
+      </div>
+
+      {about && (
+        <Panel className="border-l-[3px] [border-left-color:var(--money)]">
+          <div className="flex items-center gap-2 mb-1">
+            <Sparkles className="w-4 h-4" color="var(--money)" />
+            <span className="text-xs uppercase tracking-widest text-ink-2">{about.heading}</span>
+          </div>
+          <PlanBody body={about.body} />
+        </Panel>
+      )}
+
+      <FlywheelLoop stages={plan.flywheel} />
+
+      {plan.targets && (
+        <section>
+          <div className="flex items-center gap-2 mb-4">
+            <Target className="w-4 h-4" color="var(--health)" />
+            <h2 className="text-sm font-medium uppercase tracking-widest text-ink-2">Targets</h2>
+          </div>
+          <Panel className="overflow-x-auto">
+            <table className="w-full text-sm" style={{ borderCollapse: "collapse" }}>
+              <thead>
+                <tr>{plan.targets.headers.map((h, j) => (
+                  <th key={j} className="text-left px-2 py-2 text-xs uppercase tracking-wide text-ink-2" style={{ borderBottom: "1px solid var(--line-1)" }}>{h}</th>
+                ))}</tr>
+              </thead>
+              <tbody>{plan.targets.rows.map((r, ri) => (
+                <tr key={ri}>{r.map((c, ci) => (
+                  <td key={ci} className="px-2 py-2" style={{ color: ci === 0 ? "var(--ink-1)" : "var(--ink-2)", borderBottom: "1px solid var(--line-1)" }}>{c}</td>
+                ))}</tr>
+              ))}</tbody>
+            </table>
+          </Panel>
+        </section>
+      )}
+
+      {rest.map((s, i) => (
+        <section key={i}>
+          <div className="flex items-center gap-2 mb-3">
+            <Sparkles className="w-4 h-4" color="var(--relationships)" />
+            <h2 className="text-sm font-medium uppercase tracking-widest text-ink-2">{s.heading}</h2>
+          </div>
+          <Panel>
+            <PlanBody body={s.body} />
+          </Panel>
+        </section>
+      ))}
+    </div>
+  );
+}
+
 // ─── Page ───
 
 export default function FinancesPage() {
@@ -1280,7 +1402,7 @@ export default function FinancesPage() {
   // Load data
   useEffect(() => {
     fetch("/api/life/finances")
-      .then((r) => (r.ok ? r.json() : null))
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
       .then(setData)
       .catch((e) => setError(String(e)));
   }, []);
@@ -1288,11 +1410,13 @@ export default function FinancesPage() {
   // Hash-routed tab state
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const hash = window.location.hash.replace("#", "") as TabKey;
-    if (hash === "income" || hash === "outbound" || hash === "overall") setTab(hash);
+    const valid = (k: string): k is TabKey =>
+      k === "income" || k === "outbound" || k === "overall" || k === "plan";
+    const hash = window.location.hash.replace("#", "");
+    if (valid(hash)) setTab(hash);
     const onHashChange = () => {
-      const h = window.location.hash.replace("#", "") as TabKey;
-      if (h === "income" || h === "outbound" || h === "overall") setTab(h);
+      const h = window.location.hash.replace("#", "");
+      if (valid(h)) setTab(h);
     };
     window.addEventListener("hashchange", onHashChange);
     return () => window.removeEventListener("hashchange", onHashChange);
@@ -1306,6 +1430,7 @@ export default function FinancesPage() {
       if (e.key === "1") changeTab("income");
       else if (e.key === "2") changeTab("outbound");
       else if (e.key === "3") changeTab("overall");
+      else if (e.key === "4") changeTab("plan");
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -1318,22 +1443,15 @@ export default function FinancesPage() {
 
   if (error) {
     return (
-      <div className="p-8 max-w-5xl mx-auto">
-        <div
-          className="telos-card"
-          style={{ cursor: "default", borderLeft: "3px solid #F87171" }}
-        >
-          <h2 className="font-medium" style={{ color: "#F87171" }}>
-            Failed to load finances
-          </h2>
-          <p className="text-sm" style={{ color: "#FCA5A5" }}>
-            {error}
-          </p>
-        </div>
-      </div>
+      <PageShell>
+        <Panel className="border-l-[3px] [border-left-color:var(--err)]">
+          <h2 className="font-medium text-err">Failed to load finances</h2>
+          <p className="text-sm text-err">{error}</p>
+        </Panel>
+      </PageShell>
     );
   }
-  if (!data) return <div className="p-8 text-sm muted">Loading Finances...</div>;
+  if (!data) return <div className="p-8 text-sm text-ink-2">Loading Finances...</div>;
 
   const incomeAnnual = data.income?.annual ?? data.annualIncome ?? 0;
   const outboundAnnual = data.outbound?.annual ?? data.annualExpenses ?? 0;
@@ -1345,18 +1463,13 @@ export default function FinancesPage() {
     (!data.accounts || data.accounts.length === 0);
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 max-w-[1400px] mx-auto space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h1 className="text-2xl font-medium" style={{ color: "#E8EFFF" }}>
-            Finances
-          </h1>
-          <p className="text-xs muted">
-            Income · Expenses · Overall · Press 1/2/3 to switch tabs
-          </p>
-        </div>
-        <TabBar active={tab} onChange={changeTab} />
-      </div>
+    <PageShell>
+      <PageHeader
+        icon={DollarSign}
+        title="Finances"
+        subtitle="Income · Expenses · Overall · Flywheel · Press 1/2/3/4 to switch tabs"
+      />
+      <TabBar tabs={TABS} active={tab} onChange={changeTab} />
 
       {isFreshInstall && (
         <EmptyStateGuide
@@ -1372,6 +1485,7 @@ export default function FinancesPage() {
       {tab === "overall" && (
         <OverallTab data={data} periodView={periodView} onPeriodChange={setPeriodView} />
       )}
-    </div>
+      {tab === "plan" && <PlanTab data={data} />}
+    </PageShell>
   );
 }

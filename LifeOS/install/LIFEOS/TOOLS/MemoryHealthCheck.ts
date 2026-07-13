@@ -36,15 +36,27 @@ const REVIEW_STATE = join(OBS_DIR, "review-state.json");
 const HEALTH_LOG = join(OBS_DIR, "memory-health.jsonl");
 const REVIEWER_RUNS = join(OBS_DIR, "reviewer-runs");
 
-const REQUIRED_HOOKS = [
-  "MemoryReviewTrigger.hook.ts",
+// Post-BPE layout (2026-07-11): MemoryTurnStart is the ONE registered
+// UserPromptSubmit memory hook; it imports LoadMemory + MemoryDeltaSurface,
+// so those must exist on disk but are no longer registered themselves.
+// MemoryReviewFire (Stop) owns the whole review cadence — MemoryReviewTrigger
+// is dead and pending deletion; do not require it.
+const REQUIRED_HOOK_FILES = [
+  "MemoryTurnStart.hook.ts",
+  "LoadMemory.hook.ts",
+  "MemoryDeltaSurface.hook.ts",
   "MemoryReviewFire.hook.ts",
   "MemoryHealthGate.hook.ts",
-  // The chat-visibility surface. Its registration was silently clobbered by a
-  // concurrent-session settings.json rewrite on 2026-06-06 (787f66ef7) and sat
-  // dead for 5 days — change-only output made death look like healthy silence.
-  // Required-hook status means a future clobber goes critical and nags in chat.
-  "MemoryDeltaSurface.hook.ts",
+];
+
+// The registration check keys on what must literally appear in settings.
+// MemoryDeltaSurface's clobber protection (the 2026-06-06 5-day silent death,
+// 787f66ef7) transfers to MemoryTurnStart, which now carries the surface: a
+// clobbered MemoryTurnStart registration goes critical and nags in chat.
+const REQUIRED_REGISTRATIONS = [
+  "MemoryTurnStart.hook.ts",
+  "MemoryReviewFire.hook.ts",
+  "MemoryHealthGate.hook.ts",
 ];
 
 const REQUIRED_TOOLS = [
@@ -76,7 +88,7 @@ function add(id: string, severity: Severity, message: string, detail?: any) {
 }
 
 // CHECK 1: hook code files present on disk
-for (const h of REQUIRED_HOOKS) {
+for (const h of REQUIRED_HOOK_FILES) {
   const p = join(HOOKS_DIR, h);
   if (!existsSync(p)) {
     add(`hook-file-missing:${h}`, "critical", `Required hook file missing on disk: ${h}`, { path: p });
@@ -95,33 +107,56 @@ for (const t of REQUIRED_TOOLS) {
   }
 }
 
-// CHECK 3: hooks registered in settings.system.json (source of truth)
-function checkHooksInFile(filePath: string, label: string) {
-  if (!existsSync(filePath)) {
-    add(`settings-missing:${label}`, "critical", `${label} not found at ${filePath}`);
-    return;
-  }
-  let raw: string;
+// CHECK 3: hooks registered in the settings the harness actually reads.
+//
+// The effective runtime is settings.json (the live/merged file the harness
+// loads); settings.system.json is only ONE input layer to that merge. A
+// skill-payload / public install legitimately registers hooks via another layer
+// — or omits the autonomic-memory loop entirely — so requiring the memory hooks
+// LITERALLY in settings.system.json produced a false CRITICAL on fresh installs
+// (#1402). Intent comes from settings.system.json; truth comes from the
+// effective settings.json:
+//   - present in the effective settings.json  -> OK, whatever layer set it.
+//   - intended (in system) but MISSING from live -> CRITICAL (real clobber — the
+//     2026-06-06 MemoryDeltaSurface regression this check exists to catch).
+//   - not intended AND absent from live -> WARN: this install does not run the
+//     autonomic memory loop (expected on a public skill install), never CRITICAL.
+function readHookRegistrations(filePath: string): Set<string> | null {
+  if (!existsSync(filePath)) return null;
   try {
-    raw = readFileSync(filePath, "utf-8");
-  } catch (err) {
-    add(`settings-unreadable:${label}`, "critical", `${label} unreadable: ${(err as Error).message}`);
-    return;
-  }
-  for (const h of REQUIRED_HOOKS) {
-    if (!raw.includes(h)) {
-      add(`settings-hook-missing:${label}:${h}`, "critical",
-          `${h} NOT registered in ${label}. Regression source.`,
-          { file: filePath, hook: h });
-    } else {
-      add(`settings-hook-present:${label}:${h}`, "ok",
-          `${h} registered in ${label}.`);
-    }
+    const raw = readFileSync(filePath, "utf-8");
+    return new Set(REQUIRED_REGISTRATIONS.filter((h) => raw.includes(h)));
+  } catch {
+    return null;
   }
 }
 
-checkHooksInFile(SETTINGS_SYSTEM, "settings.system.json");
-checkHooksInFile(SETTINGS_LIVE, "settings.json");
+const systemHooks = readHookRegistrations(SETTINGS_SYSTEM);
+const liveHooks = readHookRegistrations(SETTINGS_LIVE);
+
+if (liveHooks === null) {
+  add("settings-missing:settings.json", "critical",
+      `settings.json (effective runtime) not found or unreadable at ${SETTINGS_LIVE}`);
+}
+
+for (const h of REQUIRED_REGISTRATIONS) {
+  const inLive = liveHooks?.has(h) ?? false;
+  const intended = systemHooks?.has(h) ?? false;
+  if (inLive) {
+    add(`settings-hook-present:${h}`, "ok", `${h} registered in the effective settings.json.`);
+  } else if (intended) {
+    // Registered in the source layer but clobbered out of the live runtime.
+    add(`settings-hook-missing:${h}`, "critical",
+        `${h} is in settings.system.json but NOT in the effective settings.json — de-registered from the live runtime. Regression source.`,
+        { system: SETTINGS_SYSTEM, live: SETTINGS_LIVE, hook: h });
+  } else {
+    // Not registered in any layer: this install does not run the autonomic
+    // memory loop (expected on a public skill-payload install) — not a failure.
+    add(`settings-hook-absent:${h}`, "warn",
+        `${h} is not registered in any settings layer — autonomic memory loop not enabled on this install.`,
+        { hook: h });
+  }
+}
 
 // CHECK 3b: delta-surface liveness — curation writing while the chat surface
 // is dead is exactly the 5-day silent failure of 2026-06-06→11. The surface

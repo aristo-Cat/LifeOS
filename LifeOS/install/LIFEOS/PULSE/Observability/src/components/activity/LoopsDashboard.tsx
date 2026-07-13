@@ -129,14 +129,14 @@ function StatusBadge({ status, loopStatus }: { status: string; loopStatus: strin
   }
   if (loopStatus === "stopped") {
     return (
-      <Badge className="bg-zinc-500/20 text-zinc-400 border-zinc-500/30 text-[13px] px-1.5 py-0 gap-1">
+      <Badge className="bg-[rgba(168,165,200,0.2)] text-ink-2 border-[rgba(168,165,200,0.3)] text-[13px] px-1.5 py-0 gap-1">
         <Square className="w-2.5 h-2.5" />
         STOPPED
       </Badge>
     );
   }
   return (
-    <Badge className="bg-zinc-800/50 text-zinc-500 border-zinc-700/30 text-[13px] px-1.5 py-0">
+    <Badge className="bg-[rgba(20,28,56,0.5)] text-ink-3 border-[rgba(35,48,90,0.3)] text-[13px] px-1.5 py-0">
       {status}
     </Badge>
   );
@@ -159,7 +159,7 @@ function ISAIcon({ status, loopStatus }: { status: string; loopStatus: string | 
     ? "text-amber-400"
     : isFailed
     ? "text-red-400"
-    : "text-zinc-600";
+    : "text-ink-3";
 
   const bgColor = isComplete
     ? "bg-emerald-500/10"
@@ -169,7 +169,7 @@ function ISAIcon({ status, loopStatus }: { status: string; loopStatus: string | 
     ? "bg-amber-500/10"
     : isFailed
     ? "bg-red-500/10"
-    : "bg-zinc-800/50";
+    : "bg-[rgba(20,28,56,0.5)]";
 
   return (
     <div className={`relative shrink-0 w-9 h-10 rounded-md ${bgColor} flex items-center justify-center`}>
@@ -183,7 +183,7 @@ function ISAIcon({ status, loopStatus }: { status: string; loopStatus: string | 
       )}
       {isComplete && (
         <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 flex items-center justify-center">
-          <Check className="w-2 h-2 text-zinc-950" strokeWidth={3} />
+          <Check className="w-2 h-2 text-ink-3" strokeWidth={3} />
         </div>
       )}
     </div>
@@ -206,17 +206,17 @@ function CriteriaList({ criteria }: { criteria: CriterionItem[] }) {
             className={`shrink-0 w-4 h-4 rounded mt-0.5 flex items-center justify-center ${
               c.passing
                 ? "bg-emerald-500/20 border border-emerald-500/40"
-                : "bg-zinc-800 border border-zinc-700"
+                : "bg-surface-2 border border-line-2"
             }`}
           >
             {c.passing && <Check className="w-2.5 h-2.5 text-emerald-400" strokeWidth={3} />}
           </div>
           <span
             className={`text-[14px] leading-relaxed ${
-              c.passing ? "text-zinc-300" : "text-zinc-500"
+              c.passing ? "text-ink-1" : "text-ink-3"
             }`}
           >
-            <span className="font-mono text-[13px] text-zinc-600 mr-1.5">{c.id}</span>
+            <span className="font-mono text-[13px] text-ink-3 mr-1.5">{c.id}</span>
             {c.text}
           </span>
         </div>
@@ -229,13 +229,13 @@ function CriteriaList({ criteria }: { criteria: CriterionItem[] }) {
 
 function LogTimeline({ entries }: { entries: LogEntry[] }) {
   if (!entries || entries.length === 0) {
-    return <p className="text-[14px] text-zinc-600 italic px-2">No log entries yet</p>;
+    return <p className="text-[14px] text-ink-3 italic px-2">No log entries yet</p>;
   }
 
   return (
     <div className="relative">
       {/* Vertical timeline line */}
-      <div className="absolute left-[7px] top-2 bottom-2 w-px bg-zinc-800" />
+      <div className="absolute left-[7px] top-2 bottom-2 w-px bg-surface-2" />
 
       <div className="space-y-3">
         {entries.map((entry, i) => (
@@ -245,15 +245,15 @@ function LogTimeline({ entries }: { entries: LogEntry[] }) {
               className={`shrink-0 w-[15px] h-[15px] rounded-full border-2 mt-0.5 z-10 ${
                 i === 0
                   ? "bg-blue-500/20 border-blue-400"
-                  : "bg-zinc-900 border-zinc-700"
+                  : "bg-surface-1 border-line-2"
               }`}
             />
             <div className="min-w-0 flex-1">
-              <p className="text-[14px] font-medium text-zinc-300 leading-snug">
+              <p className="text-[14px] font-medium text-ink-1 leading-snug">
                 {entry.title}
               </p>
               {entry.content && (
-                <p className="text-[13px] text-zinc-500 leading-relaxed mt-0.5 line-clamp-2">
+                <p className="text-[13px] text-ink-3 leading-relaxed mt-0.5 line-clamp-2">
                   {entry.content}
                 </p>
               )}
@@ -276,10 +276,10 @@ function ContextSection({ icon: Icon, label, content }: {
   return (
     <div className="space-y-1.5">
       <div className="flex items-center gap-1.5">
-        <Icon className="w-3 h-3 text-zinc-600" />
-        <span className="text-[13px] text-zinc-600 uppercase tracking-wider font-medium">{label}</span>
+        <Icon className="w-3 h-3 text-ink-3" />
+        <span className="text-[13px] text-ink-3 uppercase tracking-wider font-medium">{label}</span>
       </div>
-      <p className="text-[14px] text-zinc-400 leading-relaxed pl-[18px]">
+      <p className="text-[14px] text-ink-2 leading-relaxed pl-[18px]">
         {content}
       </p>
     </div>
@@ -344,17 +344,17 @@ function ISACard({
         {/* Title block */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-[16px] font-medium text-zinc-200 truncate">{title}</span>
+            <span className="text-[16px] font-medium text-ink-1 truncate">{title}</span>
             <StatusBadge status={frontmatter.status} loopStatus={frontmatter.loopStatus} />
           </div>
           {oneLiner && (
-            <p className="text-[14px] text-zinc-500 mt-0.5 truncate">{oneLiner}</p>
+            <p className="text-[14px] text-ink-3 mt-0.5 truncate">{oneLiner}</p>
           )}
           {/* Meta row: ISA ID + updated time */}
           <div className="flex items-center gap-3 mt-1.5">
-            <span className="text-[13px] font-mono text-zinc-600">{frontmatter.id}</span>
+            <span className="text-[13px] font-mono text-ink-3">{frontmatter.id}</span>
             {updatedAgo && (
-              <span className="flex items-center gap-1 text-[13px] text-zinc-600">
+              <span className="flex items-center gap-1 text-[13px] text-ink-3">
                 <Clock className="w-2.5 h-2.5" />
                 {updatedAgo}
               </span>
@@ -367,8 +367,8 @@ function ISACard({
           {/* Criteria progress */}
           <div className="flex flex-col items-end gap-1">
             <div className="flex items-center gap-2">
-              <span className="text-[14px] font-mono text-zinc-400">
-                {passingCriteria}<span className="text-zinc-600">/{totalCriteria}</span>
+              <span className="text-[14px] font-mono text-ink-2">
+                {passingCriteria}<span className="text-ink-3">/{totalCriteria}</span>
               </span>
             </div>
             <div className="w-24">
@@ -379,17 +379,17 @@ function ISACard({
                     ? "[&>div]:bg-emerald-500"
                     : isRunning
                     ? "[&>div]:bg-blue-400"
-                    : "[&>div]:bg-zinc-500"
+                    : "[&>div]:bg-ink-3"
                 }`}
               />
             </div>
           </div>
 
           {/* Iteration counter */}
-          <div className="flex items-center gap-1.5 text-[14px] text-zinc-500 shrink-0">
+          <div className="flex items-center gap-1.5 text-[14px] text-ink-3 shrink-0">
             <Repeat className="w-3 h-3" />
             <span className="font-mono">
-              {frontmatter.iteration}<span className="text-zinc-700">/</span>{frontmatter.maxIterations}
+              {frontmatter.iteration}<span className="text-ink-3">/</span>{frontmatter.maxIterations}
             </span>
           </div>
 
@@ -398,7 +398,7 @@ function ISACard({
             animate={{ rotate: isExpanded ? 90 : 0 }}
             transition={{ duration: 0.15 }}
           >
-            <ChevronRight className="w-3.5 h-3.5 text-zinc-600" />
+            <ChevronRight className="w-3.5 h-3.5 text-ink-3" />
           </motion.div>
         </div>
       </div>
@@ -468,9 +468,9 @@ function ISACard({
                   {Object.entries(isa.statusTable).slice(0, 4).map(([key, value]) => (
                     <span
                       key={key}
-                      className="text-[13px] font-mono text-zinc-500 bg-zinc-800/50 px-2 py-0.5 rounded"
+                      className="text-[13px] font-mono text-ink-3 bg-[rgba(20,28,56,0.5)] px-2 py-0.5 rounded"
                     >
-                      {key}: <span className="text-zinc-400">{value}</span>
+                      {key}: <span className="text-ink-2">{value}</span>
                     </span>
                   ))}
                 </div>
@@ -495,11 +495,11 @@ function ISACard({
               {/* Criteria checklist */}
               <div className="px-4 py-3">
                 <div className="flex items-center gap-1.5 mb-3">
-                  <BookOpen className="w-3 h-3 text-zinc-600" />
-                  <span className="text-[13px] text-zinc-600 uppercase tracking-wider font-medium">
+                  <BookOpen className="w-3 h-3 text-ink-3" />
+                  <span className="text-[13px] text-ink-3 uppercase tracking-wider font-medium">
                     Criteria
                   </span>
-                  <span className="text-[13px] font-mono text-zinc-600 ml-auto">
+                  <span className="text-[13px] font-mono text-ink-3 ml-auto">
                     {passingCriteria}/{totalCriteria}
                   </span>
                 </div>
@@ -509,15 +509,15 @@ function ISACard({
               {/* Log timeline */}
               <div className="px-4 py-3">
                 <div className="flex items-center gap-1.5 mb-3">
-                  <Activity className="w-3 h-3 text-zinc-600" />
-                  <span className="text-[13px] text-zinc-600 uppercase tracking-wider font-medium">
+                  <Activity className="w-3 h-3 text-ink-3" />
+                  <span className="text-[13px] text-ink-3 uppercase tracking-wider font-medium">
                     Activity Log
                   </span>
                 </div>
                 <LogTimeline entries={isa.logEntries || []} />
                 {/* Fallback if only lastLogEntry exists */}
                 {(!isa.logEntries || isa.logEntries.length === 0) && isa.lastLogEntry && (
-                  <pre className="text-[14px] text-zinc-500 whitespace-pre-wrap leading-relaxed font-mono px-2">
+                  <pre className="text-[14px] text-ink-3 whitespace-pre-wrap leading-relaxed font-mono px-2">
                     {isa.lastLogEntry}
                   </pre>
                 )}
@@ -600,7 +600,7 @@ export default function LoopsDashboard() {
   // ─── Loading state ───
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-full text-zinc-500">
+      <div className="flex items-center justify-center h-full text-ink-3">
         <Loader2 className="w-4 h-4 animate-spin mr-2" />
         <span className="text-sm">Loading ISAs...</span>
       </div>
@@ -622,13 +622,13 @@ export default function LoopsDashboard() {
   // ─── Empty state ───
   if (prds.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-zinc-500 gap-3">
-        <div className="w-14 h-16 rounded-lg bg-zinc-800/50 border border-zinc-700/50 flex items-center justify-center">
-          <FileText className="w-7 h-7 text-zinc-700" />
+      <div className="flex flex-col items-center justify-center h-full text-ink-3 gap-3">
+        <div className="w-14 h-16 rounded-lg bg-[rgba(20,28,56,0.5)] border border-[rgba(35,48,90,0.5)] flex items-center justify-center">
+          <FileText className="w-7 h-7 text-ink-3" />
         </div>
         <div className="text-center">
-          <p className="text-sm font-medium text-zinc-400">No ISAs found</p>
-          <p className="text-[14px] text-zinc-600 mt-1">
+          <p className="text-sm font-medium text-ink-2">No ISAs found</p>
+          <p className="text-[14px] text-ink-3 mt-1">
             ISAs are created by the Algorithm and stored in ~/.claude/plans/
           </p>
         </div>
@@ -659,10 +659,10 @@ export default function LoopsDashboard() {
       {/* ─── Summary header ─── */}
       <div className="px-4 py-3 flex items-center justify-between border-b border-white/[0.04]">
         <div className="flex items-center gap-5">
-          <div className="flex items-center gap-1.5 text-[14px] text-zinc-400">
-            <FileText className="w-3.5 h-3.5 text-zinc-500" />
-            <span className="font-medium text-zinc-200">{prds.length}</span>
-            <span className="text-zinc-500">ISAs</span>
+          <div className="flex items-center gap-1.5 text-[14px] text-ink-2">
+            <FileText className="w-3.5 h-3.5 text-ink-3" />
+            <span className="font-medium text-ink-1">{prds.length}</span>
+            <span className="text-ink-3">ISAs</span>
           </div>
 
           {runningCount > 0 && (
@@ -676,23 +676,23 @@ export default function LoopsDashboard() {
           <div className="flex items-center gap-1.5 text-[14px]">
             <Check className="w-3 h-3 text-emerald-500" />
             <span className="font-medium text-emerald-400">{completeCount}</span>
-            <span className="text-zinc-500">complete</span>
+            <span className="text-ink-3">complete</span>
           </div>
 
-          <Separator orientation="vertical" className="h-4 bg-zinc-800" />
+          <Separator orientation="vertical" className="h-4 bg-surface-2" />
 
           <div className="flex items-center gap-2 text-[14px]">
-            <span className="text-zinc-500">Criteria:</span>
-            <span className="font-mono text-zinc-300">{passingCriteria}/{totalCriteria}</span>
+            <span className="text-ink-3">Criteria:</span>
+            <span className="font-mono text-ink-1">{passingCriteria}/{totalCriteria}</span>
             <div className="w-16">
-              <Progress value={overallPct} className="h-1 [&>div]:bg-zinc-400" />
+              <Progress value={overallPct} className="h-1 [&>div]:bg-ink-2" />
             </div>
           </div>
         </div>
 
         <button
           onClick={fetchISAs}
-          className="flex items-center gap-1.5 text-[14px] text-zinc-500 hover:text-zinc-300 transition-colors px-2 py-1 rounded-md hover:bg-white/[0.04]"
+          className="flex items-center gap-1.5 text-[14px] text-ink-3 hover:text-ink-1 transition-colors px-2 py-1 rounded-md hover:bg-white/[0.04]"
         >
           <RefreshCw className="w-3 h-3" />
           Refresh

@@ -10,11 +10,12 @@
 
 import { Bot, InputFile } from "grammy"
 import { query } from "@anthropic-ai/claude-agent-sdk"
-import { ConversationStore } from "../lib/conversation"
+import { SessionStore, type Message as SessionMessage } from "../lib/session-store"
+import { needsCompression, compressSession, buildCompressionHolder } from "../lib/context-compression"
 import { sanitize, analyzeForInjection } from "../lib/sanitize"
 import { disambiguateHomographs } from "../lib/homographs"
-import { join } from "path"
-import { appendFile, mkdir, readFile, rm } from "fs/promises"
+import { join, resolve, sep } from "path"
+import { appendFile, mkdir, readFile, rm, stat as statFile, unlink, writeFile } from "fs/promises"
 import { inference } from "../../TOOLS/Inference"
 import { loadLifeosConfig } from "../../TOOLS/LifeosConfig"
 import { read as readMemory, type ReadResult as MemoryReadResult } from "../../TOOLS/MemoryWriter"
@@ -58,6 +59,9 @@ export interface TelegramConfig {
   max_turns?: number
   sdk_timeout_ms?: number
   edit_interval_ms?: number
+  // Opt out of Telegram voice-note summaries (PR #1458). undefined ⇒ on, so existing
+  // installs are unchanged; set voice_summaries = false under [telegram] in PULSE.toml.
+  voice_summaries?: boolean
 }
 
 // ── Constants ──
@@ -77,6 +81,80 @@ const INFERENCE_HARD_BUDGET_MS = 10_000         // outer race cap on summarize; 
 const MIN_FALLBACK_WORDS = 6                    // a fallback summary shorter than this is presumed too thin to be worth voicing
 const MEANINGFUL_REPLY_WORDS = 25               // when a reply is at least this long, a too-short fallback is a regression — skip voice rather than ship a "0:00" stub
 const LIFEOS_DIR = join(HOME, ".claude", "LIFEOS")
+
+// ── Bidirectional Telegram images (ported from public PR #1384, @klausagnoletti) ──
+//
+// INBOUND: photos and PNG/JPEG image documents are downloaded into INCOMING_DIR
+// (under the telegram state root) and the saved absolute path is injected into
+// the prompt so the SDK session views it with the Read tool. Acceptance is
+// decided by MAGIC-BYTE sniff — never the client-declared mime, which is
+// attacker-controllable — plus a byte cap AND a pixel/dimension cap
+// (un-re-encoded documents can be decompression bombs: tiny file, gigapixel
+// canvas). Refusing to decode WebP/GIF/SVG inbound retires the
+// libwebp-2023-4863 and SVG-script attack classes.
+//
+// OUTBOUND: the model emits [[IMG:/abs/path]] anywhere in its reply; the bridge
+// extracts the refs, validates each path (absolute local file, image extension,
+// size cap), ships it via sendPhoto, and strips the tag from the text —
+// including the live editMessageText stream, so the raw tag never flashes.
+const INCOMING_DIR = join(STATE_DIR, "incoming")
+const IMG_TAG_RE = /\[\[IMG:\s*([^\]]+?)\s*\]\]/g
+// A trailing partially-streamed tag ("[[", "[[IMG:/pa", "[[IMG:/p]") — hidden
+// from the live stream until the closing "]]" arrives.
+const IMG_TAG_PARTIAL_TAIL_RE = /\[{1,2}(?:I(?:M(?:G(?::[^\]]*\]?)?)?)?)?$/
+const PHOTO_EXTS = new Set(["png", "jpg", "jpeg", "webp", "gif"])
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024
+const MAX_IMAGE_PIXELS = 40_000_000
+const MAX_IMAGE_DIM = 10_000
+
+function extractImageRefs(text: string): string[] {
+  const refs: string[] = []
+  let m: RegExpExecArray | null
+  IMG_TAG_RE.lastIndex = 0
+  while ((m = IMG_TAG_RE.exec(text)) !== null) refs.push(m[1]!.trim())
+  return refs
+}
+
+function stripImageTags(text: string): string {
+  return text.replace(IMG_TAG_RE, "").replace(/\n{3,}/g, "\n\n").trim()
+}
+
+function stripImageTagsForStream(text: string): string {
+  // Stream variant: also hide an incomplete tag at the tail of the buffer so
+  // raw "[[IMG:/..." text never flashes in the live-edited Telegram message.
+  return stripImageTags(text.replace(IMG_TAG_PARTIAL_TAIL_RE, ""))
+}
+
+function inspectImage(b: Uint8Array): { kind: "png" | "jpeg"; width: number; height: number } | null {
+  // PNG: signature 89 50 4E 47 0D 0A 1A 0A; IHDR width/height as BE uint32 at 16/20
+  if (b.length >= 24 &&
+      b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47 &&
+      b[4] === 0x0d && b[5] === 0x0a && b[6] === 0x1a && b[7] === 0x0a) {
+    const width = ((b[16]! << 24) | (b[17]! << 16) | (b[18]! << 8) | b[19]!) >>> 0
+    const height = ((b[20]! << 24) | (b[21]! << 16) | (b[22]! << 8) | b[23]!) >>> 0
+    return { kind: "png", width, height }
+  }
+  // JPEG: starts FF D8; scan segment markers for a Start-Of-Frame to read dims
+  if (b.length >= 4 && b[0] === 0xff && b[1] === 0xd8) {
+    const SOF = new Set([0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf])
+    let off = 2
+    while (off + 9 < b.length) {
+      if (b[off] !== 0xff) { off++; continue }
+      const marker = b[off + 1]!
+      off += 2
+      if (marker === 0xd8 || marker === 0xd9 || (marker >= 0xd0 && marker <= 0xd7)) continue
+      const segLen = (b[off]! << 8) | b[off + 1]!
+      if (segLen < 2) break
+      if (SOF.has(marker)) {
+        const height = (b[off + 3]! << 8) | b[off + 4]!
+        const width = (b[off + 5]! << 8) | b[off + 6]!
+        return { kind: "jpeg", width, height }
+      }
+      off += segLen
+    }
+  }
+  return null  // not a recognized PNG/JPEG (or JPEG with no SOF) — reject
+}
 
 // Voice ID for outbound voice summaries. Read at module import from
 // LifeosConfig — `[da.voices.main] voice_id` in LIFEOS/USER/CONFIG/LIFEOS_CONFIG.toml.
@@ -102,10 +180,17 @@ const DA_VOICE_ID = ((): string => {
   return "21m00Tcm4TlvDq8ikWAM"  // ElevenLabs "Rachel" — public voice
 })()
 
+// DA display name from LifeosConfig ([da].name); "LifeOS" fallback (PR #1457).
+const DA_NAME = ((): string => {
+  try { const n = loadLifeosConfig().da.name; if (n && typeof n === "string" && n.length > 0) return n } catch { /* default */ }
+  return "LifeOS"
+})()
+
 // ── Module State ──
 
 let bot: Bot | null = null
-let conversationStore: ConversationStore | null = null
+let sessionStore: SessionStore | null = null
+let currentSessionId: string | null = null
 let processing = false
 let startedAt = 0
 let messagesReceived = 0
@@ -499,7 +584,8 @@ function tidySummary(raw: string): string {
   // Strip wrapping quotes
   s = s.replace(/^["'`]+|["'`]+$/g, "")
   // Strip leading speaker labels ({{DA_NAME}}:, Summary:, etc.)
-  s = s.replace(/^(kai|summary|voice|output|response)[:\-—]\s*/i, "")
+  const daLabel = DA_NAME.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+  s = s.replace(new RegExp(`^(${daLabel}|summary|voice|output|response)[:\\-—]\\s*`, "i"), "")
   // Strip leading list markers
   s = s.replace(/^[-*•]\s+/, "")
   // Collapse internal whitespace
@@ -528,7 +614,7 @@ function fallbackFirstSentence(text: string): string {
  * bytes as a Buffer; never writes to disk. Telegram's sendVoice consumes the
  * Buffer via grammY's InputFile constructor.
  */
-export async function synthesizeKaiVoice(text: string): Promise<Buffer> {
+export async function synthesizeDaVoice(text: string): Promise<Buffer> {
   const url = `https://api.elevenlabs.io/v1/text-to-speech/${DA_VOICE_ID}?output_format=opus_48000_64`
   const spokenText = disambiguateHomographs(text)
   const res = await fetch(url, {
@@ -570,6 +656,7 @@ export function sendVoiceSummary(
   fullText: string,
 ): void {
   if (!ELEVENLABS_API_KEY) return
+  if (activeConfig?.voice_summaries === false) return  // explicit opt-out (PR #1458)
   const wordCount = fullText.trim().split(/\s+/).length
   if (wordCount < SHORT_REPLY_WORDS) {
     log("info", "voice summary skipped — short reply", { wordCount, chatId: ctx.chat.id })
@@ -612,11 +699,11 @@ export function sendVoiceSummary(
       }
 
       const tSynth = Date.now()
-      const buf = await synthesizeKaiVoice(summary)
+      const buf = await synthesizeDaVoice(summary)
       const synthLatencyMs = Date.now() - tSynth
 
       const tSend = Date.now()
-      await ctx.api.sendVoice(chatId, new InputFile(buf, "kai-summary.ogg"))
+      await ctx.api.sendVoice(chatId, new InputFile(buf, `${DA_NAME.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-summary.ogg`))
       const sendLatencyMs = Date.now() - tSend
 
       lastVoiceSendMs = Date.now() - t0
@@ -690,10 +777,28 @@ export async function startTelegram(config: TelegramConfig): Promise<void> {
   // Ensure directories
   await mkdir(STATE_DIR, { recursive: true })
   await mkdir(LOGS_DIR, { recursive: true })
+  await mkdir(INCOMING_DIR, { recursive: true })
 
-  // Initialize conversation store
-  conversationStore = new ConversationStore(join(STATE_DIR, "conversations.json"))
-  await conversationStore.load()
+  // Initialize SQLite session store (Hermes parity)
+  sessionStore = new SessionStore(STATE_DIR)
+
+  // One-time JSONL migration (F7) — if old conversations.jsonl exists, migrate to SQLite
+  const jsonlPath = join(STATE_DIR, "conversations.jsonl")
+  const migrationResult = sessionStore.migrateFromJsonl(jsonlPath)
+  if (migrationResult.sessions > 0) {
+    log("info", "Migrated JSONL conversations to SQLite", migrationResult)
+  }
+
+  // Resume or create session
+  const latestSession = sessionStore.getLatestSession()
+  if (latestSession && Date.now() - latestSession.started_at < IDLE_TIMEOUT_MS) {
+    currentSessionId = latestSession.id
+    log("info", "Resumed existing session", { sessionId: currentSessionId })
+  } else {
+    const newSession = sessionStore.createSession()
+    currentSessionId = newSession.id
+    log("info", "Created new session", { sessionId: currentSessionId })
+  }
 
   // One-time cleanup: the prior pre-cached ack-cache infrastructure has been
   // removed; sweep its on-disk artifacts so the state dir stays clean across
@@ -732,37 +837,70 @@ export async function startTelegram(config: TelegramConfig): Promise<void> {
     await next()
   })
 
-  // Message handler — sequential processing
-  bot.on("message:text", async (ctx) => {
-    const text = ctx.message.text
-    const userId = ctx.from.id
+  // ── Inbound/outbound media helpers (closures over `token`) — PR #1384 port ──
+
+  // Download a Telegram file (photo size or image document) into INCOMING_DIR.
+  // Returns the absolute local path so the SDK session can Read it. Throws on
+  // anything that fails validation — caller replies with the reason.
+  async function downloadIncomingImage(ctx: { api: { getFile: (fileId: string) => Promise<{ file_path?: string; file_size?: number }> } }, fileId: string): Promise<string> {
+    const file = await ctx.api.getFile(fileId)
+    const remotePath = file.file_path
+    if (!remotePath) throw new Error("Telegram getFile returned no file_path")
+    if (file.file_size && file.file_size > MAX_IMAGE_BYTES) {
+      throw new Error(`file too large (${file.file_size} bytes)`)
+    }
+    const res = await fetch(`https://api.telegram.org/file/bot${token}/${remotePath}`)
+    if (!res.ok) throw new Error(`download failed: HTTP ${res.status}`)
+    const bytes = new Uint8Array(await res.arrayBuffer())
+    if (bytes.byteLength > MAX_IMAGE_BYTES) throw new Error(`file too large (${bytes.byteLength} bytes)`)
+    // Content sniff + dimension cap BEFORE the file is ever handed to the SDK Read tool.
+    const info = inspectImage(bytes)
+    if (!info) throw new Error("unsupported type — only PNG and JPEG accepted")
+    if (info.width * info.height > MAX_IMAGE_PIXELS || Math.max(info.width, info.height) > MAX_IMAGE_DIM) {
+      throw new Error(`dimensions too large (${info.width}x${info.height})`)
+    }
+    // Filename from the sniffed type and a random UUID — never from the remote
+    // path, so nothing attacker-influenced reaches the filesystem name.
+    const dest = join(INCOMING_DIR, `${crypto.randomUUID()}.${info.kind === "jpeg" ? "jpg" : "png"}`)
+    // Traversal guard: the resolved write path MUST stay inside INCOMING_DIR.
+    const resolved = resolve(dest)
+    if (resolved !== dest || !resolved.startsWith(resolve(INCOMING_DIR) + sep)) {
+      throw new Error("resolved path escaped the incoming dir")
+    }
+    await writeFile(resolved, bytes)
+    return resolved
+  }
+
+  // Send one outbound image referenced by a [[IMG:...]] tag. Local absolute
+  // paths only — validated (exists, regular file, image extension, size cap)
+  // before anything is handed to sendPhoto. Failures degrade to a short note
+  // in the chat; they never take down the turn.
+  async function sendOutboundImage(ctx: { reply: (text: string) => Promise<unknown>; replyWithPhoto: (photo: InputFile) => Promise<unknown> }, ref: string): Promise<void> {
+    try {
+      if (!ref.startsWith("/")) throw new Error("only absolute local paths are allowed")
+      const resolved = resolve(ref)
+      const ext = (resolved.split(".").pop() || "").toLowerCase()
+      if (!PHOTO_EXTS.has(ext)) throw new Error(`unsupported extension .${ext} — png/jpg/jpeg/webp/gif only`)
+      const st = await statFile(resolved)
+      if (!st.isFile()) throw new Error("not a regular file")
+      if (st.size > MAX_IMAGE_BYTES) throw new Error(`file too large (${st.size} bytes)`)
+      await ctx.replyWithPhoto(new InputFile(resolved))
+    } catch (e) {
+      const reason = String(e).replace(/^Error:\s*/, "")
+      log("error", "Failed to send outbound image", { ref: ref.slice(0, 200), reason })
+      await ctx.reply(`(couldn't send image ${ref.slice(0, 120)}: ${reason})`).catch(() => {})
+    }
+  }
+
+  // ── Shared SDK processing — text and image messages both funnel through here ──
+  //
+  // opts.newMessage = what the model sees as the principal's new message
+  // opts.userLog    = what is persisted to the conversation store / chat log
+  async function processPrompt(
+    ctx: any,
+    opts: { userLog: string; newMessage: string },
+  ): Promise<void> {
     const chatId = ctx.chat.id
-
-    messagesReceived++
-    log("info", "Message received", { userId, chatId, textLength: text.length })
-
-    // Sanitize input
-    const sanitized = sanitize(text)
-    if (!sanitized) return
-
-    const injection = analyzeForInjection(sanitized)
-    if (injection.riskLevel === "CRITICAL") {
-      log("warn", "Blocked CRITICAL injection attempt", { userId, patterns: injection.matchedPatterns })
-      await ctx.reply("Message blocked for security reasons.")
-      return
-    }
-
-    // F7: intercept proposal replies BEFORE the SDK runs. `yes #id` / `no #id`
-    // / `edit #id <text>` / `proposals` are handled directly without invoking
-    // the agent. Anything else falls through to the normal SDK path.
-    const proposalReply = parseProposalReply(sanitized)
-    if (proposalReply.kind !== null) {
-      const outcome = await handleProposalReply(chatId, proposalReply, ctx)
-      if (outcome === "handled") {
-        log("info", "Handled proposal reply", { kind: proposalReply.kind, chatId })
-        return
-      }
-    }
 
     // Sequential processing — one message at a time
     if (processing) {
@@ -774,22 +912,30 @@ export async function startTelegram(config: TelegramConfig): Promise<void> {
     const startTime = Date.now()
     const now = Date.now()
 
-    // Idle-session boundary: if the last successful exchange was more than
-    // IDLE_TIMEOUT_MS ago, clear the SDK session and start a new thread. The
-    // persisted conversations.json is unchanged — we just filter the history
-    // injection below so the bot starts fresh.
+    // Idle-session boundary (F4): if the last successful exchange was more than
+    // IDLE_TIMEOUT_MS ago, clear the SDK session and start a new SQLite session.
+    // The old session is archived; the new session starts fresh.
     //
     // Order is load-bearing: this runs AFTER the sanitize-empty / injection-
     // CRITICAL / processing-busy early returns above, so garbage messages
     // never advance threadStartedAt or emit a spurious boundary log line.
     const isIdleReset = lastMessageAt !== null && (now - lastMessageAt) > IDLE_TIMEOUT_MS
     if (isIdleReset) {
-      // Capture into a const BEFORE we clear it, so the log line reports the
-      // session ID we're abandoning, not undefined.
       const prevSessionId = lastSessionId
+      const prevSqliteSessionId = currentSessionId
+
+      // Archive old SQLite session, create new one
+      if (currentSessionId) {
+        sessionStore!.archiveSession(currentSessionId)
+      }
+      const newSession = sessionStore!.createSession()
+      currentSessionId = newSession.id
+
       log("info", "thread boundary — fresh session", {
         idleMs: now - lastMessageAt!,
-        prevSessionId,
+        prevSdkSessionId: prevSessionId,
+        prevSqliteSessionId,
+        newSqliteSessionId: currentSessionId,
         newThreadStartedAt: now,
       })
       lastSessionId = undefined
@@ -803,21 +949,30 @@ export async function startTelegram(config: TelegramConfig): Promise<void> {
       // Build per-turn LifeOS memory context — who {{PRINCIPAL_NAME}} is, who {{DA_NAME}} is, what
       // {{PRINCIPAL_NAME}}'s goals are, what's in flight today, AND any relevant prior
       // memory pulled by BM25 against the current message.
-      const contextBlock = await buildLifeosContextBlock(sanitized)
+      const contextBlock = await buildLifeosContextBlock(opts.newMessage)
 
-      // Build prompt with conversation history context, scoped to the current
-      // thread only. After an idle reset, threadStartedAt is "now" and this
-      // filter returns an empty list — so the prompt omits the "Previous
-      // conversation:" prefix entirely, giving the SDK a clean start.
-      const history = conversationStore!.getHistory()
-        .filter(m => m.timestamp >= threadStartedAt)
-      let prompt = sanitized
-      if (history.length > 0) {
-        const historyText = history
-          .slice(-10) // Last 5 exchanges for context
-          .map(m => `${m.role === "user" ? "Principal" : "DA"}: ${m.content}`)
-          .join("\n")
-        prompt = `Previous conversation:\n${historyText}\n\nPrincipal's new message: ${sanitized}`
+      // SDK resume (F2): if we have a prior SDK session ID, pass it to resume.
+      // When resuming, the SDK carries conversation state internally — we do NOT
+      // inject history into the prompt (that was the double-booking bug that caused
+      // saturation). Fresh sessions get no resume param and the bare message.
+      //
+      // lastSessionId = the SDK's own session ID from the prior turn (captured on
+      //   msg.type=result). This is what the SDK needs to resume.
+      // currentSessionId = our SQLite session ID for message persistence. Different
+      //   thing — we track both because the SDK session ID can change on compaction.
+      const resumeFromSdk = !isIdleReset && lastSessionId ? lastSessionId : undefined
+      const prompt = opts.newMessage
+
+      // Compression check (F3): if active context exceeds 60% threshold, compress
+      const activeMessages = sessionStore!.getMessages(currentSessionId!, true)
+      if (needsCompression(activeMessages)) {
+        log("info", "Compression threshold exceeded, compressing session", {
+          sessionId: currentSessionId,
+          activeMessageCount: activeMessages.length,
+        })
+        const holder = buildCompressionHolder()
+        const compressionResult = await compressSession(sessionStore!, currentSessionId!, holder)
+        log("info", "Compression complete", compressionResult)
       }
 
       const sdkOptions: Record<string, unknown> = {
@@ -847,10 +1002,10 @@ export async function startTelegram(config: TelegramConfig): Promise<void> {
               : String(input)
             if (cmd.includes("31337") || cmd.includes("/notify")) {
               log("warn", "canUseTool blocked /notify curl from SDK subprocess", { cmd: cmd.slice(0, 200) })
-              return { result: "deny", reason: "Telegram mode: /notify and port 31337 are blocked. Voice is delivered via Telegram sendVoice, not the desktop speaker." }
+              return { behavior: "deny", message: "Telegram mode: /notify and port 31337 are blocked. Voice is delivered via Telegram sendVoice, not the desktop speaker." }
             }
           }
-          return { result: "allow" }
+          return { behavior: "allow", updatedInput: (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown> }
         },
         systemPrompt: {
           type: "preset",
@@ -881,6 +1036,8 @@ A belt-and-suspenders egress sanitizer (LIFEOS/PULSE/lib/strip-mode-scaffolding.
 
 ### What you do
 - Use tools. Read files, run skills, send messages, hit APIs — don't ask permission for read-only or self-scoped actions.
+- IMAGES IN: when {{PRINCIPAL_NAME}} sends a photo, it is saved locally and the absolute path is in his message — use the Read tool to view it before responding.
+- IMAGES OUT: to send {{PRINCIPAL_NAME}} an image, put [[IMG:/absolute/local/path.png]] on its own line anywhere in your reply. The bridge delivers the file as a Telegram photo and strips the tag from your text. Local absolute paths only (png/jpg/jpeg/webp/gif, ≤10MB) — save or generate the file to disk first (e.g. ~/Downloads or MEMORY/WORK), then reference that path.
 - If {{PRINCIPAL_NAME}} asks "what should I work on", give an opinion grounded in his TELOS and active sessions. Pick one. Defend it briefly.
 - If something requires destructive or shared action (deploy, push, send external email), confirm before doing it.
 - If you don't know, say so concretely in one sentence. Don't pad.
@@ -892,19 +1049,37 @@ A belt-and-suspenders egress sanitizer (LIFEOS/PULSE/lib/strip-mode-scaffolding.
         },
       }
 
-      // Resume previous session for context continuity
-      if (lastSessionId) {
-        sdkOptions.resume = lastSessionId
-      }
+      // SDK resume (F2): pass the prior session ID to resume context continuity.
+      // We removed the prompt-based history injection above — when resuming, the
+      // SDK carries conversation state internally. This was the Hermes-parity fix:
+      // use SDK resume OR prompt injection, not both (double-booking saturated
+      // the session). Fresh sessions and idle-reset sessions have resumeFromSdk
+      // undefined and get a clean start.
 
-      const conversation = query({ prompt, options: sdkOptions as any })
+      // Timeout: the controller is passed INTO the SDK so a hung stream is
+      // actually killed at sdkTimeoutMs. Before 2026-07-11 the signal was only
+      // checked at the top of the for-await loop — a stream that stopped
+      // yielding hung the handler indefinitely (observed: one query ran 2.87h,
+      // freezing the live "▊" partial in the chat the whole time).
+      const timeoutController = new AbortController()
+      sdkOptions.abortController = timeoutController
+
+      const queryOpts: { prompt: string; resume?: string; options?: any } = {
+        prompt,
+        options: sdkOptions as any,
+      }
+      if (resumeFromSdk) {
+        queryOpts.resume = resumeFromSdk
+        log("info", "SDK resume enabled", { sessionId: resumeFromSdk })
+      }
+      const conversation = query(queryOpts)
 
       // Collect response with timeout
       let fullText = ""
       let messageId: number | null = null
       let lastEditTime = 0
+      let timedOut = false
 
-      const timeoutController = new AbortController()
       const timeout = setTimeout(() => timeoutController.abort(), sdkTimeoutMs)
 
       try {
@@ -948,10 +1123,12 @@ A belt-and-suspenders egress sanitizer (LIFEOS/PULSE/lib/strip-mode-scaffolding.
             })
           }
 
-          // Live edit updates in Telegram
+          // Live edit updates in Telegram (image tags — complete AND partially
+          // streamed — hidden from the live view so the raw tag never flashes)
           const now = Date.now()
-          if (fullText && now - lastEditTime >= editIntervalMs) {
-            const displayText = fullText.slice(0, MAX_TELEGRAM_LENGTH - 10) + CURSOR
+          const display = stripImageTagsForStream(fullText)
+          if (display && now - lastEditTime >= editIntervalMs) {
+            const displayText = display.slice(0, MAX_TELEGRAM_LENGTH - 10) + CURSOR
             try {
               if (!messageId) {
                 const sent = await ctx.reply(displayText)
@@ -963,13 +1140,32 @@ A belt-and-suspenders egress sanitizer (LIFEOS/PULSE/lib/strip-mode-scaffolding.
             } catch { /* edit failures are non-critical */ }
           }
         }
+      } catch (streamErr) {
+        // Abort at sdkTimeoutMs surfaces here as an error from the stream.
+        // Partial text (if any streamed before the hang) is still in fullText
+        // and ships below — better a truncated answer than a frozen "▊".
+        if (timeoutController.signal.aborted) {
+          timedOut = true
+          log("error", "SDK query timed out — aborted", {
+            sdkTimeoutMs,
+            partialLength: fullText.length,
+          })
+        } else {
+          throw streamErr
+        }
       } finally {
         clearTimeout(timeout)
       }
 
+      if (timedOut && fullText) {
+        fullText += "\n\n(⏱ I hit my generation time limit — this reply is cut short. Ask again to continue.)"
+      }
+
       if (!fullText) {
-        fullText = "Sorry, I wasn't able to generate a response. Try again?"
-        log("error", "Empty response from SDK")
+        fullText = timedOut
+          ? "That one timed out on my side before I produced anything. Send it again?"
+          : "Sorry, I wasn't able to generate a response. Try again?"
+        log("error", "Empty response from SDK", { timedOut })
       }
 
       // Egress sanitizer. Strip any CLAUDE.md mode
@@ -988,39 +1184,58 @@ A belt-and-suspenders egress sanitizer (LIFEOS/PULSE/lib/strip-mode-scaffolding.
         })
       }
 
-      // Final clean message
-      if (fullText.length <= MAX_TELEGRAM_LENGTH) {
-        if (messageId) {
-          await ctx.api.editMessageText(chatId, messageId, fullText).catch(() => {})
-        } else {
-          await ctx.reply(fullText)
-        }
-      } else {
-        // Split long messages
-        const chunks: string[] = []
-        let remaining = fullText
-        while (remaining.length > 0) {
-          chunks.push(remaining.slice(0, MAX_TELEGRAM_LENGTH))
-          remaining = remaining.slice(MAX_TELEGRAM_LENGTH)
-        }
-        if (messageId) {
-          await ctx.api.editMessageText(chatId, messageId, chunks[0]!).catch(() => {})
-          for (const chunk of chunks.slice(1)) {
-            await ctx.reply(chunk)
+      // Separate outbound image tags from the text body (PR #1384 port).
+      // Refs are validated per-file in sendOutboundImage before anything ships.
+      // Runs AFTER the mode-scaffolding egress sanitizer — that layer is
+      // untouched and still sees the full model output.
+      const imageRefs = extractImageRefs(fullText)
+      const cleanText = stripImageTags(fullText)
+
+      // Deliver the text (if any remains after stripping image tags)
+      if (cleanText) {
+        if (cleanText.length <= MAX_TELEGRAM_LENGTH) {
+          if (messageId) {
+            await ctx.api.editMessageText(chatId, messageId, cleanText).catch(() => {})
+          } else {
+            await ctx.reply(cleanText)
           }
         } else {
-          for (const chunk of chunks) {
-            await ctx.reply(chunk)
+          // Split long messages
+          const chunks: string[] = []
+          let remaining = cleanText
+          while (remaining.length > 0) {
+            chunks.push(remaining.slice(0, MAX_TELEGRAM_LENGTH))
+            remaining = remaining.slice(MAX_TELEGRAM_LENGTH)
+          }
+          if (messageId) {
+            await ctx.api.editMessageText(chatId, messageId, chunks[0]!).catch(() => {})
+            for (const chunk of chunks.slice(1)) {
+              await ctx.reply(chunk)
+            }
+          } else {
+            for (const chunk of chunks) {
+              await ctx.reply(chunk)
+            }
           }
         }
+      } else if (messageId) {
+        // Image-only reply — drop the now-empty streaming placeholder
+        await ctx.api.deleteMessage(chatId, messageId).catch(() => {})
       }
 
-      messagesResponded++
-      log("info", "Response sent", { durationMs: Date.now() - startTime, responseLength: fullText.length })
+      // Deliver any outbound images (each one path-validated in the helper)
+      for (const ref of imageRefs) await sendOutboundImage(ctx, ref)
 
-      // Persist conversation
-      await conversationStore!.addExchange(sanitized, fullText)
-      await appendChatLog(sanitized, fullText)
+      messagesResponded++
+      log("info", "Response sent", {
+        durationMs: Date.now() - startTime,
+        responseLength: cleanText.length,
+        images: imageRefs.length,
+      })
+
+      // Persist conversation to SQLite (F1/F2: Hermes-parity session tracking)
+      sessionStore!.addExchange(currentSessionId!, opts.userLog, cleanText || `[sent ${imageRefs.length} image(s)]`)
+      await appendChatLog(opts.userLog, cleanText || `[sent ${imageRefs.length} image(s)]`)
 
       // Mark this thread as alive. Updated ONLY here (after a successful
       // exchange) — not at handler entry — so a slow SDK reply doesn't reset
@@ -1030,8 +1245,10 @@ A belt-and-suspenders egress sanitizer (LIFEOS/PULSE/lib/strip-mode-scaffolding.
       // Fire-and-forget voice summary. Sonnet summarizes the reply into ≤2
       // sentences in {{DA_NAME}}'s voice, ElevenLabs synthesizes it, Telegram delivers
       // it as a voice-message bubble. Never awaited — must not block the
-      // `processing = false` release in `finally`.
-      sendVoiceSummary(ctx, fullText)
+      // `processing = false` release in `finally`. Uses cleanText so a leaked
+      // [[IMG:...]] path never gets read aloud; an image-only reply (empty
+      // cleanText) is skipped by the short-reply guard inside.
+      sendVoiceSummary(ctx, cleanText)
 
       // F7: piggy-back ONE pending identity proposal onto this turn's reply.
       // Rate-limited to one per turn so the chat doesn't get spammed when the
@@ -1045,6 +1262,92 @@ A belt-and-suspenders egress sanitizer (LIFEOS/PULSE/lib/strip-mode-scaffolding.
       await ctx.reply("Something went wrong processing your message. Try again?").catch(() => {})
     } finally {
       processing = false
+    }
+  }
+
+  // ── Handlers ──
+  // Both sit BEHIND the auth middleware above, so only allowed_users ({{PRINCIPAL_NAME}})
+  // ever reach them — the incoming-locked-to-principal guard covers photos too.
+
+  bot.on("message:text", async (ctx) => {
+    const text = ctx.message.text
+    const userId = ctx.from.id
+    const chatId = ctx.chat.id
+
+    messagesReceived++
+    log("info", "Message received", { userId, chatId, textLength: text.length })
+
+    // Sanitize input
+    const sanitized = sanitize(text)
+    if (!sanitized) return
+
+    const injection = analyzeForInjection(sanitized)
+    if (injection.riskLevel === "CRITICAL") {
+      log("warn", "Blocked CRITICAL injection attempt", { userId, patterns: injection.matchedPatterns })
+      await ctx.reply("Message blocked for security reasons.")
+      return
+    }
+
+    // F7: intercept proposal replies BEFORE the SDK runs. `yes #id` / `no #id`
+    // / `edit #id <text>` / `proposals` are handled directly without invoking
+    // the agent. Anything else falls through to the normal SDK path.
+    const proposalReply = parseProposalReply(sanitized)
+    if (proposalReply.kind !== null) {
+      const outcome = await handleProposalReply(chatId, proposalReply, ctx)
+      if (outcome === "handled") {
+        log("info", "Handled proposal reply", { kind: proposalReply.kind, chatId })
+        return
+      }
+    }
+
+    await processPrompt(ctx, { userLog: sanitized, newMessage: sanitized })
+  })
+
+  // Photos (Telegram re-encodes these to JPEG) and PNG/JPEG image documents
+  // (full-fidelity path). Acceptance is decided by the magic-byte sniff inside
+  // downloadIncomingImage — never the client-declared mime. Captions get the
+  // SAME sanitize + injection scan that text messages get.
+  bot.on(["message:photo", "message:document"], async (ctx) => {
+    let fileId: string | undefined
+    if (ctx.message.photo) {
+      const sizes = ctx.message.photo
+      fileId = sizes[sizes.length - 1]?.file_id  // largest rendition
+    } else if (ctx.message.document) {
+      fileId = ctx.message.document.file_id
+    }
+    if (!fileId) return
+
+    messagesReceived++
+    const rawCaption = ctx.message.caption ?? ""
+    const caption = rawCaption ? (sanitize(rawCaption) ?? "") : ""
+    log("info", "Image received", { userId: ctx.from.id, chatId: ctx.chat.id, hasCaption: !!caption })
+
+    if (caption) {
+      const injection = analyzeForInjection(caption)
+      if (injection.riskLevel === "CRITICAL") {
+        log("warn", "Blocked CRITICAL injection in image caption", { userId: ctx.from.id, patterns: injection.matchedPatterns })
+        await ctx.reply("Message blocked for security reasons.")
+        return
+      }
+    }
+
+    let savedPath: string
+    try {
+      await ctx.api.sendChatAction(ctx.chat.id, "typing").catch(() => {})
+      savedPath = await downloadIncomingImage(ctx, fileId)
+    } catch (e) {
+      const reason = String(e).replace(/^Error:\s*/, "")
+      log("warn", "Inbound image rejected", { reason })
+      await ctx.reply(`I can only accept PNG or JPEG images, up to 10MB and 40 megapixels. (${reason})`).catch(() => {})
+      return
+    }
+
+    const newMessage = `{{PRINCIPAL_NAME}} sent you an image, saved locally at: ${savedPath}\nUse the Read tool to view it, then respond.${caption ? `\nHis caption: ${caption}` : ""}`
+    const userLog = caption ? `[image] ${caption}` : "[image]"
+    try {
+      await processPrompt(ctx, { userLog, newMessage })
+    } finally {
+      await unlink(savedPath).catch(() => {})  // best-effort cleanup once the session has read it
     }
   })
 
@@ -1084,7 +1387,7 @@ export function telegramHealth(): {
   last_session_id?: string
   voice_summary: { enabled: boolean; last_send_ms: number | null }
 } {
-  const voice_summary = { enabled: ELEVENLABS_API_KEY !== "", last_send_ms: lastVoiceSendMs }
+  const voice_summary = { enabled: ELEVENLABS_API_KEY !== "" && activeConfig?.voice_summaries !== false, last_send_ms: lastVoiceSendMs }
 
   if (!bot) {
     return {

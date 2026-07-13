@@ -69,6 +69,7 @@ import {
 import { setEntries as memoryWriterSetEntries, read as memoryWriterRead } from "./MemoryWriter";
 import { getTier } from "./MutationTier";
 import { getRelevantContext, type RelevantResultItem } from "./MemoryRetriever";
+import { mintId, slugFromPath, SCHEMA_VERSION } from "./KnowledgeSchema";
 
 // ── Constants ──
 
@@ -296,48 +297,62 @@ function renderRelatedBlock(related: RelatedLink[] | undefined): string {
   return lines.join("\n");
 }
 
-function renderInitialNote(item: TypedItem): string {
+/**
+ * Emit a new note on the kb-v3 Core Envelope (KnowledgeSchema.ts) so autonomic
+ * writes stop re-introducing the old pai-memory-v1 dialect the migration cleaned
+ * up. `type` carries the canonical archive type directly (idea, or the knowledge
+ * item's entity_type = person|company|research), `title` not `name`,
+ * `created`/`updated` not `last_updated`, a deterministic `id`, provenance as
+ * `source_*`. Tags/quality default (flagged inferred) since the item shape
+ * doesn't carry them, and `status: seedling` marks it for enrichment. NOTE: a
+ * research item is born on the envelope but WITHOUT `source_url` (the item has
+ * none), so Lint flags it for source backfill — "born conformant" holds for the
+ * envelope, not the per-type source requirement (Forge #7). `slug` is the note's
+ * filename slug (for the stable id).
+ */
+function renderInitialNote(item: TypedItem, slug: string): string {
   const ts = new Date().toISOString();
-  if (item.type === "idea") {
-    return [
-      "---",
-      `type: idea`,
-      `title: "${item.title.replace(/"/g, '\\"')}"`,
-      `created: ${ts}`,
-      `last_updated: ${ts}`,
-      `source_session: ${item.source_session ?? "none"}`,
-      `confidence: ${item.confidence ?? 1.0}`,
-      renderRelatedBlock(item.related),
-      `convention: pai-memory-v1`,
-      "---",
-      "",
-      `# ${item.title}`,
-      "",
-      item.content.trim(),
-      "",
-    ].join("\n");
+  const isIdea = item.type === "idea";
+  const isKnowledge = item.type === "knowledge";
+  if (!isIdea && !isKnowledge) {
+    throw new Error(`renderInitialNote called for non-note type: ${(item as any).type}`);
   }
-  if (item.type === "knowledge") {
-    return [
-      "---",
-      `type: knowledge`,
-      `entity_type: ${item.entity_type}`,
-      `name: "${item.name.replace(/"/g, '\\"')}"`,
-      `created: ${ts}`,
-      `last_updated: ${ts}`,
-      `source_session: ${item.source_session ?? "none"}`,
-      `confidence: ${item.confidence ?? 1.0}`,
-      renderRelatedBlock(item.related),
-      `convention: pai-memory-v1`,
-      "---",
-      "",
-      `# ${item.name}`,
-      "",
-      item.content.trim(),
-      "",
-    ].join("\n");
-  }
-  throw new Error(`renderInitialNote called for non-note type: ${(item as any).type}`);
+  const title = isIdea ? (item as any).title : (item as any).name;
+  const canonicalType = isIdea ? "idea" : (item as any).entity_type; // person|company|research
+  const bodyLen = item.content.trim().length;
+  const quality = bodyLen < 400 ? 2 : 5;
+  // YAML-safe title: strip newlines (they break both the frontmatter and the H1)
+  // and escape backslash-then-quote (Forge #8 — quote-only escaping mangled
+  // `C:\path` and any newline in the title).
+  const safeTitle = String(title).replace(/[\r\n]+/g, " ").trim();
+  const yamlTitle = safeTitle.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+
+  const lines: string[] = [
+    "---",
+    `id: ${mintId(slug, ts)}`,
+    `type: ${canonicalType}`,
+    `title: "${yamlTitle}"`,
+    `tags: [untagged]`,
+    `status: seedling`,
+    `quality: ${quality}`,
+    `quality_inferred: true`,
+  ];
+  if (item.confidence != null) lines.push(`confidence: ${item.confidence}`);
+  lines.push(`source_kind: internal`);
+  if (item.source_session && item.source_session !== "none") lines.push(`source_session: ${item.source_session}`);
+  lines.push(
+    `created: ${ts}`,
+    `updated: ${ts}`,
+    renderRelatedBlock(item.related),
+    `convention: ${SCHEMA_VERSION}`,
+    "---",
+    "",
+    `# ${safeTitle}`,
+    "",
+    item.content.trim(),
+    "",
+  );
+  return lines.join("\n");
 }
 
 function renderAppendedSection(item: TypedItem & { type: "idea" | "knowledge" }): string {
@@ -443,7 +458,7 @@ function addNoteTypeItem(item: TypedItem & { type: "idea" | "knowledge" }, path:
       }
     }
   } else {
-    const content = renderInitialNote(item);
+    const content = renderInitialNote(item, slugFromPath(path));
     const writeResult = appendToTierBFile(path, content);
     if (!writeResult.ok) return writeResult;
     totalBytes += writeResult.bytes;

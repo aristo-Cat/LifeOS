@@ -1,5 +1,13 @@
 #!/usr/bin/env bun
+// Normalize env path vars Claude Code may inject unexpanded — literal $HOME/${HOME}
+// in LIFEOS_DIR/LIFEOS_CONFIG_DIR/PROJECTS_DIR resolves to a shadow dir (#1404 / PR #1451, author jbmml).
+for (const __k of ["LIFEOS_DIR", "LIFEOS_CONFIG_DIR", "PROJECTS_DIR"]) {
+  const __v = process.env[__k];
+  if (__v && /^\$\{?HOME\}?(\/|$)/.test(__v)) process.env[__k] = __v.replace(/^\$\{?HOME\}?/, process.env.HOME ?? "~");
+}
+
 /**
+ * @version 1.5.12
  * WorkCompletionLearning.hook.ts - Extract Learnings from Completed Work (SessionEnd)
  *
  * PURPOSE:
@@ -54,6 +62,13 @@ import { join } from 'path';
 import { getISOTimestamp, getPSTDate } from './lib/time';
 import { getLearningCategory } from './lib/learning-utils';
 import { findArtifactPath, findActiveSessionByUUID } from './lib/isa-utils';
+
+// Normalize env path vars that Claude Code injects without shell expansion (LifeOS#1404)
+for (const k of ["LIFEOS_DIR", "LIFEOS_CONFIG_DIR", "PROJECTS_DIR"]) {
+  const v = process.env[k];
+  if (v && /^\$\{?HOME\}?(\/|$)/.test(v)) process.env[k] = v.replace(/^\$\{?HOME\}?/, process.env.HOME ?? "~");
+}
+
 
 const BASE_DIR = process.env.LIFEOS_DIR || join(process.env.HOME!, '.claude', 'LIFEOS');
 const MEMORY_DIR = join(BASE_DIR, 'MEMORY');
@@ -306,7 +321,7 @@ async function main() {
     if (isaPath) {
       try {
         const isaContent = readFileSync(isaPath, 'utf-8');
-        const iscMatch = isaContent.match(/## IDEAL STATE CRITERIA[\s\S]*?(?=\n## |$)/);
+        const iscMatch = isaContent.match(/## (?:IDEAL STATE CRITERIA|Criteria)[\s\S]*?(?=\n## |$)/);
         if (iscMatch) {
           const checked = (iscMatch[0].match(/- \[x\]/g) || []).length;
           const unchecked = (iscMatch[0].match(/- \[ \]/g) || []).length;

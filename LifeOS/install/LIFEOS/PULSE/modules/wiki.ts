@@ -1,7 +1,7 @@
 /**
  * LifeOS Pulse - Wiki Module
  *
- * Backend API for the Documentation, Knowledge, Bookmarks, Skills, Hooks, and
+ * Backend API for the Documentation, Knowledge, Skills, Hooks, and
  * Arbol views in Pulse.
  *
  * Route prefixes handled:
@@ -11,7 +11,6 @@
  *   GET /api/wiki/search?q=query
  *   GET /api/wiki/backlinks/:slug
  *   GET /api/wiki/graph
- *   GET /api/wiki/bookmark/:id
  *   GET /api/wiki/skills
  *   GET /api/wiki/skills/:name
  *   PUT /api/wiki/skills/:name
@@ -39,8 +38,6 @@ const HOME = process.env.HOME ?? "~"
 const LIFEOS_DIR = join(HOME, ".claude", "LIFEOS")
 const DOCUMENTATION_DIR = join(LIFEOS_DIR, "DOCUMENTATION")
 const KNOWLEDGE_DIR = join(LIFEOS_DIR, "MEMORY", "KNOWLEDGE")
-const BOOKMARKS_DIR = join(LIFEOS_DIR, "MEMORY", "BOOKMARKS")
-const BOOKMARKS_CSV = join(BOOKMARKS_DIR, "bookmarks.csv")
 const ALGORITHM_DIR = join(LIFEOS_DIR, "ALGORITHM")
 const SKILLS_DIR = join(HOME, ".claude", "skills")
 const HOOKS_DIR = join(HOME, ".claude", "hooks")
@@ -48,7 +45,7 @@ const SETTINGS_PATH = join(HOME, ".claude", "settings.json")
 const ARBOL_WORKERS_DIR = join(LIFEOS_DIR, "USER", "CUSTOMIZATIONS", "ARBOL", "Workers")
 
 const SYSTEM_PROMPT_PATH = join(LIFEOS_DIR, "LIFEOS_SYSTEM_PROMPT.md")
-const KNOWLEDGE_DOMAINS = ["People", "Companies", "Ideas", "Blogs"] as const
+const KNOWLEDGE_DOMAINS = ["People", "Companies", "Ideas", "Blogs", "Books", "Research"] as const
 type KnowledgeDomain = (typeof KNOWLEDGE_DOMAINS)[number]
 
 // Types
@@ -85,19 +82,6 @@ interface BacklinkEntry {
   category: string
 }
 
-interface Bookmark {
-  id: string
-  title: string
-  note: string
-  excerpt: string
-  url: string
-  folder: string
-  tags: string[]
-  created: string
-  cover: string
-  favorite: boolean
-}
-
 interface IndexOptions {
   category: string
   slug?: string
@@ -108,7 +92,6 @@ interface IndexOptions {
 
 const pageIndex: Map<string, WikiPage> = new Map()
 const backlinkIndex: Map<string, BacklinkEntry[]> = new Map()
-const bookmarkData: Map<string, Bookmark> = new Map()
 let searchIndex: MiniSearch | null = null
 let moduleStartedAt: string | null = null
 let lastIndexedAt: string | null = null
@@ -322,187 +305,13 @@ function indexFile(filePath: string, options: IndexOptions): WikiPage | null {
       filePath,
       group: options.group,
       related: stringArrayFromFrontmatter(fm.related),
-      author: typeof fm.author === "string" ? fm.author : undefined,
-      source: typeof fm.source === "string" ? fm.source : undefined,
+      author: typeof fm.source_author === "string" ? fm.source_author : (typeof fm.author === "string" ? fm.author : undefined),
+      source: typeof fm.source_name === "string" ? fm.source_name : (typeof fm.source === "string" ? fm.source : undefined),
       sourceUrl: typeof fm.source_url === "string" ? fm.source_url : undefined,
-      postDate: typeof fm.post_date === "string" ? fm.post_date : undefined,
+      postDate: typeof fm.source_date === "string" ? fm.source_date : (typeof fm.post_date === "string" ? fm.post_date : undefined),
     }
   } catch {
     return null
-  }
-}
-
-// CSV Parser (RFC 4180)
-
-function parseCsvRow(line: string): string[] {
-  const fields: string[] = []
-  let i = 0
-
-  while (i <= line.length) {
-    if (i === line.length) {
-      fields.push("")
-      break
-    }
-
-    if (line[i] === '"') {
-      let value = ""
-      i++
-
-      while (i < line.length) {
-        if (line[i] === '"') {
-          if (i + 1 < line.length && line[i + 1] === '"') {
-            value += '"'
-            i += 2
-          } else {
-            i++
-            break
-          }
-        } else {
-          value += line[i]
-          i++
-        }
-      }
-
-      fields.push(value)
-      if (i < line.length && line[i] === ",") i++
-      continue
-    }
-
-    const next = line.indexOf(",", i)
-    if (next === -1) {
-      fields.push(line.substring(i))
-      break
-    }
-
-    fields.push(line.substring(i, next))
-    i = next + 1
-  }
-
-  return fields
-}
-
-function parseCsv(content: string): string[][] {
-  const rows: string[][] = []
-  const lines: string[] = []
-  let current = ""
-  let inQuote = false
-
-  for (let i = 0; i < content.length; i++) {
-    const ch = content[i]
-    const next = content[i + 1]
-
-    if (ch === '"') {
-      if (inQuote && next === '"') {
-        current += ch
-        i++
-        current += next
-        continue
-      }
-      inQuote = !inQuote
-    }
-
-    if (ch === "\n" && !inQuote) {
-      lines.push(current.replace(/\r$/, ""))
-      current = ""
-    } else {
-      current += ch
-    }
-  }
-
-  if (current) lines.push(current.replace(/\r$/, ""))
-
-  for (const line of lines) {
-    if (!line.trim()) continue
-    rows.push(parseCsvRow(line))
-  }
-
-  return rows
-}
-
-// Bookmark Indexing
-
-function indexBookmarks(): void {
-  bookmarkData.clear()
-
-  for (const [slug, page] of pageIndex) {
-    if (page.category === "bookmark") pageIndex.delete(slug)
-  }
-
-  if (!existsSync(BOOKMARKS_CSV)) return
-
-  try {
-    const raw = readFileSync(BOOKMARKS_CSV, "utf-8")
-    const rows = parseCsv(raw)
-    if (rows.length < 2) return
-
-    const header = rows[0]
-    const colIdx: Record<string, number> = {}
-    header.forEach((col, i) => {
-      colIdx[col.trim().toLowerCase()] = i
-    })
-
-    for (let r = 1; r < rows.length; r++) {
-      const row = rows[r]
-      const get = (col: string) => {
-        const idx = colIdx[col]
-        return idx === undefined ? "" : row[idx] ?? ""
-      }
-
-      const id = get("id")
-      if (!id) continue
-
-      const title = get("title") || get("url") || `Bookmark ${id}`
-      const folder = get("folder").trim()
-      const tagsRaw = get("tags").trim()
-      const tags = tagsRaw
-        ? tagsRaw.split(",").map((t) => t.trim()).filter(Boolean)
-        : []
-      const created = get("created")
-
-      const bookmark: Bookmark = {
-        id,
-        title,
-        note: get("note"),
-        excerpt: get("excerpt"),
-        url: get("url"),
-        folder,
-        tags,
-        created,
-        cover: get("cover"),
-        favorite: get("favorite") === "true",
-      }
-
-      const slug = `bm-${id}`
-      bookmarkData.set(slug, bookmark)
-
-      const contentText = [
-        title,
-        bookmark.excerpt,
-        bookmark.note,
-        bookmark.url,
-      ]
-        .filter(Boolean)
-        .join(" ")
-
-      const folderTags = folder
-        ? folder.split(" / ").map((s) => s.trim().toLowerCase()).filter(Boolean)
-        : []
-
-      pageIndex.set(slug, {
-        slug,
-        title,
-        category: "bookmark",
-        tags: [...tags, ...folderTags],
-        quality: null,
-        lastModified: created || new Date().toISOString(),
-        wordCount: contentText.split(/\s+/).filter(Boolean).length,
-        wikilinks: [],
-        filePath: "",
-        group: folder || "Unsorted",
-      })
-    }
-  } catch {
-    // Bookmarks are optional; a malformed export should not break the wiki.
   }
 }
 
@@ -552,6 +361,8 @@ function indexKnowledgeArchive(): void {
     Companies: "company",
     Ideas: "idea",
     Blogs: "blog",
+    Books: "book",
+    Research: "research",
   }
 
   for (const domain of KNOWLEDGE_DOMAINS) {
@@ -584,7 +395,6 @@ function buildFullIndex(): void {
 
   indexSystemDocs()
   indexKnowledgeArchive()
-  indexBookmarks()
   rebuildBacklinks()
   rebuildSearchIndex()
 
@@ -640,23 +450,13 @@ function rebuildSearchIndex(): void {
   for (const [slug, page] of pageIndex) {
     let content = ""
 
-    if (page.category === "bookmark") {
-      const bm = bookmarkData.get(slug)
-      if (bm) {
-        content = [bm.title, bm.excerpt, bm.note, bm.url, bm.folder]
-          .filter(Boolean)
-          .join(" ")
-          .slice(0, 5000)
-      }
-    } else {
-      try {
-        content = stripFrontmatter(readFileSync(page.filePath, "utf-8")).slice(
-          0,
-          5000
-        )
-      } catch {
-        content = ""
-      }
+    try {
+      content = stripFrontmatter(readFileSync(page.filePath, "utf-8")).slice(
+        0,
+        5000
+      )
+    } catch {
+      content = ""
     }
 
     docs.push({
@@ -680,7 +480,6 @@ function rebuildSearchIndex(): void {
 
 let watchers: ReturnType<typeof watch>[] = []
 let reindexTimer: ReturnType<typeof setTimeout> | null = null
-let bookmarkReindexTimer: ReturnType<typeof setTimeout> | null = null
 const pendingPaths: Set<string> = new Set()
 
 function startWatchers(): void {
@@ -697,25 +496,12 @@ function startWatchers(): void {
         const filenameText = String(filename)
         if (filenameText.endsWith(".md")) {
           scheduleReindex(join(watchPath, filenameText))
-        } else if (filenameText.endsWith("bookmarks.csv")) {
-          scheduleBookmarkReindex()
         }
       })
 
       watchers.push(watcher)
     } catch {
       // File watching is best-effort; manual refresh still rebuilds on restart.
-    }
-  }
-
-  if (existsSync(BOOKMARKS_DIR)) {
-    try {
-      const watcher = watch(BOOKMARKS_DIR, (_event, filename) => {
-        if (String(filename) === "bookmarks.csv") scheduleBookmarkReindex()
-      })
-      watchers.push(watcher)
-    } catch {
-      // Bookmarks watching is best-effort.
     }
   }
 }
@@ -732,6 +518,50 @@ function stopWatchers(): void {
   watchers = []
 }
 
+let safetyTimer: ReturnType<typeof setInterval> | null = null
+const SAFETY_INTERVAL_MS = 60_000
+
+// Safety net for the recursive fs.watch above, which silently misses events on
+// macOS and leaves a freshly written KNOWLEDGE note absent from the in-memory
+// index until a full restart. This cheap tick rebuilds ONLY when a KNOWLEDGE
+// .md file is newer than the last index, so a missed watcher event self-heals
+// within a minute at near-zero idle cost.
+function knowledgeMaxMtimeMs(): number {
+  let max = 0
+  for (const domain of KNOWLEDGE_DOMAINS) {
+    const dir = join(KNOWLEDGE_DIR, domain)
+    if (!existsSync(dir)) continue
+    try {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        if (!entry.isFile() || !entry.name.endsWith(".md")) continue
+        try {
+          max = Math.max(max, statSync(join(dir, entry.name)).mtimeMs)
+        } catch {
+          // Skip unreadable entry.
+        }
+      }
+    } catch {
+      // Skip unreadable domain.
+    }
+  }
+  return max
+}
+
+function startSafetyRebuild(): void {
+  stopSafetyRebuild()
+  safetyTimer = setInterval(() => {
+    const indexedAtMs = lastIndexedAt ? Date.parse(lastIndexedAt) : 0
+    if (knowledgeMaxMtimeMs() > indexedAtMs) buildFullIndex()
+  }, SAFETY_INTERVAL_MS)
+}
+
+function stopSafetyRebuild(): void {
+  if (safetyTimer) {
+    clearInterval(safetyTimer)
+    safetyTimer = null
+  }
+}
+
 function scheduleReindex(filePath: string): void {
   pendingPaths.add(filePath)
   if (reindexTimer) clearTimeout(reindexTimer)
@@ -739,17 +569,6 @@ function scheduleReindex(filePath: string): void {
   reindexTimer = setTimeout(() => {
     pendingPaths.clear()
     buildFullIndex()
-  }, 500)
-}
-
-function scheduleBookmarkReindex(): void {
-  if (bookmarkReindexTimer) clearTimeout(bookmarkReindexTimer)
-
-  bookmarkReindexTimer = setTimeout(() => {
-    indexBookmarks()
-    rebuildBacklinks()
-    rebuildSearchIndex()
-    lastIndexedAt = new Date().toISOString()
   }, 500)
 }
 
@@ -810,90 +629,22 @@ function buildTree(): TreeNode[] {
 
   tree.push(systemNode)
 
-  const knowledgeNode: TreeNode = {
-    label: "Knowledge Archive",
-    children: [],
-  }
+  const domainMap: Array<{ category: string; label: string }> = [
+    { category: "person", label: "People" },
+    { category: "company", label: "Companies" },
+    { category: "idea", label: "Ideas" },
+    { category: "blog", label: "Blogs" },
+    { category: "book", label: "Books" },
+    { category: "research", label: "Research" },
+  ]
 
-  const domainMap: Record<string, { category: string; label: string }> = {
-    People: { category: "person", label: "People" },
-    Companies: { category: "company", label: "Companies" },
-    Ideas: { category: "idea", label: "Ideas" },
-    Blogs: { category: "blog", label: "Blogs" },
-  }
-
-  let knowledgeTotal = 0
-  for (const { category, label } of Object.values(domainMap)) {
+  for (const { category, label } of domainMap) {
     const pages = [...pageIndex.values()].filter((page) => page.category === category)
-    knowledgeTotal += pages.length
-    knowledgeNode.children!.push({
+    tree.push({
       label,
       count: pages.length,
       children: sortedPages(pages).map(treeLeaf),
     })
-  }
-
-  knowledgeNode.count = knowledgeTotal
-  tree.push(knowledgeNode)
-
-  const bookmarks = [...pageIndex.values()].filter(
-    (page) => page.category === "bookmark"
-  )
-
-  if (bookmarks.length > 0) {
-    const bookmarksNode: TreeNode = {
-      label: "Bookmarks",
-      children: [],
-      count: bookmarks.length,
-    }
-
-    const folderMap: Map<string, WikiPage[]> = new Map()
-    for (const page of bookmarks) {
-      const folder = page.group || "Unsorted"
-      if (!folderMap.has(folder)) folderMap.set(folder, [])
-      folderMap.get(folder)!.push(page)
-    }
-
-    function insertIntoTree(
-      parent: TreeNode,
-      folderParts: string[],
-      pages: WikiPage[]
-    ): void {
-      if (folderParts.length === 0) {
-        if (!parent.children) parent.children = []
-        for (const page of sortedPages(pages)) {
-          parent.children.push({
-            label:
-              page.title.length > 60 ? `${page.title.slice(0, 57)}...` : page.title,
-            slug: page.slug,
-            category: page.category,
-          })
-        }
-        return
-      }
-
-      const segment = folderParts[0]
-      if (!parent.children) parent.children = []
-
-      let child = parent.children.find((node) => node.label === segment && !node.slug)
-      if (!child) {
-        child = { label: segment, children: [], count: 0 }
-        parent.children.push(child)
-      }
-
-      child.count = (child.count ?? 0) + pages.length
-      insertIntoTree(child, folderParts.slice(1), pages)
-    }
-
-    const sortedFolders = [...folderMap.keys()].sort((a, b) =>
-      naturalCollator.compare(a, b)
-    )
-    for (const folder of sortedFolders) {
-      const parts = folder.split(" / ").map((s) => s.trim()).filter(Boolean)
-      insertIntoTree(bookmarksNode, parts, folderMap.get(folder)!)
-    }
-
-    tree.push(bookmarksNode)
   }
 
   return tree
@@ -921,7 +672,8 @@ function getStats(): Record<string, number> {
     totalCompanies: pages.filter((page) => page.category === "company").length,
     totalIdeas: pages.filter((page) => page.category === "idea").length,
     totalBlogs: pages.filter((page) => page.category === "blog").length,
-    totalBookmarks: pages.filter((page) => page.category === "bookmark").length,
+    totalBooks: pages.filter((page) => page.category === "book").length,
+    totalResearch: pages.filter((page) => page.category === "research").length,
   }
 }
 
@@ -1015,10 +767,12 @@ function handleKnowledgeNote(domain: string, slug: string): Response {
     companies: "company",
     ideas: "idea",
     blogs: "blog",
+    books: "book",
     person: "person",
     company: "company",
     idea: "idea",
     blog: "blog",
+    book: "book",
   }
 
   const category = validDomains[domain.toLowerCase()]
@@ -1058,44 +812,13 @@ function handleKnowledgeNote(domain: string, slug: string): Response {
   })
 }
 
-function handleBookmark(id: string): Response {
-  const slug = id.startsWith("bm-") ? id : `bm-${id}`
-  const bookmark = bookmarkData.get(slug)
-  if (!bookmark) return notFound(`Bookmark "${id}" not found`)
-
-  const page = pageIndex.get(slug)
-  return jsonResponse({
-    slug,
-    id: bookmark.id,
-    title: bookmark.title,
-    category: "bookmark",
-    url: bookmark.url,
-    excerpt: bookmark.excerpt,
-    note: bookmark.note,
-    folder: bookmark.folder,
-    tags: bookmark.tags,
-    created: bookmark.created,
-    cover: bookmark.cover,
-    favorite: bookmark.favorite,
-    wordCount: page?.wordCount ?? 0,
-    lastModified: bookmark.created,
-  })
-}
-
 function buildExcerpt(page: WikiPage, query: string): string {
   let body = ""
 
-  if (page.category === "bookmark") {
-    const bookmark = bookmarkData.get(page.slug)
-    if (bookmark) {
-      body = [bookmark.excerpt, bookmark.note, bookmark.url].filter(Boolean).join(" - ")
-    }
-  } else {
-    try {
-      body = stripFrontmatter(readFileSync(page.filePath, "utf-8"))
-    } catch {
-      body = ""
-    }
+  try {
+    body = stripFrontmatter(readFileSync(page.filePath, "utf-8"))
+  } catch {
+    body = ""
   }
 
   if (!body) return ""
@@ -1194,10 +917,12 @@ export function startWiki(): void {
   moduleStartedAt = new Date().toISOString()
   buildFullIndex()
   startWatchers()
+  startSafetyRebuild()
 }
 
 export function stopWiki(): void {
   stopWatchers()
+  stopSafetyRebuild()
 }
 
 export function wikiHealth(): Record<string, unknown> {
@@ -1214,6 +939,7 @@ export function wikiHealth(): Record<string, unknown> {
 
 interface SkillMeta {
   name: string
+  dir: string
   description: string
   effort: string
   hasWorkflows: boolean
@@ -1236,7 +962,8 @@ function handleSkillsList(): Response {
       const fm = parseFrontmatter(content)
 
       skills.push({
-        name: String(fm.name || name),
+        name: String(fm.title || fm.name || name),
+        dir: name,
         description: String(fm.description || ""),
         effort: String(fm.effort || "standard"),
         hasWorkflows: existsSync(join(skillDir, "Workflows")),
@@ -1262,7 +989,7 @@ function handleSkillDetail(name: string): Response {
   const stat = statSync(skillMd)
 
   return Response.json({
-    name: String(fm.name || name),
+    name: String(fm.title || fm.name || name),
     description: String(fm.description || ""),
     effort: String(fm.effort || "standard"),
     content,
@@ -1456,6 +1183,11 @@ export async function handleWikiRequest(
   req: Request,
   pathname: string
 ): Promise<Response | null> {
+  if (pathname === "/api/wiki/reindex") {
+    buildFullIndex()
+    return jsonResponse({ ok: true, pages: pageIndex.size, indexedAt: lastIndexedAt })
+  }
+
   if (req.method !== "GET" && req.method !== "PUT") return null
 
   if (pathname === "/api/wiki") {
@@ -1504,11 +1236,6 @@ export async function handleWikiRequest(
   const backlinksMatch = pathname.match(/^\/api\/wiki\/backlinks\/(.+)$/)
   if (backlinksMatch) {
     return handleBacklinks(decodeURIComponent(backlinksMatch[1]))
-  }
-
-  const bookmarkMatch = pathname.match(/^\/api\/wiki\/bookmark\/(.+)$/)
-  if (bookmarkMatch) {
-    return handleBookmark(decodeURIComponent(bookmarkMatch[1]))
   }
 
   const knowledgeMatch = pathname.match(

@@ -42,8 +42,6 @@ curl -s -X POST http://localhost:31337/notify \
      8. Add an adversarial requirement
    - **Cloning with drift:** "Copy one parent idea with small random modifications."
 
-   Trait composition: `creative + combinatorial + bold`
-
 3. **Explicitly instruct agents to produce BAD ideas too** — selection is not happening here, so don't pre-filter. Diversity matters more than quality at this phase.
 
 4. **Aggregate offspring** with full provenance:

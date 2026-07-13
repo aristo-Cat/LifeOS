@@ -1,4 +1,7 @@
 #!/usr/bin/env bun
+/**
+ * @version 1.0.1
+ */
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync, rmSync } from 'fs';
 import { join } from 'path';
@@ -81,7 +84,7 @@ function detectExactRepeat(state: LoopState, input: PostToolUseInput): Detection
   const matches = state.window.filter((entry) => entry.sig === sig);
   if (matches.length < 3) return null;
   const tool = input.tool_name || matches[matches.length - 1]?.tool || 'unknown';
-  return { episodeKey: `exact:${sig}`, message: `[LOOP DETECTED] You've called ${tool} ${matches.length} times with the same input this session. That approach isn't working — stop and try a different one. Last input: ${summarizeInput(input.tool_input)}.` };
+  return { episodeKey: `exact:${sig}`, message: `[LOOP DETECTED] You've called ${tool} ${matches.length} times with the same input this session without progress. Last input: ${summarizeInput(input.tool_input)}.` };
 }
 function detectOscillation(state: LoopState): Detection | null {
   if (state.window.length < 4) return null;
@@ -90,7 +93,7 @@ function detectOscillation(state: LoopState): Detection | null {
   const b = last[1].sig;
   const alternating = a !== b && last.every((entry, index) => entry.sig === (index % 2 === 0 ? a : b));
   if (!alternating) return null;
-  return { episodeKey: `osc:${a}|${b}`, message: `[LOOP DETECTED] You're flip-flopping between ${last[0].tool} and ${last[1].tool} (a-b-a-b) without progress. Break the cycle — try a different approach entirely.` };
+  return { episodeKey: `osc:${a}|${b}`, message: `[LOOP DETECTED] You're flip-flopping between ${last[0].tool} and ${last[1].tool} (a-b-a-b) without progress.` };
 }
 function detectHammering(state: LoopState): Detection | null {
   const byTool = new Map<string, WindowEntry[]>();
@@ -98,7 +101,7 @@ function detectHammering(state: LoopState): Detection | null {
   for (const [tool, entries] of byTool) {
     const failedCount = entries.filter((entry) => entry.failed).length;
     if (entries.length >= 5 && failedCount >= 3) {
-      return { episodeKey: `hammer:${tool}`, message: `[LOOP DETECTED] You've hit ${tool} ${entries.length} times in quick succession and ${failedCount} failed. It's not working — stop and reconsider before calling ${tool} again.` };
+      return { episodeKey: `hammer:${tool}`, message: `[LOOP DETECTED] You've hit ${tool} ${entries.length} times in quick succession and ${failedCount} failed.` };
     }
   }
   return null;
@@ -169,15 +172,23 @@ function runSelftest(): void {
     if (existsSync(paths.dir)) rmSync(paths.dir, { recursive: true, force: true });
   }
 }
-async function main(): Promise<void> {
+/** Returns the LOOP DETECTED context line, or null. Pure — no exit, no stdout. */
+export function run(input: PostToolUseInput): string | null {
   try {
+    return processInput(input, statePaths(input.session_id));
+  } catch {
+    return null;
+  }
+}
+
+if (import.meta.main) {
+  (async () => {
     if (process.argv.includes('--selftest')) runSelftest();
     const input = parseInput(await readStdin());
-    if (!input) process.exit(0);
-    const message = processInput(input, statePaths(input.session_id));
-    if (message) emitAdditionalContext(message);
-  } catch {
-  }
-  process.exit(0);
+    if (input) {
+      const message = run(input);
+      if (message) emitAdditionalContext(message);
+    }
+    process.exit(0);
+  })();
 }
-main();

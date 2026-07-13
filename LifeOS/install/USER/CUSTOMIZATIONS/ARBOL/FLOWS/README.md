@@ -1,3 +1,7 @@
+---
+provenance: template
+---
+
 # FLOWS
 
 **Purpose:** Branching workflow definitions that compose actions into processing graphs with conditional routing, parallel execution, and error handling.

@@ -25,8 +25,8 @@ const BLOCKED_PATH_PATTERNS = [
   /~\/\.claude\//g,
   /~\/Cloud\//g,
   /~\/LocalProjects\//g,
-  /PAI\/USER\//g,
-  /PAI\/MEMORY\//g,
+  /(?:LIFEOS|PAI)\/USER\//g,
+  /(?:LIFEOS|PAI)\/MEMORY\//g,
   /MEMORY\/WORK\//g,
   /MEMORY\/KNOWLEDGE\//g,
 ];

@@ -41,83 +41,21 @@ Invoked for:
 
 ## Execution
 
-### Step 1: State the Question
+A done CLD fills the output block below, built to answer one specific question. The probes and tests:
 
-Every CLD is built to answer a specific question. Without the question, the diagram sprawls.
+**Question.** Every CLD answers one specific question — without it the diagram sprawls. ("Why does release velocity plateau past a certain team size?" / "What happens if we double the rate limit?" / "Why does tech debt accelerate even though we pay some down each quarter?")
 
-```
-QUESTION: [Specific question the CLD should answer]
-```
+**Variables.** 5-15 quantities that can rise or fall over time. Nouns, not verbs ("Team size," not "Hiring"); directional; observable or inferable. Include soft variables — trust, morale, perceived urgency, customer satisfaction — dropping them only if they genuinely don't influence the dynamics, never because they're hard to measure. Fewer high-quality variables beat exhaustive lists.
 
-Examples:
-- "Why does our release velocity plateau past a certain team size?"
-- "What happens if we double the rate limit?"
-- "Why does tech debt accelerate even though we pay some down each quarter?"
+**Arrows.** Direct causation only — no correlation, and draw A→C→B through C rather than as one arrow. Assign polarity (+/−) by the test above. Mark delays (═══ or ||) when the effect takes significantly longer than the system's rhythm. Every arrow needs a one-sentence mechanism — if you can't state it, the arrow is wrong.
 
-### Step 2: Identify Variables
+**Loops.** Trace cycles back to their start; label R (even count of − arrows) or B (odd); give each a short name capturing the *dynamic*, not the variables ("Success-to-success," "Coordination tax," "Capacity drift"). Un-named loops are untracked.
 
-List 5-15 variables — quantities that can increase or decrease over time.
+**Dynamics.** Per loop: what does a reinforcing loop amplify, toward what limit; toward what goal does a balancing loop pull, and what sets the goal; where are the delays and what do they produce (oscillation, overshoot, slow response)? Name the dominant loop now and which will dominate as variables change — many behaviors flip (reinforcing early for growth, balancing later for limits: the "limits to growth" archetype).
 
-**Variables must be:**
-- Nouns or noun phrases, not verbs ("Team size" not "Hiring")
-- Directional (can go up or down)
-- Observable or inferable
+**Intervention.** Simulate the change on the CLD before recommending it: directly affected variable → first-order downstream (via which arrows) → second-order (loops now pull differently) → third-order (new equilibrium after delays complete). Every non-trivial intervention triggers at least one balancing loop; if you can't find it, you haven't looked hard enough. Note side effects on untargeted variables.
 
-**Include "soft" variables.** Trust, morale, perceived urgency, customer satisfaction all matter. Drop them only if they genuinely don't influence the dynamics — not because they're hard to measure.
-
-Fewer, high-quality variables beat exhaustive lists. Start with the 5-7 that matter most; add as needed.
-
-### Step 3: Draw the Arrows
-
-For each pair of variables, ask: *does a change in A directly cause a change in B?*
-
-- **Direct causation only** — no "A correlates with B"; no "A causes C causes B" as a single arrow (draw it through C)
-- **Polarity** — assign (+) or (−)
-- **Delay** — mark with ═══ or || if the effect takes significantly longer than the rhythm of the system
-
-**Sanity check each arrow** — can you describe the mechanism in one sentence? If not, the arrow is probably wrong.
-
-### Step 4: Identify Loops
-
-Trace cycles that return to their starting variable. For each loop:
-
-1. Count the (−) arrows
-2. Label **R** if even, **B** if odd
-3. Give it a short, descriptive name ("Success-to-success," "Coordination tax," "Capacity drift")
-
-**Every loop has a name.** Un-named loops are untracked. The name captures the *dynamic*, not the variables.
-
-### Step 5: Interpret the Dynamics
-
-For each loop, answer:
-- **Reinforcing:** What does this loop amplify? Toward what limit?
-- **Balancing:** Toward what goal does this loop pull? What sets the goal?
-- **Delay:** Where are the delays, and what behavior do they produce (oscillation, overshoot, slow response)?
-
-Identify **dominant loops** — which loops are driving behavior *right now*? Which will dominate as variables change?
-
-Many real-world behaviors flip: reinforcing loop dominates early (growth), balancing loop dominates later (limits). This is the "limits to growth" archetype.
-
-### Step 6: Stress-Test Interventions
-
-Before recommending a change, simulate it on the CLD:
-
-```
-PROPOSED INTERVENTION: [change to a variable, a flow, or a loop]
-
-Trace the effect:
-- Directly affected variable: [X goes up/down by how much]
-- First-order downstream: [what changes next, via which arrows]
-- Second-order: [loops now pull differently, what behavior emerges]
-- Third-order: [after delays complete, what's the new equilibrium]
-
-Unintended consequences: [which balancing loop resists? which reinforcing loop accelerates?]
-Side effects: [variables changed that weren't targeted]
-```
-
-**Every non-trivial intervention triggers at least one balancing loop.** If you can't find it, you haven't looked hard enough.
-
-### Step 7: Output
+## Output
 
 ```
 🔄 CAUSAL LOOP DIAGRAM: [topic]

@@ -1,5 +1,13 @@
 #!/usr/bin/env bun
+// Normalize env path vars Claude Code may inject unexpanded — literal $HOME/${HOME}
+// in LIFEOS_DIR/LIFEOS_CONFIG_DIR/PROJECTS_DIR resolves to a shadow dir (#1404 / PR #1451, author jbmml).
+for (const __k of ["LIFEOS_DIR", "LIFEOS_CONFIG_DIR", "PROJECTS_DIR"]) {
+  const __v = process.env[__k];
+  if (__v && /^\$\{?HOME\}?(\/|$)/.test(__v)) process.env[__k] = __v.replace(/^\$\{?HOME\}?/, process.env.HOME ?? "~");
+}
+
 /**
+ * @version 1.3.15
  * SatisfactionCapture.hook.ts - Implicit & Explicit Satisfaction Rating
  *
  * PURPOSE:
@@ -25,12 +33,18 @@
 import { appendFileSync, mkdirSync, existsSync, readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
 
-import { inference } from '../LIFEOS/TOOLS/Inference';
 import { getIdentity, getPrincipal, getPrincipalName } from './lib/identity';
 import { getLearningCategory } from './lib/learning-utils';
 import { getISOTimestamp, getPSTComponents } from './lib/time';
 import { captureFailure } from '../LIFEOS/TOOLS/FailureCapture';
 import { addRatingPulse } from './lib/isa-utils';
+
+// Normalize env path vars that Claude Code injects without shell expansion (LifeOS#1404)
+for (const k of ["LIFEOS_DIR", "LIFEOS_CONFIG_DIR", "PROJECTS_DIR"]) {
+  const v = process.env[k];
+  if (v && /^\$\{?HOME\}?(\/|$)/.test(v)) process.env[k] = v.replace(/^\$\{?HOME\}?/, process.env.HOME ?? "~");
+}
+
 
 // ── Types ──
 
@@ -53,14 +67,6 @@ interface RatingEntry {
   response_preview?: string;
 }
 
-interface SentimentResult {
-  rating: number;
-  sentiment: 'positive' | 'negative' | 'neutral';
-  confidence: number;
-  summary: string;
-  detailed_context: string;
-}
-
 // ── Constants ──
 
 const BASE_DIR = process.env.LIFEOS_DIR || join(process.env.HOME!, '.claude', 'LIFEOS');
@@ -68,6 +74,10 @@ const SIGNALS_DIR = join(BASE_DIR, 'MEMORY', 'LEARNING', 'SIGNALS');
 const RATINGS_FILE = join(SIGNALS_DIR, 'ratings.jsonl');
 const LAST_RESPONSE_CACHE = join(BASE_DIR, 'MEMORY', 'STATE', 'last-response.txt');
 const MIN_PROMPT_LENGTH = 3;
+
+// Sentence-starters that mean a leading number is describing work, not rating it
+// (e.g. "2/10 items done", "3 of the files"). Shared by the fraction and generic parsers.
+const SENTENCE_STARTERS = /^(items?|things?|steps?|files?|lines?|bugs?|issues?|errors?|times?|minutes?|hours?|days?|seconds?|percent|%|th\b|st\b|nd\b|rd\b|of\b|in\b|at\b|to\b|the\b|a\b|an\b)/i;
 
 // ── Stdin Reader ──
 
@@ -111,6 +121,16 @@ function parseExplicitRating(prompt: string): { rating: number; comment?: string
     }
   }
 
+  // N/10 form (e.g. "10/10, thank you", "9 / 10", "8 out of 10 nice").
+  // Must run BEFORE the generic parser, whose reject-on-slash guard would drop it.
+  const fractionMatch = trimmed.match(/^(10|[1-9])\s*(?:\/|out\s+of)\s*10\b(.*)$/i);
+  if (fractionMatch) {
+    const fRating = parseInt(fractionMatch[1], 10);
+    const fRest = fractionMatch[2].replace(/^[\s!.,:;-]+/, '').trim() || undefined;
+    if (fRest && SENTENCE_STARTERS.test(fRest)) return null; // "2/10 items" is not a rating
+    return { rating: fRating, comment: fRest };
+  }
+
   const ratingPattern = /^(10|[1-9])(?:\s*[-:]\s*|\s+)?(.*)$/;
   const match = trimmed.match(ratingPattern);
   if (!match) return null;
@@ -123,10 +143,7 @@ function parseExplicitRating(prompt: string): { rating: number; comment?: string
   const afterNumber = trimmed.slice(match[1].length);
   if (afterNumber.length > 0 && /^[/.\dA-Za-z]/.test(afterNumber)) return null;
 
-  if (rest) {
-    const sentenceStarters = /^(items?|things?|steps?|files?|lines?|bugs?|issues?|errors?|times?|minutes?|hours?|days?|seconds?|percent|%|th\b|st\b|nd\b|rd\b|of\b|in\b|at\b|to\b|the\b|a\b|an\b)/i;
-    if (sentenceStarters.test(rest)) return null;
-  }
+  if (rest && SENTENCE_STARTERS.test(rest)) return null;
 
   return { rating, comment: rest };
 }
@@ -152,6 +169,19 @@ const SYSTEM_TEXT_PATTERNS = [
   /^Please continue the conversation/i,
   /^Note:.*was read before/i,
 ];
+
+// ── Rating Validity ──
+
+/**
+ * A satisfaction rating is only meaningful when the model returns an actual
+ * value in the 1-10 band. Anything else (missing, null, out of range, NaN,
+ * non-number) is the ABSENCE of a signal — it must not be coerced to a neutral
+ * 5, which would pollute every running average (the aggregator flat-means
+ * `.rating` and ignores confidence).
+ */
+export function isValidRating(x: unknown): boolean {
+  return typeof x === 'number' && Number.isFinite(x) && x >= 1 && x <= 10;
+}
 
 // ── Rating Writer ──
 
@@ -229,83 +259,6 @@ This response was rated ${rating}/10 by ${getPrincipalName()}. Use this as an im
 const PRINCIPAL_NAME = getPrincipal().name;
 const ASSISTANT_NAME = getIdentity().name;
 
-function buildSatisfactionPrompt(): string {
-  return `You analyze ${PRINCIPAL_NAME}'s satisfaction with ${ASSISTANT_NAME}'s previous response.
-
-Given the user's current message and the AI's last response, determine how satisfied ${PRINCIPAL_NAME} is.
-
-RATING SCALE:
-- 1: Extremely frustrated, angry, "you completely failed"
-- 2: Strong frustration, major miss, "this is completely wrong"
-- 3: Clear dissatisfaction, corrections needed, "that's not what I said"
-- 4: Mild frustration, minor miss, "no, I meant..."
-- 5: Neutral — just asking for more work, no emotional indicator either way
-- 6: Slight satisfaction, building on work, "now also add..."
-- 7: Clear approval, trust signals, "go ahead", "fix all of it"
-- 8: Strong approval, short praise, "great", "nice work"
-- 9: Very impressed, enthusiastic praise, "this is amazing"
-- 10: Extraordinary enthusiasm, exceeded expectations
-
-CRITICAL RULES:
-- ALWAYS return a numeric rating (1-10). NEVER return null.
-- Default to 5 for neutral task-focused messages with no emotional indicator.
-- Profanity can mean frustration OR excitement — read the full context.
-- Short follow-up requests with no complaint = 5-6 (satisfied enough to continue).
-- Terse redirects (short response ignoring long output) = 3-4.
-- Repeated requests (having to ask twice) = 2-3.
-- "That's not right" / corrections = 3-4.
-- Building on work enthusiastically = 7-8.
-- Simple "ok" or "thanks" = 6.
-
-OUTPUT FORMAT (JSON only):
-{
-  "rating": <1-10, REQUIRED, never null>,
-  "sentiment": "positive" | "negative" | "neutral",
-  "confidence": <0.0-1.0>,
-  "summary": "<10 words max describing the satisfaction signal>",
-  "detailed_context": "<50-150 words: what happened, why this rating, what to learn>"
-}`;
-}
-
-// ── Recent Transcript Context ──
-
-function getRecentContext(transcriptPath: string, maxTurns: number = 4): string {
-  try {
-    if (!transcriptPath || !existsSync(transcriptPath)) return '';
-    const content = readFileSync(transcriptPath, 'utf-8');
-    const lines = content.trim().split('\n');
-    const turns: { role: string; text: string }[] = [];
-
-    for (const line of lines) {
-      if (!line.trim()) continue;
-      try {
-        const entry = JSON.parse(line);
-        if (entry.type === 'user' && entry.message?.content) {
-          let text = '';
-          if (typeof entry.message.content === 'string') text = entry.message.content;
-          else if (Array.isArray(entry.message.content))
-            text = entry.message.content.filter((c: any) => c.type === 'text').map((c: any) => c.text).join(' ');
-          if (text.trim()) turns.push({ role: 'User', text: text.slice(0, 200) });
-        }
-        if (entry.type === 'assistant' && entry.message?.content) {
-          const text = typeof entry.message.content === 'string'
-            ? entry.message.content
-            : Array.isArray(entry.message.content)
-              ? entry.message.content.filter((c: any) => c.type === 'text').map((c: any) => c.text).join(' ')
-              : '';
-          if (text) {
-            const summaryMatch = text.match(/SUMMARY:\s*([^\n]+)/i);
-            turns.push({ role: 'Assistant', text: summaryMatch ? summaryMatch[1] : text.slice(0, 150) });
-          }
-        }
-      } catch {}
-    }
-
-    const recent = turns.slice(-maxTurns);
-    return recent.length > 0 ? recent.map(t => `${t.role}: ${t.text}`).join('\n') : '';
-  } catch { return ''; }
-}
-
 // ══════════════════════════════════════════════════
 // MAIN
 // ══════════════════════════════════════════════════
@@ -326,13 +279,15 @@ async function main() {
       process.exit(0);
     }
 
-    if (prompt.length < MIN_PROMPT_LENGTH) {
+    // ── FAST PATH: Explicit rating (checked BEFORE the length skip so a bare
+    // "9"/"10" — length 1-2 — is still captured; #1182). ──
+    const explicitResult = parseExplicitRating(prompt);
+
+    if (!explicitResult && prompt.length < MIN_PROMPT_LENGTH) {
       console.error('[SatisfactionCapture] Prompt too short, skipping');
       process.exit(0);
     }
 
-    // ── FAST PATH: Explicit rating ──
-    const explicitResult = parseExplicitRating(prompt);
     if (explicitResult) {
       console.error(`[SatisfactionCapture] Explicit rating: ${explicitResult.rating}`);
       const lastResponse = getLastResponse();
@@ -395,97 +350,12 @@ async function main() {
       }
     }
 
-    // ── INFERENCE PATH: Implicit satisfaction analysis ──
-    // Stagger 2s to avoid racing PromptProcessing for the same claude --print slot
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    console.error('[SatisfactionCapture] Running satisfaction inference...');
-
-    const cleanPrompt = prompt.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 1000);
-    const lastResponse = getLastResponse();
-    const context = getRecentContext(data.transcript_path, 4);
-
-    let userPrompt = '';
-    if (lastResponse) {
-      userPrompt += `PREVIOUS AI RESPONSE (what the user is reacting to):\n${lastResponse.slice(0, 500)}\n\n`;
-    }
-    if (context) {
-      userPrompt += `RECENT CONVERSATION:\n${context}\n\n`;
-    }
-    userPrompt += `CURRENT USER MESSAGE:\n${cleanPrompt}`;
-
-    try {
-      const result = await inference({
-        systemPrompt: buildSatisfactionPrompt(),
-        userPrompt,
-        expectJson: true,
-        timeout: 15000,
-        level: 'low',
-      });
-
-      if (result.success && result.parsed) {
-        const r = result.parsed as SentimentResult;
-        // Clamp rating to 1-10, default 5 if missing
-        const rating = (r.rating != null && r.rating >= 1 && r.rating <= 10) ? r.rating : 5;
-        const confidence = r.confidence || 0.5;
-
-        console.error(`[SatisfactionCapture] Implicit: ${rating}/10 (${confidence}) - ${r.summary || 'no summary'}`);
-
-        const cachedResponse = getLastResponse();
-        writeRating({
-          timestamp: getISOTimestamp(),
-          rating,
-          session_id: sessionId,
-          source: 'implicit',
-          sentiment_summary: r.summary || 'Inferred from follow-up behavior',
-          confidence,
-          ...(cachedResponse ? { response_preview: cachedResponse.slice(0, 500) } : {}),
-        });
-
-        addRatingPulse(sessionId, {
-          value: rating,
-          timestamp: Date.now(),
-          message: (r.summary || cleanPrompt).slice(0, 32),
-        });
-
-        if (rating < 5) {
-          captureLowRatingLearning(rating, r.summary || '', r.detailed_context || '', 'implicit');
-          if (rating <= 3) {
-            await captureFailure({
-              transcriptPath: data.transcript_path,
-              rating,
-              sentimentSummary: r.summary || '',
-              detailedContext: r.detailed_context || '',
-              sessionId,
-            }).catch((err) => console.error(`[SatisfactionCapture] Failure capture error: ${err}`));
-          }
-        }
-      } else {
-        // Inference failed — default to 5 (neutral)
-        const errorReason = result.error || 'unknown';
-        console.error(`[SatisfactionCapture] Inference failed: ${errorReason} — defaulting to 5`);
-        writeRating({
-          timestamp: getISOTimestamp(),
-          rating: 5,
-          session_id: sessionId,
-          source: 'implicit',
-          sentiment_summary: `Inference failed: ${errorReason.slice(0, 80)}`,
-          confidence: 0.3,
-        });
-      }
-    } catch (err) {
-      // Inference errored — default to 5 (neutral)
-      const errMsg = err instanceof Error ? err.message : String(err);
-      console.error(`[SatisfactionCapture] Inference error: ${errMsg} — defaulting to 5`);
-      writeRating({
-        timestamp: getISOTimestamp(),
-        rating: 5,
-        session_id: sessionId,
-        source: 'implicit',
-        sentiment_summary: `Inference error: ${errMsg.slice(0, 80)}`,
-        confidence: 0.3,
-      });
-    }
-
+    // ── 7.0.0 BPE: implicit-sentiment inference REMOVED ──
+    // This path spawned a `claude --print` subprocess (2s stagger + ≤15s) on essentially
+    // every neutral prompt to guess a 1–10 mood number — the highest-compute, lowest-signal
+    // per-turn scaffolding in the system. Explicit ratings and direct praise (the fast-paths
+    // above) are the real signal and stay. Implicit sentiment, if wanted, belongs in a
+    // SessionEnd batch over the transcript, not a per-turn LLM call. Nothing to do here.
     process.exit(0);
   } catch (err) {
     console.error(`[SatisfactionCapture] Fatal error: ${err}`);
@@ -493,4 +363,4 @@ async function main() {
   }
 }
 
-main();
+if (import.meta.main) main();

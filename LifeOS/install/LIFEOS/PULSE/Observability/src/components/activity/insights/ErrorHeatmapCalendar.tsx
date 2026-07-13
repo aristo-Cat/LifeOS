@@ -31,7 +31,7 @@ const CELL_SIZE = 14;
 const CELL_GAP = 2;
 
 function getCellColor(count: number): string {
-  if (count === 0) return "bg-zinc-800";
+  if (count === 0) return "bg-surface-2";
   if (count <= 2) return "bg-amber-900/50";
   if (count <= 4) return "bg-amber-600/60";
   return "bg-rose-500/70";
@@ -98,7 +98,7 @@ export default function ErrorHeatmapCalendar() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-40 text-zinc-600 text-xs">
+      <div className="flex items-center justify-center h-40 text-ink-3 text-xs">
         Loading error heatmap...
       </div>
     );
@@ -107,7 +107,7 @@ export default function ErrorHeatmapCalendar() {
   return (
     <div className="space-y-3 relative">
       {/* Summary */}
-      <div className="text-[13px] text-zinc-500">
+      <div className="text-[13px] text-ink-3">
         {weekTotal} failures this week
       </div>
 
@@ -122,7 +122,7 @@ export default function ErrorHeatmapCalendar() {
             {DOW_LABELS.map((label) => (
               <div
                 key={label}
-                className="text-[13px] text-zinc-500 pr-1 flex items-center"
+                className="text-[13px] text-ink-3 pr-1 flex items-center"
                 style={{ height: `${CELL_SIZE + CELL_GAP}px` }}
               >
                 {label}
@@ -141,7 +141,7 @@ export default function ErrorHeatmapCalendar() {
                   style={{ width: `${CELL_SIZE + CELL_GAP}px` }}
                 >
                   {HOUR_LABELS.includes(h) && (
-                    <span className="text-[13px] text-zinc-600">{h}</span>
+                    <span className="text-[13px] text-ink-3">{h}</span>
                   )}
                 </div>
               ))}
@@ -204,7 +204,7 @@ export default function ErrorHeatmapCalendar() {
 
         {/* Color legend */}
         <div className="flex flex-col gap-1 items-center justify-center ml-2 shrink-0">
-          <span className="text-[13px] text-zinc-600 mb-1">Less</span>
+          <span className="text-[13px] text-ink-3 mb-1">Less</span>
           {[0, 1, 3, 5].map((threshold) => (
             <div
               key={threshold}
@@ -212,21 +212,21 @@ export default function ErrorHeatmapCalendar() {
               style={{ width: `${CELL_SIZE - 2}px`, height: `${CELL_SIZE - 2}px` }}
             />
           ))}
-          <span className="text-[13px] text-zinc-600 mt-1">More</span>
+          <span className="text-[13px] text-ink-3 mt-1">More</span>
         </div>
       </div>
 
       {/* Tooltip */}
       {tooltip && (
         <div
-          className="absolute z-50 pointer-events-none bg-zinc-900 border border-zinc-700 rounded px-2 py-1.5 shadow-lg"
+          className="absolute z-50 pointer-events-none bg-surface-1 border border-line-2 rounded px-2 py-1.5 shadow-lg"
           style={{
             left: `${tooltip.x}px`,
             top: `${tooltip.y}px`,
             transform: "translate(-50%, -100%)",
           }}
         >
-          <div className="text-[13px] text-zinc-300 font-medium whitespace-nowrap">
+          <div className="text-[13px] text-ink-1 font-medium whitespace-nowrap">
             {tooltip.day} {tooltip.hour > 12 ? tooltip.hour - 12 : tooltip.hour === 0 ? 12 : tooltip.hour}
             {tooltip.hour >= 12 ? "PM" : "AM"}: {tooltip.count} failure
             {tooltip.count !== 1 ? "s" : ""}
@@ -236,7 +236,7 @@ export default function ErrorHeatmapCalendar() {
               {tooltip.tools.map((t) => (
                 <div
                   key={t.name}
-                  className="text-[13px] text-zinc-500 font-mono whitespace-nowrap"
+                  className="text-[13px] text-ink-3 font-mono whitespace-nowrap"
                 >
                   {t.name}: {t.count}
                 </div>

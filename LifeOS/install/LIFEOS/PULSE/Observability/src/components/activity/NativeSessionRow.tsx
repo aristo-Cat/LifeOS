@@ -65,12 +65,12 @@ export default function NativeSessionRow({ session }: NativeSessionRowProps) {
 
         <ModeBadge mode="native" size="compact" />
 
-        <span className="text-base font-medium text-zinc-200 truncate flex-1 min-w-0 uppercase tracking-wide">
+        <span className="text-base font-medium text-ink-1 truncate flex-1 min-w-0 uppercase tracking-wide">
           {sessionName}
         </span>
 
         {taskText && taskText !== sessionName && (
-          <span className="text-sm text-zinc-500 truncate max-w-64">
+          <span className="text-sm text-ink-3 truncate max-w-64">
             {taskText.length > 80 ? taskText.slice(0, 80) + "..." : taskText}
           </span>
         )}
@@ -82,7 +82,7 @@ export default function NativeSessionRow({ session }: NativeSessionRowProps) {
           </span>
         )}
 
-        <span className="text-sm text-zinc-600 font-mono shrink-0 tabular-nums">
+        <span className="text-sm text-ink-3 font-mono shrink-0 tabular-nums">
           {elapsed}
         </span>
 
@@ -95,7 +95,7 @@ export default function NativeSessionRow({ session }: NativeSessionRowProps) {
 
         {/* Criteria count */}
         {session.criteria && session.criteria.length > 0 && (
-          <span className="text-xs font-mono text-zinc-500 shrink-0">
+          <span className="text-xs font-mono text-ink-3 shrink-0">
             {session.criteria.filter(c => c.status === "completed").length}/{session.criteria.length}
           </span>
         )}
@@ -114,7 +114,7 @@ export default function NativeSessionRow({ session }: NativeSessionRowProps) {
             </div>
           )}
           {taskText && (
-            <p className="text-sm text-zinc-400 leading-relaxed pl-2">
+            <p className="text-sm text-ink-2 leading-relaxed pl-2">
               {taskText}
             </p>
           )}

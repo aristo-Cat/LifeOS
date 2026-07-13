@@ -1,6 +1,7 @@
 ---
 name: Remotion
-description: "Creates programmatic video with React via Remotion — compositions, sequences, and motion graphics rendered to MP4. All animation via useCurrentFrame() (no CSS animations); integrates LIFEOS_THEME and Art skill aesthetics; output staged to ~/Downloads/ for preview; rendering is CPU-intensive (run in background). Workflows: ContentToAnimation (animate existing content), GeneratedContentVideo (AI content to video / make a short). USE WHEN video, animation, motion graphics, video rendering, React video, render video, animate content, make a short, create animations, video overlay, explainer video, animated explainer, content to video, programmatic video. NOT FOR static images, diagrams, or illustrations (use Art), tight-cut filler removal from raw recordings (use Video), or audio-only podcast cleaning (use AudioEditor)."
+version: 1.2.10
+description: "Creates programmatic video with React via Remotion — compositions, sequences, and motion graphics animated with useCurrentFrame() and rendered to MP4. USE WHEN video, animation, motion graphics, video rendering, React video, render video, animate content, make a short, create animations, video overlay, explainer video, animated explainer, content to video, programmatic video. NOT FOR static images, diagrams, or illustrations (use Art), tight-cut filler removal from raw recordings (use Video), or audio-only podcast cleaning (use AudioEditor)."
 effort: medium
 ---
 

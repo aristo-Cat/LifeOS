@@ -17,6 +17,8 @@
 import { join } from "path"
 import { readFileSync, existsSync } from "fs"
 import { parse } from "smol-toml"
+import { loadLifeosConfig } from "../TOOLS/LifeosConfig"
+import { isLoopbackHostHeader } from "./lib/host-guard.ts"
 
 // ── Load .env before anything else ──
 
@@ -75,6 +77,7 @@ let voiceModule: any = null
 let observabilityModule: any = null
 let wikiModule: any = null
 let telegramModule: any = null
+let siriModule: any = null
 let imessageModule: any = null
 let assistantModule: any = null
 let performanceModule: any = null
@@ -83,9 +86,18 @@ let workModule: any = null
 let localIntelligenceModule: any = null
 let telosModule: any = null
 let tabFreshnessModule: any = null
-let v2Module: any = null
 let hypothesesModule: any = null
 let memoryModule: any = null
+let conduitModule: any = null
+let menubarModule: any = null
+let booksModule: any = null
+let amberModule: any = null
+let projectsModule: any = null
+let assetsModule: any = null
+let usageModule: any = null
+let bunkerModule: any = null
+let contentModule: any = null
+let doctorModule: any = null
 
 async function loadModules(config: PulseConfig) {
   if (config.voice?.enabled !== false) {
@@ -122,7 +134,16 @@ async function loadModules(config: PulseConfig) {
       log("warn", "iMessage module not available", { error: String(err) })
     }
   }
-  if (config.da?.enabled) {
+  // Siri voice-turn endpoint — always load; fails closed without SIRI_API_KEY
+  try {
+    siriModule = await import("./modules/siri")
+  } catch (err) {
+    log("warn", "Siri module not available", { error: String(err) })
+  }
+  // Assistant (DA subsystem) is a private module stripped from the public
+  // release payload. Existence-check before importing so a fresh public install
+  // boots cleanly and simply omits the /assistant routes. #1419.
+  if (config.da?.enabled && existsSync(join(PULSE_DIR, "Assistant", "module.ts"))) {
     try {
       assistantModule = await import("./Assistant/module")
     } catch (err) {
@@ -148,6 +169,13 @@ async function loadModules(config: PulseConfig) {
       workModule = await import("./modules/work")
     } catch (err) {
       log("warn", "Work module not available", { error: String(err) })
+    }
+  }
+  if (config.content?.enabled !== false) {
+    try {
+      contentModule = await import("./modules/content")
+    } catch (err) {
+      log("warn", "Content module not available", { error: String(err) })
     }
   }
   if (config.local_intelligence?.enabled !== false) {
@@ -185,11 +213,70 @@ async function loadModules(config: PulseConfig) {
   } catch (err) {
     log("warn", "Memory module not available", { error: String(err) })
   }
-  // Pulse v2 (Data Plane + branded UI). Additive — coexists with v1 routes.
+  // Conduit — sensory layer daily-record surface (read-only; capture is launchd).
   try {
-    v2Module = await import("./v2-router")
+    conduitModule = await import("./modules/conduit")
+    if (conduitModule.start) conduitModule.start()
   } catch (err) {
-    log("warn", "Pulse v2 module not available", { error: String(err) })
+    log("warn", "Conduit module not available", { error: String(err) })
+  }
+  // Menu bar — cross-subsystem aggregator behind the rich native menu bar dropdown.
+  try {
+    menubarModule = await import("./modules/menubar")
+    if (menubarModule.start) menubarModule.start()
+  } catch (err) {
+    log("warn", "Menubar module not available", { error: String(err) })
+  }
+  // Books — favorite-books surface over USER/BOOKS.md.
+  try {
+    booksModule = await import("./modules/books")
+    if (booksModule.start) booksModule.start()
+  } catch (err) {
+    log("warn", "Books module not available", { error: String(err) })
+  }
+  // Amber — idea capture & preservation surface (ledger, knowledge, bookmarks, flows).
+  try {
+    amberModule = await import("./modules/amber")
+    if (amberModule.start) amberModule.start()
+  } catch (err) {
+    log("warn", "Amber module not available", { error: String(err) })
+  }
+  // Projects — project routing-table surface over USER/PROJECTS.md.
+  try {
+    projectsModule = await import("./modules/projects")
+    if (projectsModule.start) await projectsModule.start()
+  } catch (err) {
+    log("warn", "Projects module not available", { error: String(err) })
+  }
+  // Assets — unified read-only inventory over USER/GEAR.md + network topology.
+  try {
+    assetsModule = await import("./modules/assets")
+    if (assetsModule.start) await assetsModule.start()
+  } catch (err) {
+    log("warn", "Assets module not available", { error: String(err) })
+  }
+  // Usage — Anthropic subscription + durable token/cost/model usage surface.
+  try {
+    usageModule = await import("./modules/usage")
+    if (usageModule.start) await usageModule.start()
+  } catch (err) {
+    log("warn", "Usage module not available", { error: String(err) })
+  }
+  // Bunker — application-harness registry surface (reads ~/Projects/bunker via its CLI).
+  if (config.bunker?.enabled !== false) {
+    try {
+      bunkerModule = await import("./modules/bunker")
+    } catch (err) {
+      log("warn", "Bunker module not available", { error: String(err) })
+    }
+  }
+  // Doctor — read-only System Health surface over the advisory capability
+  // manifest + heartbeat written by LIFEOS/TOOLS/Doctor.ts (always loaded).
+  try {
+    doctorModule = await import("./modules/doctor")
+    if (doctorModule.start) await doctorModule.start()
+  } catch (err) {
+    log("warn", "Doctor module not available", { error: String(err) })
   }
 }
 
@@ -207,6 +294,8 @@ interface PulseConfig {
   performance?: { enabled: boolean; [key: string]: unknown }
   syslog?: { enabled: boolean; port?: number; [key: string]: unknown }
   work?: { enabled: boolean; [key: string]: unknown }
+  bunker?: { enabled: boolean; [key: string]: unknown }
+  content?: { enabled: boolean; [key: string]: unknown }
   local_intelligence?: { enabled: boolean; [key: string]: unknown }
   telos?: { enabled: boolean; [key: string]: unknown }
   hypotheses?: { enabled: boolean; [key: string]: unknown }
@@ -231,6 +320,15 @@ async function loadPulseConfig(): Promise<PulseConfig> {
 
   const daemonConfig = await loadConfig(PULSE_DIR)
 
+  // Converge DA identity on one source of truth (PR #1459, author anikin-xyz): PULSE.toml
+  // ships a placeholder [da].primary, but the DA's real name lives in LIFEOS_CONFIG.toml
+  // [da].name. Defer to it when present; fresh installs without the user config keep PULSE.toml.
+  const da = (parsed.da as PulseConfig["da"]) ?? { enabled: false }
+  try {
+    const daName = loadLifeosConfig().da.name
+    if (daName) da.primary = daName
+  } catch { /* LIFEOS_CONFIG.toml absent/invalid — keep PULSE.toml value */ }
+
   return {
     port: (parsed.port as number) ?? parseInt(process.env.PULSE_PORT || "31337", 10),
     tls: (parsed.tls as PulseConfig["tls"]) ?? undefined,
@@ -241,9 +339,11 @@ async function loadPulseConfig(): Promise<PulseConfig> {
     performance: (parsed.performance as PulseConfig["performance"]) ?? { enabled: true },
     syslog: (parsed.syslog as PulseConfig["syslog"]) ?? { enabled: false, port: 5514 },
     work: (parsed.work as PulseConfig["work"]) ?? { enabled: true },
+    bunker: (parsed.bunker as PulseConfig["bunker"]) ?? { enabled: true },
+    content: (parsed.content as PulseConfig["content"]) ?? { enabled: true },
     telos: (parsed.telos as PulseConfig["telos"]) ?? { enabled: true },
     hooks: (parsed.hooks as PulseConfig["hooks"]) ?? { enabled: true },
-    da: (parsed.da as PulseConfig["da"]) ?? { enabled: false },
+    da,
     worker: parsed.worker as PulseConfig["worker"],
     jobs: daemonConfig.jobs,
   }
@@ -397,6 +497,27 @@ function buildHealthResponse(state: DaemonState, config: PulseConfig): Response 
 // ── Main ──
 
 async function main() {
+  // Singleton guard — a second live pulse.ts means two grammY pollers on one
+  // bot token: Telegram 409s them against each other and messages get eaten
+  // by whichever instance wins (2026-07-09 incident: an orphaned hand-launched
+  // pulse fought the launchd one for hours). Refuse to boot instead.
+  try {
+    const oldPid = parseInt((await Bun.file(PID_PATH).text()).trim(), 10)
+    if (oldPid && oldPid !== process.pid) {
+      process.kill(oldPid, 0) // throws if oldPid is dead → guard passes
+      const cmd = new TextDecoder()
+        .decode(Bun.spawnSync(["ps", "-p", String(oldPid), "-o", "command="]).stdout)
+        .trim()
+      if (cmd.includes("pulse.ts")) {
+        log("error", "Another pulse.ts is already running — refusing to start a duplicate", {
+          existingPid: oldPid,
+          existingCommand: cmd,
+        })
+        process.exit(1)
+      }
+    }
+  } catch { /* stale or missing pid file — normal boot */ }
+
   await Bun.write(PID_PATH, String(process.pid))
 
   const config = await loadPulseConfig()
@@ -498,6 +619,26 @@ async function main() {
     }
   }
 
+  if (bunkerModule && config.bunker?.enabled !== false) {
+    try {
+      await bunkerModule.start()
+      log("info", "Bunker module loaded")
+    } catch (err) {
+      log("error", "Bunker module failed to start", { error: String(err) })
+      bunkerModule = null
+    }
+  }
+
+  if (contentModule && config.content?.enabled !== false) {
+    try {
+      await contentModule.start()
+      log("info", "Content module loaded")
+    } catch (err) {
+      log("error", "Content module failed to start", { error: String(err) })
+      contentModule = null
+    }
+  }
+
   if (localIntelligenceModule && config.local_intelligence?.enabled !== false) {
     try {
       await localIntelligenceModule.start()
@@ -521,6 +662,14 @@ async function main() {
       const url = new URL(req.url)
       const pathname = url.pathname
 
+      // Anti-DNS-rebinding (loopback-only mode): reject any request whose Host header isn't
+      // loopback. A rebinding page the user visits sends its own hostname; real local clients
+      // send 127.0.0.1/localhost or omit Host. Disabled under LIFEOS_PULSE_BIND_ALL (LAN opt-in
+      // sends a non-loopback Host by design). Guard logic + tests in lib/host-guard.ts.
+      if (!bindAll && !isLoopbackHostHeader(req.headers.get("host"), config.port)) {
+        return new Response("forbidden: non-loopback Host header", { status: 403 })
+      }
+
       // Health (unified) — moved to /api/pulse/health to avoid conflict with Life Dashboard /health page
       if (req.method === "GET" && (pathname === "/api/pulse/health" || pathname === "/healthz")) {
         return buildHealthResponse(state, config)
@@ -535,6 +684,12 @@ async function main() {
       // Hook routes: /hooks/*
       if (pathname.startsWith("/hooks/")) {
         const resp = await handleHooksRequestAsync(req, pathname)
+        if (resp) return resp
+      }
+
+      // Siri voice-turn route: POST /api/siri/turn (bearer-authed, tunnel-exposed)
+      if (siriModule && pathname.startsWith("/api/siri")) {
+        const resp = await siriModule.handleSiriRequest(req, pathname)
         if (resp) return resp
       }
 
@@ -569,6 +724,18 @@ async function main() {
         if (resp) return resp
       }
 
+      // Content routes: /api/content/*  (Conveyor board API consumed by the dashboard /content tab)
+      if (contentModule && pathname.startsWith("/api/content")) {
+        const resp = await contentModule.handleRequest(req, pathname)
+        if (resp) return resp
+      }
+
+      // Bunker routes: /api/bunker/*  (data API consumed by the dashboard /bunker tab)
+      if (bunkerModule && pathname.startsWith("/api/bunker")) {
+        const resp = await bunkerModule.handleRequest(req, pathname)
+        if (resp) return resp
+      }
+
       // LocalIntelligence routes: /api/local-intelligence[/refresh|/status]
       if (localIntelligenceModule && pathname.startsWith("/api/local-intelligence")) {
         const resp = await localIntelligenceModule.handleRequest(req, pathname)
@@ -600,9 +767,51 @@ async function main() {
         if (resp) return resp
       }
 
-      // Pulse v2 routes: /v2/*, /api/pulse/rebuild/*, /api/pulse/edit/*
-      if (v2Module) {
-        const resp = await v2Module.handleV2Request(req, pathname)
+      // Conduit API: /api/conduit[/today|/recent|/status]
+      if (conduitModule && pathname.startsWith("/api/conduit")) {
+        const resp = await conduitModule.handleRequest(req, pathname)
+        if (resp) return resp
+      }
+
+      // Menu bar API: /api/menubar (cross-subsystem aggregate for the native menu bar app)
+      if (menubarModule && pathname.startsWith("/api/menubar")) {
+        const resp = await menubarModule.handleRequest(req, pathname)
+        if (resp) return resp
+      }
+
+      // Books API: /api/books
+      if (booksModule && pathname.startsWith("/api/books")) {
+        const resp = await booksModule.handleRequest(req, pathname)
+        if (resp) return resp
+      }
+
+      // Amber API: /api/amber
+      if (amberModule && pathname.startsWith("/api/amber")) {
+        const resp = await amberModule.handleRequest(req, pathname)
+        if (resp) return resp
+      }
+
+      // Projects API: /api/projects (before the observability /api/* catch-all)
+      if (projectsModule && pathname.startsWith("/api/projects")) {
+        const resp = await projectsModule.handleRequest(req, pathname)
+        if (resp) return resp
+      }
+
+      // Assets API: /api/assets
+      if (assetsModule && pathname.startsWith("/api/assets")) {
+        const resp = await assetsModule.handleRequest(req, pathname)
+        if (resp) return resp
+      }
+
+      // Usage API: /api/usage/*
+      if (usageModule && pathname.startsWith("/api/usage")) {
+        const resp = await usageModule.handleRequest(req, pathname)
+        if (resp) return resp
+      }
+
+      // Doctor API: /api/doctor (System Health — capabilities, heartbeat, hook reconcile)
+      if (doctorModule && pathname.startsWith("/api/doctor")) {
+        const resp = await doctorModule.handleRequest(req, pathname)
         if (resp) return resp
       }
 
@@ -660,12 +869,32 @@ async function main() {
 
   // ── Cron Heartbeat Loop ──
 
+  // Preflight: a script job whose referenced script file doesn't exist on this
+  // install (e.g. a private module stripped from the public release payload)
+  // is disabled up front with one warning — it must not run, fail repeatedly,
+  // and leave /healthz permanently degraded on an otherwise healthy install
+  // (public issue #1392).
+  const missingScriptJobs = new Set<string>()
+  for (const job of config.jobs) {
+    if (!job.enabled || job.type === "claude" || !job.command) continue
+    const scriptRefs = job.command.match(/[^\s'"]+\.(?:ts|js|sh)\b/g) ?? []
+    const missing = scriptRefs.filter((p) => !existsSync(p.startsWith("/") ? p : join(PULSE_DIR, p)))
+    if (missing.length > 0) {
+      missingScriptJobs.add(job.name)
+      log("warn", `Disabling cron job ${job.name}: script not present on this install`, {
+        missing,
+        subsystem: "cron",
+      })
+    }
+  }
+
   while (!shuttingDown) {
     const tickStart = Date.now()
     const now = new Date()
 
     for (const job of config.jobs) {
       if (!job.enabled) continue
+      if (missingScriptJobs.has(job.name)) continue
       if (shuttingDown) break
 
       const jobState = state.jobs[job.name]

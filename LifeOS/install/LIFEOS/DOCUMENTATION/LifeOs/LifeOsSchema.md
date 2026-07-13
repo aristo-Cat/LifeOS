@@ -1,3 +1,7 @@
+---
+version: 1.0.4
+---
+
 # Life OS Schema
 
 > **The canonical shape of the USER directory in LifeOS.**

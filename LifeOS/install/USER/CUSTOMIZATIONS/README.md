@@ -1,3 +1,7 @@
+---
+provenance: template
+---
+
 # CUSTOMIZATIONS
 
 User-specific extensions of LifeOS system components. The LifeOS framework ships with generic skills, agents, action runners, and pipeline executors. This directory holds the per-user content that those generic components layer over at runtime — the things that make *your* LifeOS different from every other LifeOS install.

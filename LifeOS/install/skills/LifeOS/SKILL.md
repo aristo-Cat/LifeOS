@@ -1,6 +1,8 @@
 ---
 name: LifeOS
+version: 1.4.19
 description: Install and onboard a user into LifeOS — the Life Operating System (current state → ideal state via TELOS + the Algorithm). The agentic installer detects your OS + harness, wires hooks with permission, scaffolds your USER tree, pulls in sources you provide, and runs the TELOS / current→ideal interview that seeds your Pulse dashboard. USE WHEN install LifeOS, set up LifeOS, lifeos setup, lifeos-setup, lifeos interview, onboard me, run the interview, integrate LifeOS into my harness, update LifeOS, uninstall LifeOS, first-time setup. NOT FOR building or cutting a LifeOS release (private release tooling), editing TELOS after onboarding (use Telos / Interview), or LifeOS system maintenance (use the private maintenance skill).
+disable-model-invocation: true
 argument-hint: "[setup|interview|update|uninstall]"
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep
 ---

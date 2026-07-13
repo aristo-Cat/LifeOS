@@ -1,4 +1,5 @@
 ---
+provenance: template
 dimension: relationships
 kind: metric
 classification: private

@@ -72,7 +72,7 @@ const PHASE_ORDER = PHASES.map((p) => p.phase);
 function CriterionCard({ criterion }: { criterion: AlgorithmCriterion }) {
   const isAnti = criterion.type === "anti-criterion";
   const statusColors: Record<string, string> = {
-    pending: "bg-zinc-500",
+    pending: "bg-ink-3",
     in_progress: "bg-blue-500 animate-pulse",
     completed: "bg-emerald-500",
     failed: "bg-red-500",
@@ -96,7 +96,7 @@ function CriterionCard({ criterion }: { criterion: AlgorithmCriterion }) {
           <CheckCircle2 className="w-2.5 h-2.5 text-emerald-500 ml-auto" />
         )}
       </div>
-      <p className="text-xs text-zinc-400 leading-tight mt-0.5 line-clamp-2">{criterion.description}</p>
+      <p className="text-xs text-ink-2 leading-tight mt-0.5 line-clamp-2">{criterion.description}</p>
     </div>
   );
 }
@@ -167,10 +167,10 @@ function PhaseColumn({
           {config.label}
         </span>
         {isPast && !idle && (
-          <CheckCircle2 className="w-2.5 h-2.5 text-zinc-600 ml-auto" />
+          <CheckCircle2 className="w-2.5 h-2.5 text-ink-3 ml-auto" />
         )}
         {isCurrent && !idle && criteria.length > 0 && (
-          <span className="text-xs font-medium text-zinc-400 ml-auto bg-white/[0.06] px-1 py-0.5 rounded">
+          <span className="text-xs font-medium text-ink-2 ml-auto bg-white/[0.06] px-1 py-0.5 rounded">
             {criteria.length}
           </span>
         )}
@@ -188,7 +188,7 @@ function PhaseColumn({
       {/* Task context for Observe column when no criteria */}
       {config.phase === "OBSERVE" && criteria.length === 0 && taskContext && !idle && (
         <div className="px-1.5 py-1.5 flex-1">
-          <p className="text-xs text-zinc-500 leading-tight italic line-clamp-4">
+          <p className="text-xs text-ink-3 leading-tight italic line-clamp-4">
             {taskContext}
           </p>
         </div>
@@ -198,7 +198,7 @@ function PhaseColumn({
       {isCurrent && !idle && criteria.length === 0 && config.phase !== "OBSERVE" && (
         <div className="px-1.5 py-1.5 flex-1 flex flex-col gap-1">
           {fallbackText && (
-            <p className="text-xs text-zinc-400 leading-tight line-clamp-4">
+            <p className="text-xs text-ink-2 leading-tight line-clamp-4">
               {fallbackText}
             </p>
           )}
@@ -224,7 +224,7 @@ function PhaseColumn({
             </div>
           )}
           {!fallbackText && !warning && (
-            <p className="text-xs text-zinc-500 leading-tight italic">
+            <p className="text-xs text-ink-3 leading-tight italic">
               {config.narrative.split('.')[0] + '.'}
             </p>
           )}

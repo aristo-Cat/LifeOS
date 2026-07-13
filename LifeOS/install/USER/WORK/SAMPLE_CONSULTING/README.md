@@ -1,3 +1,7 @@
+---
+provenance: template
+---
+
 # SAMPLE_CONSULTING
 
 > 💼 SAMPLE TEMPLATE — Rename this directory (e.g. `Consulting/`, `Advisory/`) and populate it with your own work context via /interview.

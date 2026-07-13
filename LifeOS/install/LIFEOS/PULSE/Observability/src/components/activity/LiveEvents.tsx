@@ -34,7 +34,7 @@ const TYPE_COLORS: Record<string, { bg: string; text: string; border: string }> 
   "isa": { bg: "bg-teal-500/10", text: "text-teal-400", border: "border-teal-500/20" },
   "doc": { bg: "bg-sky-500/10", text: "text-sky-400", border: "border-sky-500/20" },
   "build": { bg: "bg-orange-500/10", text: "text-orange-400", border: "border-orange-500/20" },
-  "system": { bg: "bg-slate-500/10", text: "text-slate-400", border: "border-slate-500/20" },
+  "system": { bg: "bg-[rgba(168,165,200,0.1)]", text: "text-ink-2", border: "border-[rgba(168,165,200,0.2)]" },
   "settings": { bg: "bg-violet-500/10", text: "text-violet-400", border: "border-violet-500/20" },
   "tab": { bg: "bg-lime-500/10", text: "text-lime-400", border: "border-lime-500/20" },
   "custom": { bg: "bg-pink-500/10", text: "text-pink-400", border: "border-pink-500/20" },
@@ -42,7 +42,7 @@ const TYPE_COLORS: Record<string, { bg: string; text: string; border: string }> 
 
 function getTypeStyle(type: string) {
   const prefix = type.split(".")[0];
-  return TYPE_COLORS[prefix] || { bg: "bg-zinc-500/10", text: "text-zinc-400", border: "border-zinc-500/20" };
+  return TYPE_COLORS[prefix] || { bg: "bg-[rgba(168,165,200,0.1)]", text: "text-ink-2", border: "border-[rgba(168,165,200,0.2)]" };
 }
 
 function getTypeIcon(type: string) {
@@ -153,25 +153,25 @@ function LifeosEventRow({ event }: { event: LifeosEvent }) {
         </span>
 
         {/* Source */}
-        <span className="shrink-0 text-[13px] text-zinc-600 font-mono">
+        <span className="shrink-0 text-[13px] text-ink-3 font-mono">
           {event.source}
         </span>
 
         {/* Summary */}
         {summary && (
-          <span className="text-xs text-zinc-400 truncate flex-1 min-w-0">
+          <span className="text-xs text-ink-2 truncate flex-1 min-w-0">
             {summary}
           </span>
         )}
 
         {/* Session ID (abbreviated) */}
-        <span className="shrink-0 text-[13px] text-zinc-700 font-mono">
+        <span className="shrink-0 text-[13px] text-ink-3 font-mono">
           {event.session_id?.slice(0, 8) || ""}
         </span>
 
         {/* Timestamp */}
         <span
-          className="shrink-0 text-[13px] text-zinc-600 font-mono w-16 text-right"
+          className="shrink-0 text-[13px] text-ink-3 font-mono w-16 text-right"
           title={formatTime(event.timestamp)}
         >
           {formatRelativeTime(event.timestamp)}
@@ -180,7 +180,7 @@ function LifeosEventRow({ event }: { event: LifeosEvent }) {
         {/* Expand indicator */}
         {detailKeys.length > 0 && (
           <ChevronDown
-            className={`w-3 h-3 text-zinc-700 shrink-0 transition-transform ${
+            className={`w-3 h-3 text-ink-3 shrink-0 transition-transform ${
               expanded ? "rotate-180" : ""
             }`}
           />
@@ -196,8 +196,8 @@ function LifeosEventRow({ event }: { event: LifeosEvent }) {
               typeof val === "object" ? JSON.stringify(val) : String(val);
             return (
               <div key={k} className="flex items-start gap-2 text-[14px]">
-                <span className="text-zinc-600 font-mono shrink-0">{k}:</span>
-                <span className="text-zinc-400 break-all">{display}</span>
+                <span className="text-ink-3 font-mono shrink-0">{k}:</span>
+                <span className="text-ink-2 break-all">{display}</span>
               </div>
             );
           })}
@@ -251,10 +251,10 @@ export default function LiveEvents() {
       <div className="flex items-center justify-between px-4 py-2 border-b border-white/[0.06]">
         <div className="flex items-center gap-2">
           <Radio className="w-4 h-4 text-emerald-400 animate-pulse" />
-          <span className="text-sm font-semibold text-zinc-300 uppercase tracking-wider">
+          <span className="text-sm font-semibold text-ink-1 uppercase tracking-wider">
             Live Events
           </span>
-          <span className="text-xs text-zinc-600 font-mono">
+          <span className="text-xs text-ink-3 font-mono">
             {displayEvents.length}
             {filter ? ` / ${events.length}` : ""}
           </span>
@@ -267,7 +267,7 @@ export default function LiveEvents() {
             className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-xs transition-colors ${
               filter
                 ? "bg-blue-500/10 text-blue-400 border border-blue-500/20"
-                : "text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.04]"
+                : "text-ink-3 hover:text-ink-1 hover:bg-white/[0.04]"
             }`}
           >
             <Filter className="w-3.5 h-3.5" />
@@ -277,7 +277,7 @@ export default function LiveEvents() {
           {/* Clear */}
           <button
             onClick={clearEvents}
-            className="flex items-center gap-1.5 px-2 py-1 rounded-md text-xs text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.04] transition-colors"
+            className="flex items-center gap-1.5 px-2 py-1 rounded-md text-xs text-ink-3 hover:text-ink-1 hover:bg-white/[0.04] transition-colors"
           >
             <Trash2 className="w-3.5 h-3.5" />
             Clear
@@ -295,7 +295,7 @@ export default function LiveEvents() {
               className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
                 filter === preset.value
                   ? "bg-blue-500/15 text-blue-400 border border-blue-500/25"
-                  : "text-zinc-500 hover:text-zinc-300 bg-white/[0.02] hover:bg-white/[0.05] border border-transparent"
+                  : "text-ink-3 hover:text-ink-1 bg-white/[0.02] hover:bg-white/[0.05] border border-transparent"
               }`}
             >
               {preset.label}
@@ -313,12 +313,12 @@ export default function LiveEvents() {
         {displayEvents.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16">
             <div className="bg-white/[0.03] p-6 rounded-2xl mb-4">
-              <Box size={40} className="text-[#414868]" />
+              <Box size={40} className="text-[var(--line-2)]" />
             </div>
-            <p className="text-base font-medium text-[#9aa5ce] mb-1">
+            <p className="text-base font-medium text-[var(--ink-2)] mb-1">
               No events yet
             </p>
-            <p className="text-sm text-[#414868]">
+            <p className="text-sm text-[var(--line-2)]">
               Events from events.jsonl will appear here in real-time
             </p>
           </div>

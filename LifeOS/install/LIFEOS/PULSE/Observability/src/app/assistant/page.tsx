@@ -5,7 +5,11 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { localApiCall } from "@/lib/local-api";
 import EmptyStateGuide from "@/components/EmptyStateGuide";
 import {
-  Zap, Terminal, Clock, Plus, X, Trash2,
+  PageShell, PageHeader, Panel, PanelHeader, Pill, TabBar, StatTile, dimStyle,
+  type TabSpec,
+} from "@/components/ui/chrome";
+import {
+  Zap, Terminal, Clock, Plus, X, Trash2, Activity,
   Heart, Brain, Shield, Pencil, Check, ChevronDown, ChevronRight, Repeat,
 } from "lucide-react";
 
@@ -105,21 +109,6 @@ const dimColors: Record<Dimension, string> = {
   rhythms: "var(--rhythms)",
 };
 
-const dimTints: Record<Dimension, string> = {
-  health: "rgba(52,211,153,0.16)",
-  money: "rgba(224,164,88,0.16)",
-  freedom: "rgba(125,211,252,0.16)",
-  creative: "rgba(248,123,123,0.16)",
-  relationships: "rgba(183,148,244,0.16)",
-  rhythms: "rgba(45,212,191,0.16)",
-};
-
-const tabDimensions: Record<"tasks" | "personality" | "diary", Dimension> = {
-  tasks: "creative",
-  personality: "relationships",
-  diary: "rhythms",
-};
-
 const traitDimensions: Dimension[] = ["creative", "relationships", "freedom", "rhythms", "money", "health"];
 
 const statusClass: Record<string, "green-up" | "flat-muted" | "coral-down"> = {
@@ -128,6 +117,9 @@ const statusClass: Record<string, "green-up" | "flat-muted" | "coral-down"> = {
   completed: "flat-muted",
   cancelled: "coral-down",
 };
+
+// Small uppercase-tag flavor of Pill used for source/type/kind badges.
+const TAG_CLS = "text-[10px] uppercase tracking-[0.06em]";
 
 function formatUptime(ms: number): string {
   const h = Math.floor(ms / 3_600_000), m = Math.floor((ms % 3_600_000) / 60_000);
@@ -147,17 +139,14 @@ function Section({
   children: React.ReactNode;
   dimension?: Dimension;
 }) {
+  // dimension prop kept for call-site compatibility; the header renders in the
+  // standard kit style (PanelHeader) so this page reads like every other page.
+  void dimension;
   return (
-    <div className="telos-card" style={{ cursor: "default", gap: 14 }}>
-      <div className="flex items-center justify-between" style={{ paddingBottom: 10, borderBottom: "1px dashed #1A2A4D" }}>
-        <div className="flex items-center gap-2.5">
-          {Icon && <Icon className="w-5 h-5" style={{ color: dimColors[dimension] }} />}
-          <h2 className="text-sm font-medium tracking-[0.15em] uppercase" style={{ color: dimColors[dimension] }}>{title}</h2>
-        </div>
-        {action}
-      </div>
+    <Panel>
+      <PanelHeader title={title} icon={Icon} actions={action} />
       <div data-sensitive>{children}</div>
-    </div>
+    </Panel>
   );
 }
 
@@ -167,7 +156,7 @@ function TraitBar({ name, value, color, onEdit }: { name: string; value: number;
 
   return (
     <div className="flex items-center gap-4 group">
-      <span className="w-32 truncate capitalize text-sm" style={{ color: "#D6E1F5" }} data-sensitive>
+      <span className="w-32 truncate capitalize text-sm text-ink-1" data-sensitive>
         {name.replace(/_/g, " ")}
       </span>
       <div className="progress-bar flex-1" style={{ height: 6, margin: 0 }}>
@@ -181,13 +170,12 @@ function TraitBar({ name, value, color, onEdit }: { name: string; value: number;
             max={100}
             value={editValue}
             onChange={(e) => setEditValue(Number(e.target.value))}
-            className="w-14 text-sm rounded px-2 py-1"
-            style={{ background: "#12203D", border: "1px solid #1A2A4D", color: "#E8EFFF" }}
+            className="w-14 text-sm rounded px-2 py-1 bg-surface-1 border border-line-1 text-ink-1"
           />
           <button onClick={() => { onEdit?.(editValue); setEditing(false); }} className="green-up">
             <Check className="w-4 h-4" />
           </button>
-          <button onClick={() => setEditing(false)} style={{ color: "#6B80AB" }}>
+          <button onClick={() => setEditing(false)} className="text-ink-3">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -197,8 +185,7 @@ function TraitBar({ name, value, color, onEdit }: { name: string; value: number;
           {onEdit && (
             <button
               onClick={() => { setEditValue(value); setEditing(true); }}
-              className="opacity-0 group-hover:opacity-100 transition-opacity"
-              style={{ color: "#6B80AB" }}
+              className="opacity-0 group-hover:opacity-100 transition-opacity text-ink-3"
             >
               <Pencil className="w-4 h-4" />
             </button>
@@ -319,30 +306,22 @@ export default function AssistantPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["assistant-personality"] }),
   });
 
-  const tabButton = (tab: "tasks" | "personality" | "diary", label: string) => (
-    <button
-      key={tab}
-      type="button"
-      onClick={() => setActiveTab(tab)}
-      className={`pill pill-${tabDimensions[tab]} capitalize ${activeTab === tab ? "on" : ""}`}
-      style={{
-        padding: "6px 14px",
-        fontSize: 13,
-        cursor: "pointer",
-        background: activeTab === tab ? dimTints[tabDimensions[tab]] : "rgba(168,165,200,0.08)",
-        color: activeTab === tab ? "#E8EFFF" : dimColors[tabDimensions[tab]],
-        border: activeTab === tab ? `1px solid ${dimColors[tabDimensions[tab]]}` : "1px solid rgba(168,165,200,0.22)",
-      }}
-    >
-      {label}
-    </button>
-  );
+  const tabs: TabSpec<typeof activeTab>[] = [
+    { id: "tasks", label: "Tasks", dim: "creative" },
+    { id: "personality", label: "Personality", dim: "relationships" },
+    { id: "diary", label: "Diary", dim: "rhythms" },
+  ];
 
   const isFreshInstall = health ? !health.identity_loaded : !identity;
 
   return (
-    <div className="flex flex-col flex-1 overflow-auto">
-      <div className="max-w-6xl mx-auto w-full px-6 py-8 space-y-8">
+    <PageShell fullBleed className="overflow-auto">
+      <div className="max-w-6xl mx-auto w-full px-4 sm:px-6 py-6 flex flex-col gap-6">
+
+        <PageHeader
+          title="Assistant"
+          subtitle="Your DA's identity, schedule, personality, and work diary."
+        />
 
         {isFreshInstall && (
           <EmptyStateGuide
@@ -355,7 +334,7 @@ export default function AssistantPage() {
 
         {/* Identity Card */}
         {identity && (
-          <div className="telos-card mission-card goal-card dim-creative" style={{ cursor: "default", flexDirection: "row", alignItems: "center", gap: 24 }}>
+          <Panel className="flex flex-row items-center gap-6">
             {identity.has_avatar ? (
               <img
                 src="/assistant/avatar"
@@ -365,80 +344,65 @@ export default function AssistantPage() {
               />
             ) : (
               <div
-                className="w-20 h-20 rounded-full flex items-center justify-center text-3xl font-bold"
-                style={{ backgroundColor: "rgba(248,123,123,0.14)", color: "var(--creative)", flexShrink: 0 }}
+                className="w-20 h-20 rounded-full flex items-center justify-center text-3xl font-bold shrink-0"
+                style={{ backgroundColor: "rgba(248,123,123,0.14)", color: "var(--creative)" }}
               >
                 {identity.display_name.charAt(0)}
               </div>
             )}
             <div className="flex-1 min-w-0" data-sensitive>
               <div className="flex items-center gap-3 flex-wrap">
-                <h1 className="mission-title" style={{ fontSize: 20 }}>{identity.full_name}</h1>
-                <span
-                  className="pill pill-creative"
-                  style={{ letterSpacing: 1.2, fontWeight: 600 }}
-                >
-                  {identity.display_name}
-                </span>
+                <h2 className="text-ink-1 font-medium" style={{ fontSize: 20 }}>{identity.full_name}</h2>
+                <Pill dim="creative" className="tracking-wide font-semibold">{identity.display_name}</Pill>
               </div>
-              <p className="mt-1" style={{ color: "#D6E1F5", fontSize: 14 }}>{identity.role}</p>
+              <p className="mt-1 text-sm text-ink-1">{identity.role}</p>
               {identity.origin_story && (
-                <p className="mt-1.5 leading-relaxed" style={{ color: "#9BB0D6", fontSize: 13 }}>{identity.origin_story}</p>
+                <p className="mt-1.5 leading-relaxed text-[13px] text-ink-2">{identity.origin_story}</p>
               )}
             </div>
-            <div className="text-right text-sm space-y-1.5 shrink-0" style={{ color: "#9BB0D6" }}>
+            <div className="text-right text-sm space-y-1.5 shrink-0 text-ink-2">
               <div className="flex items-center gap-2 justify-end">
                 <Clock className="w-4 h-4" style={{ color: "var(--creative)" }} />
                 <span>Up {formatUptime(identity.uptime_ms)}</span>
               </div>
-              <div>Principal: <span style={{ color: "#E8EFFF" }}>{identity.principal}</span></div>
+              <div>Principal: <span className="text-ink-1">{identity.principal}</span></div>
               <div>{health?.opinions_count ?? 0} opinions formed</div>
             </div>
-          </div>
+          </Panel>
         )}
 
         {/* Stats */}
         {health && (
-          <div className="metric-grid">
-            {[
-              { label: "Status", value: health.status === "ok" ? "Online" : health.status, trend: health.status === "ok" ? "up" : "down" },
-              { label: "CC Scheduled", value: String(tasksData?.by_source["claude-code"] ?? 0), trend: "flat" as const },
-              { label: "Cron Jobs", value: String(tasksData?.by_source.pulse ?? 0), trend: "flat" as const },
-            ].map(({ label, value, trend }) => (
-              <div key={label} className="telos-card metric" style={{ cursor: "default" }}>
-                <div className="metric-top">
-                  <span className="metric-label muted">{label}</span>
-                </div>
-                <div className="metric-row">
-                  <span className={`metric-val mono ${trend === "up" ? "green-up" : trend === "down" ? "coral-down" : "flat-muted"}`}>{value}</span>
-                </div>
-              </div>
-            ))}
+          <div className="grid grid-cols-3 gap-3">
+            <StatTile
+              label="Status"
+              icon={Activity}
+              value={health.status === "ok" ? "Online" : health.status}
+              dim={health.status === "ok" ? "ok" : "err"}
+            />
+            <StatTile label="CC Scheduled" icon={Terminal} value={String(tasksData?.by_source["claude-code"] ?? 0)} />
+            <StatTile label="Cron Jobs" icon={Zap} value={String(tasksData?.by_source.pulse ?? 0)} />
           </div>
         )}
 
         {/* Tab Bar */}
-        <div className="flex items-center gap-2" style={{ borderBottom: "1px solid #1A2A4D", paddingBottom: 12 }}>
-          {tabButton("tasks", "Tasks")}
-          {tabButton("personality", "Personality")}
-          {tabButton("diary", "Diary")}
-        </div>
+        <TabBar tabs={tabs} active={activeTab} onChange={setActiveTab} className="pb-3" />
 
         {/* TASKS TAB */}
         {activeTab === "tasks" && (
           <div className="space-y-6">
             <Section title="Scheduled Tasks · Claude Code" icon={Terminal} dimension="freedom">
-              <div className="text-xs mono mb-1" style={{ color: "#9BB0D6" }}>
+              <div className="text-xs mono mb-1 text-ink-2">
                 Claude Code harness · <code className="mono">claude triggers list</code> (not under ~/.claude/LIFEOS/)
               </div>
-              <div className="text-xs mb-3" style={{ color: "#6B80AB" }}>
-                Built into Claude Code — triggers and active <code className="mono" style={{ background: "#12203D", padding: "1px 5px", borderRadius: 3 }}>/loop</code> sessions managed by the harness, not by Pulse. Pulse polls every 60s.
+              <div className="text-xs mb-3 text-ink-3">
+                Built into Claude Code — triggers and active <code className="mono bg-surface-1 px-1.5 py-px rounded">/loop</code> sessions managed by the harness, not by Pulse. Pulse polls every 60s.
               </div>
               {(() => {
                 const ccTasks = tasksData?.tasks.filter((t) => t.source === "claude-code") ?? [];
                 if (ccTasks.length === 0) {
                   return (
-                    <div style={{ color: "#6B80AB", fontSize: 13 }}>
+                    <div className="text-[13px] text-ink-3">
                       No Claude Code triggers or loops detected. <span className="muted">(Pulse polls <code className="mono">claude triggers list</code> every 60s.)</span>
                     </div>
                   );
@@ -456,30 +420,10 @@ export default function AssistantPage() {
                           )}
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                              <span className="text-sm truncate" style={{ color: "#E8EFFF" }}>{task.name}</span>
-                              <span
-                                className="text-xs mono"
-                                style={{
-                                  padding: "2px 6px", borderRadius: 3,
-                                  background: "rgba(125,211,252,0.14)", color: "var(--freedom)",
-                                  letterSpacing: 0.5, textTransform: "uppercase", fontSize: 10,
-                                }}
-                                title="Source: Claude Code harness"
-                              >
-                                Claude Code
-                              </span>
+                              <span className="text-sm truncate text-ink-1">{task.name}</span>
+                              <Pill dim="freedom" className={TAG_CLS} title="Source: Claude Code harness">Claude Code</Pill>
                               {isLoop && (
-                                <span
-                                  className="text-xs mono"
-                                  style={{
-                                    padding: "2px 6px", borderRadius: 3,
-                                    background: "rgba(248,123,123,0.14)", color: "var(--creative)",
-                                    letterSpacing: 0.5, textTransform: "uppercase", fontSize: 10,
-                                  }}
-                                  title="Active /loop session"
-                                >
-                                  Loop
-                                </span>
+                                <Pill dim="creative" className={TAG_CLS} title="Active /loop session">Loop</Pill>
                               )}
                             </div>
                             <div className="text-xs mono muted">{task.schedule}</div>
@@ -520,41 +464,37 @@ export default function AssistantPage() {
                 </div>
               }
             >
-              <div className="text-xs mono mb-1 space-y-0.5" style={{ color: "#9BB0D6" }}>
-                <div>~/.claude/LIFEOS/PULSE/PULSE.toml <span style={{ color: "#6B80AB" }}>(system · ships with LifeOS, never written by this UI)</span></div>
-                <div>~/.claude/LIFEOS/USER/CONFIG/PULSE.user.toml <span style={{ color: "#F87B7B" }}>(user · all edits/deletes from this UI write here)</span></div>
+              <div className="text-xs mono mb-1 space-y-0.5 text-ink-2">
+                <div>~/.claude/LIFEOS/PULSE/PULSE.toml <span className="text-ink-3">(system · ships with LifeOS, never written by this UI)</span></div>
+                <div>~/.claude/LIFEOS/USER/CONFIG/PULSE.user.toml <span style={{ color: "var(--creative)" }}>(user · all edits/deletes from this UI write here)</span></div>
               </div>
-              <div className="text-xs mb-3" style={{ color: "#6B80AB" }}>
+              <div className="text-xs mb-3 text-ink-3">
                 LifeOS&apos;s scheduling system — runs inside Pulse on this machine. Click any row to see full detail and edit interval / command / output.
               </div>
               {showAddCron && (
-                <div className="mb-5 p-4 rounded-md space-y-3" style={{ background: "#12203D", border: "1px solid #1A2A4D" }}>
+                <div className="mb-5 p-4 rounded-md space-y-3 bg-surface-1 border border-line-1">
                   <input
                     placeholder='name (e.g. "my-monitor")'
                     value={newCronName}
                     onChange={(e) => setNewCronName(e.target.value)}
-                    className="w-full text-sm rounded px-4 py-2 mono"
-                    style={{ background: "#0F1A33", border: "1px solid #1A2A4D", color: "#E8EFFF" }}
+                    className="w-full text-sm rounded px-4 py-2 mono bg-ground border border-line-1 text-ink-1"
                   />
                   <input
                     placeholder="cron schedule (5 fields, e.g. */5 * * * *)"
                     value={newCronSchedule}
                     onChange={(e) => setNewCronSchedule(e.target.value)}
-                    className="w-full text-sm rounded px-4 py-2 mono"
-                    style={{ background: "#0F1A33", border: "1px solid #1A2A4D", color: "#E8EFFF" }}
+                    className="w-full text-sm rounded px-4 py-2 mono bg-ground border border-line-1 text-ink-1"
                   />
                   <input
                     placeholder='shell command (e.g. "bun run checks/foo.ts")'
                     value={newCronCommand}
                     onChange={(e) => setNewCronCommand(e.target.value)}
-                    className="w-full text-sm rounded px-4 py-2 mono"
-                    style={{ background: "#0F1A33", border: "1px solid #1A2A4D", color: "#E8EFFF" }}
+                    className="w-full text-sm rounded px-4 py-2 mono bg-ground border border-line-1 text-ink-1"
                   />
                   <div className="flex justify-end gap-3">
                     <button
                       onClick={() => setShowAddCron(false)}
-                      className="text-sm px-4 py-2 rounded"
-                      style={{ background: "transparent", color: "#9BB0D6" }}
+                      className="text-sm px-4 py-2 rounded bg-transparent text-ink-2"
                     >
                       Cancel
                     </button>
@@ -570,14 +510,14 @@ export default function AssistantPage() {
                           enabled: true,
                         });
                       }}
-                      className="pill pill-rhythms"
-                      style={{ padding: "6px 14px", cursor: "pointer" }}
+                      className="text-sm px-3.5 py-1.5 rounded-full font-medium cursor-pointer"
+                      style={dimStyle("rhythms", true)}
                     >
                       Create
                     </button>
                   </div>
                   {createCron.isError && (
-                    <div className="text-xs" style={{ color: "#F87171" }}>
+                    <div className="text-xs text-err">
                       {(createCron.error as Error)?.message ?? "Create failed"}
                     </div>
                   )}
@@ -586,7 +526,7 @@ export default function AssistantPage() {
 
               {(() => {
                 const jobs = cronData?.jobs ?? [];
-                if (jobs.length === 0) return <div style={{ color: "#6B80AB", fontSize: 14 }}>No cron jobs defined</div>;
+                if (jobs.length === 0) return <div className="text-sm text-ink-3">No cron jobs defined</div>;
                 const pageCount = Math.max(1, Math.ceil(jobs.length / CRON_PAGE_SIZE));
                 const safePage = Math.min(cronPage, pageCount - 1);
                 const start = safePage * CRON_PAGE_SIZE;
@@ -603,13 +543,11 @@ export default function AssistantPage() {
                       return (
                         <div
                           key={job.name}
-                          className="rounded-md group"
-                          style={{ background: isOpen ? "#12203D" : "transparent", transition: "background 180ms", border: isOpen ? "1px solid #1A2A4D" : "1px solid transparent" }}
+                          className={`rounded-md group border ${isOpen ? "bg-surface-1 border-line-1" : "border-transparent"}`}
+                          style={{ transition: "background 180ms" }}
                         >
                           <div
-                            className="flex items-center gap-4 px-4 py-3 cursor-pointer"
-                            onMouseEnter={(e) => { if (!isOpen) e.currentTarget.parentElement!.style.background = "#12203D"; }}
-                            onMouseLeave={(e) => { if (!isOpen) e.currentTarget.parentElement!.style.background = "transparent"; }}
+                            className="flex items-center gap-4 px-4 py-3 cursor-pointer rounded-md transition-colors hover:bg-surface-1"
                             onClick={() => (isOpen ? closeExpand() : openExpand(job))}
                           >
                             <button
@@ -618,40 +556,20 @@ export default function AssistantPage() {
                               className="shrink-0"
                               style={{
                                 width: 36, height: 18, borderRadius: 9,
-                                background: job.enabled ? "var(--rhythms)" : "#1A2A4D",
+                                background: job.enabled ? "var(--rhythms)" : "var(--line-1)",
                                 border: "1px solid",
-                                borderColor: job.enabled ? "var(--rhythms)" : "#2D3F62",
+                                borderColor: job.enabled ? "var(--rhythms)" : "var(--line-3)",
                                 position: "relative", cursor: "pointer", transition: "background 180ms",
                               }}
                             >
-                              <span style={{ position: "absolute", top: 1, left: job.enabled ? 19 : 1, width: 14, height: 14, borderRadius: "50%", background: "#E8EFFF", transition: "left 180ms" }} />
+                              <span style={{ position: "absolute", top: 1, left: job.enabled ? 19 : 1, width: 14, height: 14, borderRadius: "50%", background: "var(--ink-1)", transition: "left 180ms" }} />
                             </button>
-                            <Zap className="w-4 h-4 shrink-0" style={{ color: job.enabled ? "var(--rhythms)" : "#4A5A7C" }} />
+                            <Zap className="w-4 h-4 shrink-0" style={{ color: job.enabled ? "var(--rhythms)" : "var(--ink-3)" }} />
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
-                                <span className="text-sm truncate" style={{ color: job.enabled ? "#E8EFFF" : "#6B80AB" }}>{job.name}</span>
-                                <span
-                                  className="text-xs mono"
-                                  style={{
-                                    padding: "2px 6px", borderRadius: 3,
-                                    background: job.source === "user" ? "rgba(248,123,123,0.14)" : "rgba(139,154,193,0.10)",
-                                    color: job.source === "user" ? "#F87B7B" : "#8B9AC1",
-                                    letterSpacing: 0.5, textTransform: "uppercase", fontSize: 10,
-                                  }}
-                                >
-                                  {job.source}
-                                </span>
-                                <span
-                                  className="text-xs mono"
-                                  style={{
-                                    padding: "2px 6px", borderRadius: 3,
-                                    background: "rgba(45,212,191,0.12)", color: "var(--rhythms)",
-                                    letterSpacing: 0.5, textTransform: "uppercase", fontSize: 10,
-                                  }}
-                                  title={job.type === "claude" ? "Runs as claude subprocess" : "Shell command"}
-                                >
-                                  {job.type}
-                                </span>
+                                <span className={`text-sm truncate ${job.enabled ? "text-ink-1" : "text-ink-3"}`}>{job.name}</span>
+                                <Pill dim={job.source === "user" ? "creative" : "neutral"} className={TAG_CLS}>{job.source}</Pill>
+                                <Pill dim="rhythms" className={TAG_CLS} title={job.type === "claude" ? "Runs as claude subprocess" : "Shell command"}>{job.type}</Pill>
                               </div>
                               <div className="text-xs mono muted truncate" style={{ marginTop: 2 }}>
                                 {job.schedule}
@@ -659,7 +577,7 @@ export default function AssistantPage() {
                                 {!job.command && job.prompt && <span style={{ marginLeft: 8, opacity: 0.7 }}>· {job.prompt.slice(0, 80)}{job.prompt.length > 80 ? "…" : ""}</span>}
                               </div>
                             </div>
-                            <span className="text-xs mono shrink-0" style={{ color: "#6B80AB" }} title="output target">
+                            <span className="text-xs mono shrink-0 text-ink-3" title="output target">
                               {Array.isArray(job.output) ? job.output.join(",") : job.output}
                             </span>
                             <button
@@ -670,57 +588,51 @@ export default function AssistantPage() {
                                   : `Delete user job "${job.name}"?`;
                                 if (confirm(msg)) deleteCron.mutate(job.name);
                               }}
-                              className="opacity-0 group-hover:opacity-100 transition-all shrink-0"
-                              style={{ color: "#6B80AB" }}
-                              onMouseEnter={(e) => (e.currentTarget.style.color = "#F87171")}
-                              onMouseLeave={(e) => (e.currentTarget.style.color = "#6B80AB")}
+                              className="opacity-0 group-hover:opacity-100 transition-all shrink-0 text-ink-3 hover:text-err"
                               title={job.source === "system" ? "Disable via override" : "Delete from user file"}
                             >
                               <Trash2 className="w-5 h-5" />
                             </button>
-                            <span className="shrink-0" style={{ color: "#6B80AB" }}>
+                            <span className="shrink-0 text-ink-3">
                               {isOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                             </span>
                           </div>
 
                           {isOpen && (
-                            <div className="px-12 pb-4 pt-1 space-y-3" style={{ borderTop: "1px dashed #1A2A4D" }}>
+                            <div className="px-12 pb-4 pt-1 space-y-3" style={{ borderTop: "1px solid var(--line-1)" }}>
                               <div className="grid grid-cols-[120px_1fr] gap-3 items-center pt-3">
-                                <label className="text-[13px] uppercase tracking-wider" style={{ color: "#6B80AB" }}>Schedule</label>
+                                <label className="text-[13px] uppercase tracking-wider text-ink-3">Schedule</label>
                                 <input
                                   value={(buf.schedule as string) ?? job.schedule}
                                   onChange={(e) => setEditBuffer((b) => ({ ...b, schedule: e.target.value }))}
                                   placeholder="* * * * *"
-                                  className="text-sm rounded px-3 py-1.5 mono w-full"
-                                  style={{ background: "#0F1A33", border: "1px solid #1A2A4D", color: "#E8EFFF" }}
+                                  className="text-sm rounded px-3 py-1.5 mono w-full bg-ground border border-line-1 text-ink-1"
                                 />
 
                                 {bufType === "script" ? (
                                   <>
-                                    <label className="text-[13px] uppercase tracking-wider" style={{ color: "#6B80AB" }}>Command</label>
+                                    <label className="text-[13px] uppercase tracking-wider text-ink-3">Command</label>
                                     <input
                                       value={(buf.command as string) ?? job.command ?? ""}
                                       onChange={(e) => setEditBuffer((b) => ({ ...b, command: e.target.value }))}
-                                      className="text-sm rounded px-3 py-1.5 mono w-full"
-                                      style={{ background: "#0F1A33", border: "1px solid #1A2A4D", color: "#E8EFFF" }}
+                                      className="text-sm rounded px-3 py-1.5 mono w-full bg-ground border border-line-1 text-ink-1"
                                     />
                                   </>
                                 ) : (
                                   <>
-                                    <label className="text-xs uppercase tracking-wider self-start pt-1" style={{ color: "#6B80AB" }}>Prompt</label>
+                                    <label className="text-xs uppercase tracking-wider self-start pt-1 text-ink-3">Prompt</label>
                                     <textarea
                                       value={(buf.prompt as string) ?? job.prompt ?? ""}
                                       onChange={(e) => setEditBuffer((b) => ({ ...b, prompt: e.target.value }))}
                                       rows={4}
-                                      className="text-sm rounded px-3 py-1.5 mono w-full"
-                                      style={{ background: "#0F1A33", border: "1px solid #1A2A4D", color: "#E8EFFF", resize: "vertical" }}
+                                      className="text-sm rounded px-3 py-1.5 mono w-full bg-ground border border-line-1 text-ink-1"
+                                      style={{ resize: "vertical" }}
                                     />
-                                    <label className="text-[13px] uppercase tracking-wider" style={{ color: "#6B80AB" }}>Model</label>
+                                    <label className="text-[13px] uppercase tracking-wider text-ink-3">Model</label>
                                     <select
                                       value={(buf.model as string) ?? job.model ?? ""}
                                       onChange={(e) => setEditBuffer((b) => ({ ...b, model: e.target.value || null }))}
-                                      className="text-sm rounded px-3 py-1.5 mono w-full"
-                                      style={{ background: "#0F1A33", border: "1px solid #1A2A4D", color: "#E8EFFF" }}
+                                      className="text-sm rounded px-3 py-1.5 mono w-full bg-ground border border-line-1 text-ink-1"
                                     >
                                       <option value="">(default)</option>
                                       <option value="haiku">haiku</option>
@@ -730,7 +642,7 @@ export default function AssistantPage() {
                                   </>
                                 )}
 
-                                <label className="text-xs uppercase tracking-wider self-start pt-1" style={{ color: "#6B80AB" }}>Output</label>
+                                <label className="text-xs uppercase tracking-wider self-start pt-1 text-ink-3">Output</label>
                                 <div className="flex flex-wrap gap-2">
                                   {(["log", "voice", "telegram", "ntfy", "email"] as const).map((opt) => {
                                     const active = bufOutputs.includes(opt);
@@ -749,13 +661,8 @@ export default function AssistantPage() {
                                             return { ...b, output: next as string | string[] };
                                           });
                                         }}
-                                        className="text-xs mono px-2.5 py-1 rounded"
-                                        style={{
-                                          background: active ? "rgba(45,212,191,0.18)" : "rgba(168,165,200,0.06)",
-                                          color: active ? "var(--rhythms)" : "#8B9AC1",
-                                          border: active ? "1px solid var(--rhythms)" : "1px solid #1A2A4D",
-                                          letterSpacing: 0.5, textTransform: "uppercase",
-                                        }}
+                                        className={`text-xs mono px-2.5 py-1 rounded uppercase tracking-wider ${active ? "" : "bg-surface-1 text-ink-2 border border-line-1"}`}
+                                        style={active ? dimStyle("rhythms", true) : undefined}
                                       >
                                         {opt}
                                       </button>
@@ -764,18 +671,17 @@ export default function AssistantPage() {
                                 </div>
                               </div>
 
-                              {editError && <div className="text-xs" style={{ color: "#F87171" }}>{editError}</div>}
+                              {editError && <div className="text-xs text-err">{editError}</div>}
 
-                              <div className="flex items-center justify-between pt-2" style={{ borderTop: "1px dashed #1A2A4D" }}>
-                                <div className="text-xs mono" style={{ color: "#6B80AB" }}>
-                                  source: <span style={{ color: job.source === "user" ? "#F87B7B" : "#8B9AC1" }}>{job.source}</span>
-                                  {" · "}type: <span style={{ color: "#E8EFFF" }}>{job.type}</span>
+                              <div className="flex items-center justify-between pt-2" style={{ borderTop: "1px solid var(--line-1)" }}>
+                                <div className="text-xs mono text-ink-3">
+                                  source: <span style={{ color: job.source === "user" ? "var(--creative)" : "var(--ink-2)" }}>{job.source}</span>
+                                  {" · "}type: <span className="text-ink-1">{job.type}</span>
                                 </div>
                                 <div className="flex gap-2">
                                   <button
                                     onClick={closeExpand}
-                                    className="text-sm px-3 py-1 rounded"
-                                    style={{ background: "transparent", color: "#9BB0D6", border: "1px solid #1A2A4D" }}
+                                    className="text-sm px-3 py-1 rounded bg-transparent text-ink-2 border border-line-1"
                                   >
                                     Cancel
                                   </button>
@@ -793,8 +699,8 @@ export default function AssistantPage() {
                                       if (Object.keys(patch).length === 0) { closeExpand(); return; }
                                       patchCron.mutate({ name: job.name, patch }, { onSuccess: () => closeExpand() });
                                     }}
-                                    className="pill pill-rhythms text-sm"
-                                    style={{ padding: "4px 14px", cursor: "pointer" }}
+                                    className="text-sm px-3.5 py-1 rounded-full font-medium cursor-pointer"
+                                    style={dimStyle("rhythms", true)}
                                     disabled={patchCron.isPending}
                                   >
                                     {patchCron.isPending ? "Saving…" : "Save"}
@@ -816,39 +722,33 @@ export default function AssistantPage() {
                 const start = safePage * CRON_PAGE_SIZE;
                 const end = Math.min(start + CRON_PAGE_SIZE, cronData.jobs.length);
                 return (
-                  <div className="mt-3 flex items-center justify-between text-xs" style={{ paddingTop: 8, borderTop: "1px dashed #1A2A4D" }}>
+                  <div className="mt-3 flex items-center justify-between text-xs pt-2" style={{ borderTop: "1px solid var(--line-1)" }}>
                     <span className="mono muted">
-                      Showing <span style={{ color: "#E8EFFF" }}>{start + 1}–{end}</span> of <span style={{ color: "#E8EFFF" }}>{cronData.jobs.length}</span>
+                      Showing <span className="text-ink-1">{start + 1}–{end}</span> of <span className="text-ink-1">{cronData.jobs.length}</span>
                     </span>
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
                         onClick={() => { closeExpand(); setCronPage((p) => Math.max(0, p - 1)); }}
                         disabled={safePage === 0}
-                        className="text-xs px-3 py-1 rounded mono"
-                        style={{
-                          background: safePage === 0 ? "transparent" : "rgba(45,212,191,0.10)",
-                          color: safePage === 0 ? "#4A5A7C" : "var(--rhythms)",
-                          border: "1px solid #1A2A4D",
-                          cursor: safePage === 0 ? "not-allowed" : "pointer",
-                        }}
+                        className="text-xs px-3 py-1 rounded mono border border-line-1"
+                        style={safePage === 0
+                          ? { background: "transparent", color: "var(--ink-3)", cursor: "not-allowed" }
+                          : { background: "var(--surface-1)", color: "var(--rhythms)", cursor: "pointer" }}
                       >
                         ← Prev
                       </button>
                       <span className="mono muted">
-                        Page <span style={{ color: "#E8EFFF" }}>{safePage + 1}</span> / {pageCount}
+                        Page <span className="text-ink-1">{safePage + 1}</span> / {pageCount}
                       </span>
                       <button
                         type="button"
                         onClick={() => { closeExpand(); setCronPage((p) => Math.min(pageCount - 1, p + 1)); }}
                         disabled={safePage >= pageCount - 1}
-                        className="text-xs px-3 py-1 rounded mono"
-                        style={{
-                          background: safePage >= pageCount - 1 ? "transparent" : "rgba(45,212,191,0.10)",
-                          color: safePage >= pageCount - 1 ? "#4A5A7C" : "var(--rhythms)",
-                          border: "1px solid #1A2A4D",
-                          cursor: safePage >= pageCount - 1 ? "not-allowed" : "pointer",
-                        }}
+                        className="text-xs px-3 py-1 rounded mono border border-line-1"
+                        style={safePage >= pageCount - 1
+                          ? { background: "transparent", color: "var(--ink-3)", cursor: "not-allowed" }
+                          : { background: "var(--surface-1)", color: "var(--rhythms)", cursor: "pointer" }}
                       >
                         Next →
                       </button>
@@ -866,7 +766,7 @@ export default function AssistantPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Section title="Personality Traits" icon={Brain} dimension="creative">
               {personality.base_description && (
-                <p className="mb-5 leading-relaxed" style={{ color: "#D6E1F5", fontSize: 14 }}>
+                <p className="mb-5 leading-relaxed text-sm text-ink-1">
                   {personality.base_description}
                 </p>
               )}
@@ -887,7 +787,7 @@ export default function AssistantPage() {
               <Section title="What I Love" icon={Heart} dimension="money">
                 <ul className="space-y-2">
                   {personality.preferences.what_i_love.map((item, i) => (
-                    <li key={i} className="leading-relaxed flex gap-2" style={{ color: "#D6E1F5", fontSize: 14 }}>
+                    <li key={i} className="leading-relaxed flex gap-2 text-sm text-ink-1">
                       <span className="shrink-0 mt-0.5 green-up">+</span>
                       <span>{item}</span>
                     </li>
@@ -898,7 +798,7 @@ export default function AssistantPage() {
               <Section title="What I Dislike" dimension="money">
                 <ul className="space-y-2">
                   {personality.preferences.what_i_dislike.map((item, i) => (
-                    <li key={i} className="leading-relaxed flex gap-2" style={{ color: "#D6E1F5", fontSize: 14 }}>
+                    <li key={i} className="leading-relaxed flex gap-2 text-sm text-ink-1">
                       <span className="shrink-0 mt-0.5 coral-down">-</span>
                       <span>{item}</span>
                     </li>
@@ -913,7 +813,7 @@ export default function AssistantPage() {
                   {personality.anchors.map((anchor, i) => (
                     <div key={i}>
                       <div className="text-sm font-medium" style={{ color: "var(--relationships)" }}>{anchor.name}</div>
-                      <div className="text-sm mt-1" style={{ color: "#9BB0D6" }}>{anchor.description}</div>
+                      <div className="text-sm mt-1 text-ink-2">{anchor.description}</div>
                     </div>
                   ))}
                 </div>
@@ -925,8 +825,8 @@ export default function AssistantPage() {
                 <div className="flex items-center gap-4">
                   <div className="text-3xl">🐱</div>
                   <div>
-                    <div className="text-base font-medium" style={{ color: "#E8EFFF" }}>{personality.companion.name}</div>
-                    <div className="text-sm" style={{ color: "#9BB0D6" }}>
+                    <div className="text-base font-medium text-ink-1">{personality.companion.name}</div>
+                    <div className="text-sm text-ink-2">
                       {personality.companion.species} — {personality.companion.personality}
                     </div>
                   </div>
@@ -939,13 +839,13 @@ export default function AssistantPage() {
                 <div>
                   <div className="text-xs tracking-wider uppercase mb-2 green-up">Can Initiate</div>
                   {personality.autonomy.can_initiate.map((item, i) => (
-                    <div key={i} className="py-1 text-sm" style={{ color: "#D6E1F5" }}>{item.replace(/_/g, " ")}</div>
+                    <div key={i} className="py-1 text-sm text-ink-1">{item.replace(/_/g, " ")}</div>
                   ))}
                 </div>
                 <div>
                   <div className="text-xs tracking-wider uppercase mb-2" style={{ color: "var(--money)" }}>Must Ask</div>
                   {personality.autonomy.must_ask.map((item, i) => (
-                    <div key={i} className="py-1 text-sm" style={{ color: "#D6E1F5" }}>{item.replace(/_/g, " ")}</div>
+                    <div key={i} className="py-1 text-sm text-ink-1">{item.replace(/_/g, " ")}</div>
                   ))}
                 </div>
               </div>
@@ -953,7 +853,7 @@ export default function AssistantPage() {
 
             <Section title="Formed Opinions" dimension="creative">
               {!opinionsData?.raw ? (
-                <div style={{ color: "#6B80AB", fontSize: 14 }}>No opinions yet</div>
+                <div className="text-sm text-ink-3">No opinions yet</div>
               ) : (
                 <div className="space-y-3">
                   {opinionsData.raw.split(/^\s*- topic:/m).slice(1).slice(0, 10).map((block, i) => {
@@ -967,10 +867,10 @@ export default function AssistantPage() {
                           style={{ backgroundColor: `rgba(248, 123, 123, ${Math.max(0.2, confidence)})` }}
                         />
                         <div className="min-w-0 flex-1">
-                          <div className="text-sm" style={{ color: "#E8EFFF" }}>{topic}</div>
-                          <div className="text-sm" style={{ color: "#9BB0D6" }}>{position}</div>
+                          <div className="text-sm text-ink-1">{topic}</div>
+                          <div className="text-sm text-ink-2">{position}</div>
                         </div>
-                        <span className="text-xs shrink-0 mono" style={{ color: "#6B80AB" }}>
+                        <span className="text-xs shrink-0 mono text-ink-3">
                           {(confidence * 100).toFixed(0)}%
                         </span>
                       </div>
@@ -986,18 +886,17 @@ export default function AssistantPage() {
         {activeTab === "diary" && (
           <Section title="Diary Entries" dimension="rhythms">
             {!diaryData || diaryData.entries.length === 0 ? (
-              <div style={{ color: "#6B80AB", fontSize: 14 }}>No diary entries</div>
+              <div className="text-sm text-ink-3">No diary entries</div>
             ) : (
               <div className="space-y-4">
                 {diaryData.entries.slice().reverse().map((entry) => (
                   <div
                     key={entry.date}
-                    className="p-4 rounded-md space-y-3"
-                    style={{ background: "#12203D", border: "1px solid #1A2A4D" }}
+                    className="p-4 rounded-md space-y-3 bg-surface-1 border border-line-1"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="mono" style={{ color: "#E8EFFF", fontSize: 15 }}>{entry.date}</span>
-                      <div className="flex items-center gap-4 text-sm" style={{ color: "#9BB0D6" }}>
+                      <span className="mono text-ink-1" style={{ fontSize: 15 }}>{entry.date}</span>
+                      <div className="flex items-center gap-4 text-sm text-ink-2">
                         <span>{entry.interaction_count} sessions</span>
                         <span className={entry.mood === "positive" ? "green-up" : entry.mood === "frustrated" ? "coral-down" : "flat-muted"}>
                           {entry.mood}
@@ -1008,17 +907,17 @@ export default function AssistantPage() {
                     {entry.topics.length > 0 && (
                       <div className="flex flex-wrap gap-2">
                         {entry.topics.map((topic, i) => (
-                          <span key={i} className="pill pill-rhythms">{topic}</span>
+                          <Pill key={i} dim="rhythms">{topic}</Pill>
                         ))}
                       </div>
                     )}
                     {entry.notable_moments.map((moment, i) => (
-                      <div key={i} className="text-sm" style={{ color: "#D6E1F5" }}>{moment}</div>
+                      <div key={i} className="text-sm text-ink-1">{moment}</div>
                     ))}
                     {entry.learning && (
                       <div
-                        className="text-sm italic pl-3"
-                        style={{ color: "#9BB0D6", borderLeft: "2px solid rgba(45,212,191,0.4)" }}
+                        className="text-sm italic pl-3 text-ink-2"
+                        style={{ borderLeft: "2px solid rgba(45,212,191,0.4)" }}
                       >
                         {entry.learning}
                       </div>
@@ -1030,6 +929,6 @@ export default function AssistantPage() {
           </Section>
         )}
       </div>
-    </div>
+    </PageShell>
   );
 }

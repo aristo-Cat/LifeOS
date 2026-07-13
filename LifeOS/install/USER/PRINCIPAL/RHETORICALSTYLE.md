@@ -1,3 +1,7 @@
+---
+provenance: template
+---
+
 # Rhetorical Style — User
 
 > Bootstrap default. Run `/interview` to capture your argumentation style.

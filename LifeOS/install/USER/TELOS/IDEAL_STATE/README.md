@@ -1,3 +1,7 @@
+---
+provenance: template
+---
+
 # Ideal State
 
 > 🎯 SAMPLE TEMPLATE — This directory ships empty except for this README. The files you'll create here describe where you WANT TO BE across the dimensions of your life. Run `/interview` (or talk to your DA) to populate them. Pulse will surface your ideal state here once it exists.

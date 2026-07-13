@@ -1,4 +1,11 @@
 #!/usr/bin/env bun
+// Normalize env path vars Claude Code may inject unexpanded — literal $HOME/${HOME}
+// in LIFEOS_DIR/LIFEOS_CONFIG_DIR/PROJECTS_DIR resolves to a shadow dir (#1404 / PR #1451, author jbmml).
+for (const __k of ["LIFEOS_DIR", "LIFEOS_CONFIG_DIR", "PROJECTS_DIR"]) {
+  const __v = process.env[__k];
+  if (__v && /^\$\{?HOME\}?(\/|$)/.test(__v)) process.env[__k] = __v.replace(/^\$\{?HOME\}?/, process.env.HOME ?? "~");
+}
+
 
 /**
  * generate - UL Image Generation CLI
@@ -254,7 +261,7 @@ OPTIONS:
                              Creates: output.png (transparent) + output-thumb.png (#EAE9DF background)
                              Automatically enables --remove-bg
   --no-signature             Skip the "{{DA_NAME}}" signature stamp (auto-on for Essay/--thumbnail headers)
-  --signature                Force the "{{DA_NAME}}" signature stamp on (bottom-right, Bradley-Hand-Bold)
+  --signature                Force the "{{DA_NAME}}" signature stamp on (bottom-right, SignPainter-HouseScript cursive)
   --creative-variations <n>  Generate N variations (appends -v1, -v2, etc. to output filename)
                              Use with the be-creative skill for true prompt diversity
                              CLI mode: generates N images with same prompt (tests model variability)
@@ -675,6 +682,13 @@ function enhancePromptForTransparency(prompt: string): string {
 import { exec } from "node:child_process";
 import { promisify } from "node:util";
 
+// Normalize env path vars that Claude Code injects without shell expansion (LifeOS#1404)
+for (const k of ["LIFEOS_DIR", "LIFEOS_CONFIG_DIR", "PROJECTS_DIR"]) {
+  const v = process.env[k];
+  if (v && /^\$\{?HOME\}?(\/|$)/.test(v)) process.env[k] = v.replace(/^\$\{?HOME\}?/, process.env.HOME ?? "~");
+}
+
+
 const execAsync = promisify(exec);
 
 // ============================================================================
@@ -702,30 +716,35 @@ async function addBackgroundColor(inputPath: string, outputPath: string, hexColo
 
 /**
  * Stamp the REQUIRED "{{DA_NAME}}" signature on a blog-header/essay image, in place.
- * Principal directive 2026-06-20: every essay/blog-header image MUST be signed
- * "{{DA_NAME}}", bottom-right, human-handwriting (Bradley-Hand-Bold), never calligraphy.
- * Stamped here, on the main output, BEFORE the thumbnail is derived, so the
- * signature lands on BOTH the transparent inline PNG and the sepia thumbnail.
+ * Principal directives 2026-06-20 + 2026-07-09: every essay/blog-header image
+ * MUST be signed "{{DA_NAME}}", bottom-right, in a cursive human-signature hand
+ * (SignPainter-HouseScript) — small and integrated into the artwork, not a
+ * caption floating in the corner. Formal calligraphy faces (Snell, Chancery,
+ * Savoye) remain banned. Stamped here, on the main output, BEFORE the
+ * thumbnail is derived, so the signature lands on BOTH versions.
  * Pointsize scales with image width so it reads at any resolution.
  */
 async function stampKaiSignature(imagePath: string): Promise<void> {
-  // Derive pointsize from the image width (≈4.5% of width; 1024px → ~46pt).
-  let pointsize = 46;
+  // Derive pointsize from the image width (≈3% of width; 1024px → ~31pt —
+  // 2026-07-09: reduced from 4.5% so it reads as a painter's mark, not a label).
+  let pointsize = 31;
   try {
     const { stdout } = await execAsync(`identify -format "%w" "${imagePath}"`);
     const width = parseInt(stdout.trim(), 10);
     if (Number.isFinite(width) && width > 0) {
-      pointsize = Math.max(28, Math.round(width * 0.045));
+      pointsize = Math.max(20, Math.round(width * 0.03));
     }
   } catch {
-    // Non-fatal — fall back to the 46pt default tuned for 1024px-wide headers.
+    // Non-fatal — fall back to the 31pt default tuned for 1024px-wide headers.
   }
 
-  console.log('✍️  Stamping required "{{DA_NAME}}" signature (bottom-right, Bradley-Hand-Bold)...');
+  console.log('✍️  Stamping required "{{DA_NAME}}" signature (bottom-right, SignPainter-HouseScript, cursive)...');
+  // Slight CCW rotation + tucked offset makes it sit like a hand-signed mark
+  // inside the composition's lower-right rather than a corner caption.
   const command =
     `magick "${imagePath}" -gravity SouthEast ` +
-    `-font "Bradley-Hand-Bold" -pointsize ${pointsize} -fill "rgba(55,45,38,0.62)" ` +
-    `-annotate +28+16 "{{DA_NAME}}" "${imagePath}"`;
+    `-font "SignPainter-HouseScript" -pointsize ${pointsize} -fill "rgba(55,45,38,0.55)" ` +
+    `-annotate 352x352+44+30 "{{DA_NAME}}" "${imagePath}"`;
 
   try {
     await execAsync(command);
@@ -733,7 +752,7 @@ async function stampKaiSignature(imagePath: string): Promise<void> {
   } catch (error) {
     throw new CLIError(
       `Failed to stamp {{DA_NAME}} signature: ${error instanceof Error ? error.message : String(error)}. ` +
-        `Bradley-Hand-Bold must be installed (default on macOS). Override font via the workflow if needed.`
+        `SignPainter-HouseScript must be installed (default on macOS). Override font via the workflow if needed.`
     );
   }
 }

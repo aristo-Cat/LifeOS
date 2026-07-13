@@ -82,7 +82,7 @@ function HeartbeatSquare({ session }: { session: AlgorithmState }) {
         : "";
 
   const opacityClass = pulse === "static" ? "opacity-40" : "";
-  const bgClass = pulse !== "static" ? colors.bg : "bg-zinc-800";
+  const bgClass = pulse !== "static" ? colors.bg : "bg-surface-2";
 
   return (
     <div className="relative">
@@ -95,16 +95,16 @@ function HeartbeatSquare({ session }: { session: AlgorithmState }) {
         onMouseEnter={() => setShowTooltip(true)}
         onMouseLeave={() => setShowTooltip(false)}
       >
-        <span className="text-[14px] font-medium text-zinc-300">{label}</span>
+        <span className="text-[14px] font-medium text-ink-1">{label}</span>
       </div>
 
       {/* Tooltip */}
       {showTooltip && (
         <div
-          className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1.5 rounded-md bg-zinc-800 border border-white/[0.08] shadow-lg whitespace-nowrap pointer-events-none"
+          className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1.5 rounded-md bg-surface-2 border border-white/[0.08] shadow-lg whitespace-nowrap pointer-events-none"
         >
-          <p className="text-xs text-zinc-200 font-medium">{getSessionName(session)}</p>
-          <p className="text-[13px] text-zinc-500">
+          <p className="text-xs text-ink-1 font-medium">{getSessionName(session)}</p>
+          <p className="text-[13px] text-ink-3">
             {lastUpdated > 0 ? formatTimeSince(lastUpdated) : "No activity"}
           </p>
           <div
@@ -122,18 +122,18 @@ export default function LiveSessionHeartbeatGrid() {
   const activeSessions = algorithmStates.filter((s) => s.active);
 
   return (
-    <div className="rounded-lg border border-white/[0.06] bg-zinc-900 p-4">
-      <h3 className="text-xs font-medium text-zinc-400 uppercase tracking-wider mb-3">
+    <div className="rounded-lg border border-white/[0.06] bg-surface-1 p-4">
+      <h3 className="text-xs font-medium text-ink-2 uppercase tracking-wider mb-3">
         Live Sessions
       </h3>
 
       {isLoading ? (
         <div className="flex items-center gap-2">
-          <div className="w-10 h-10 rounded-lg bg-zinc-800 animate-pulse" />
-          <div className="w-10 h-10 rounded-lg bg-zinc-800 animate-pulse" />
+          <div className="w-10 h-10 rounded-lg bg-surface-2 animate-pulse" />
+          <div className="w-10 h-10 rounded-lg bg-surface-2 animate-pulse" />
         </div>
       ) : activeSessions.length === 0 ? (
-        <p className="text-xs text-zinc-600">No active sessions</p>
+        <p className="text-xs text-ink-3">No active sessions</p>
       ) : (
         <div className="flex flex-wrap gap-2">
           {activeSessions.map((session) => (

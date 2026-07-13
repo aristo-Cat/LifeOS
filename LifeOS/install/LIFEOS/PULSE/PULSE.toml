@@ -15,6 +15,9 @@ enabled = true
 
 [telegram]
 enabled = true
+# Spoken summary of each text reply as a Telegram voice note (PR #1458, author anikin-xyz).
+# Requires ELEVENLABS_API_KEY. Set false to keep text replies but suppress voice notes.
+voice_summaries = true
 
 [imessage]
 enabled = false
@@ -64,6 +67,11 @@ enabled = true
 # response at /api/work instead of erroring. Polling cadence is also
 # config-driven via WORK.POLL_INTERVAL_SECONDS (default 60s).
 
+[bunker]
+enabled = true
+# Reads the app registry from ~/Projects/bunker via its CLI (`bunker data`).
+# Override the harness location with the BUNKER_DIR env var.
+
 [syslog]
 enabled = true
 port = 5514
@@ -86,7 +94,8 @@ enabled = true
 
 [da]
 enabled = true
-primary = "kai"
+# DA display name (placeholder). Canonical name lives in LIFEOS/USER/CONFIG/LIFEOS_CONFIG.toml [da].name.
+primary = "Aria"
 heartbeat_schedule = "*/30 * * * *"
 heartbeat_model = "haiku"
 heartbeat_cost_ceiling = 0.01
@@ -136,6 +145,11 @@ output = "log"
 enabled = true
 
 # ── DA Subsystem Jobs ──
+# Default-disabled in the public template: these scripts live under
+# LIFEOS/PULSE/Assistant/, a private directory stripped from the public release
+# payload. Scheduling them on a fresh install would spawn broken jobs every
+# tick. Re-enable via LIFEOS/USER/CONFIG/PULSE.user.toml (merged by name) once
+# the Assistant subsystem is present. #1392.
 
 [[job]]
 name = "assistant-heartbeat"
@@ -143,7 +157,7 @@ schedule = "*/30 * * * *"
 type = "script"
 command = "bun run Assistant/checks/heartbeat.ts"
 output = "voice"
-enabled = true
+enabled = false
 
 [[job]]
 name = "assistant-tasks"
@@ -151,7 +165,7 @@ schedule = "* * * * *"
 type = "script"
 command = "bun run Assistant/checks/tasks.ts"
 output = "voice"
-enabled = true
+enabled = false
 
 [[job]]
 name = "assistant-diary"
@@ -159,7 +173,7 @@ schedule = "0 23 * * *"
 type = "script"
 command = "bun run Assistant/checks/diary.ts"
 output = "log"
-enabled = true
+enabled = false
 
 [[job]]
 name = "assistant-growth"
@@ -167,7 +181,7 @@ schedule = "0 4 * * 0"
 type = "script"
 command = "bun run Assistant/checks/growth.ts"
 output = "log"
-enabled = true
+enabled = false
 
 # ── Life Dashboard (Phase 0) ──
 

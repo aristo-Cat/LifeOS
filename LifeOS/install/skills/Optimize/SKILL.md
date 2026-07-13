@@ -1,5 +1,6 @@
 ---
 name: Optimize
+version: 1.0.10
 description: "Autonomous optimization loop — hill-climb any target. Code with metrics, or skills/prompts/agents with LLM-as-judge. USE WHEN optimize, hill climb, improve metric, reduce latency, optimize skill, optimize prompt, eval mode."
 disable-model-invocation: true
 effort: medium

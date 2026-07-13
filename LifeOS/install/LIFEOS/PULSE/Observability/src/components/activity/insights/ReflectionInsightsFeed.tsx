@@ -74,7 +74,7 @@ export default function ReflectionInsightsFeed() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-40 text-zinc-600 text-xs">
+      <div className="flex items-center justify-center h-40 text-ink-3 text-xs">
         Loading reflections...
       </div>
     );
@@ -105,7 +105,7 @@ export default function ReflectionInsightsFeed() {
 
   if (reflections.length === 0) {
     return (
-      <div className="flex items-center justify-center h-40 text-zinc-500 text-xs">
+      <div className="flex items-center justify-center h-40 text-ink-3 text-xs">
         No reflection data yet
       </div>
     );
@@ -125,13 +125,13 @@ export default function ReflectionInsightsFeed() {
   return (
     <div className="space-y-3">
       {/* Summary header */}
-      <div className="text-xs text-zinc-400">
+      <div className="text-xs text-ink-2">
         Average self-assessed sentiment:{" "}
-        <span className="font-mono font-medium text-zinc-200">
+        <span className="font-mono font-medium text-ink-1">
           {avgSentiment}
         </span>{" "}
         across{" "}
-        <span className="font-mono font-medium text-zinc-200">{total}</span>{" "}
+        <span className="font-mono font-medium text-ink-1">{total}</span>{" "}
         sessions
       </div>
 
@@ -144,7 +144,7 @@ export default function ReflectionInsightsFeed() {
       {hasMore && (
         <button
           onClick={() => setVisibleCount((c) => c + LOAD_MORE_COUNT)}
-          className="w-full py-2 text-xs text-zinc-400 hover:text-zinc-200 bg-zinc-800/30 rounded-lg border border-white/[0.04] transition-colors"
+          className="w-full py-2 text-xs text-ink-2 hover:text-ink-1 bg-[rgba(20,28,56,0.3)] rounded-lg border border-white/[0.04] transition-colors"
         >
           Show more ({sorted.length - visibleCount} remaining)
         </button>
@@ -158,23 +158,23 @@ function ReflectionCard({ reflection: r }: { reflection: Reflection }) {
 
   return (
     <div
-      className={`bg-zinc-800/50 rounded-lg border-l-[3px] ${sc.border} p-3 space-y-2`}
+      className={`bg-[rgba(20,28,56,0.5)] rounded-lg border-l-[3px] ${sc.border} p-3 space-y-2`}
     >
       {/* Top row */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
-          <p className="text-[16px] font-bold text-zinc-200 truncate">
+          <p className="text-[16px] font-bold text-ink-1 truncate">
             {r.task_description.length > 80
               ? r.task_description.slice(0, 80) + "..."
               : r.task_description}
           </p>
           <div className="flex items-center gap-2 mt-1">
             {/* Effort pill */}
-            <span className="text-[13px] px-1.5 py-0.5 rounded-full bg-zinc-700/60 text-zinc-300 font-medium">
+            <span className="text-[13px] px-1.5 py-0.5 rounded-full bg-[rgba(26,36,68,0.6)] text-ink-1 font-medium">
               {r.effort_level}
             </span>
             {/* Criteria count */}
-            <span className="text-[13px] text-zinc-500 font-mono">
+            <span className="text-[13px] text-ink-3 font-mono">
               {r.criteria_passed}/{r.criteria_count}
             </span>
           </div>
@@ -210,7 +210,7 @@ function ReflectionCard({ reflection: r }: { reflection: Reflection }) {
       />
 
       {/* Timestamp */}
-      <div className="text-[13px] text-zinc-600 pt-1">
+      <div className="text-[13px] text-ink-3 pt-1">
         {formatRelativeTime(r.timestamp)}
       </div>
     </div>
@@ -239,15 +239,15 @@ function ExpandableSection({
         className="flex items-center gap-1.5 w-full text-left group"
       >
         <Icon className={`w-3 h-3 ${colorClass} opacity-60 shrink-0`} />
-        <span className="text-[14px] text-zinc-400 group-hover:text-zinc-200 transition-colors">
+        <span className="text-[14px] text-ink-2 group-hover:text-ink-1 transition-colors">
           {heading}
         </span>
         <ChevronDown
-          className={`w-3 h-3 text-zinc-600 ml-auto transition-transform ${expanded ? "rotate-180" : ""}`}
+          className={`w-3 h-3 text-ink-3 ml-auto transition-transform ${expanded ? "rotate-180" : ""}`}
         />
       </button>
       {expanded && (
-        <p className="text-[14px] text-zinc-400 mt-1 pl-4.5 leading-relaxed">
+        <p className="text-[14px] text-ink-2 mt-1 pl-4.5 leading-relaxed">
           {content}
         </p>
       )}
