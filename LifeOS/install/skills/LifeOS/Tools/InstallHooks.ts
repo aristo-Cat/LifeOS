@@ -99,8 +99,8 @@ function stripStaleWiring(hooks: HooksMap, orphanBasenames: string[]): number {
   return removed;
 }
 
-function psString(value: string): string {
-  return `'${value.replace(/'/g, "''")}'`;
+function winString(value: string): string {
+  return `"${value.replace(/"/g, '\\"')}"`;
 }
 
 function splitCommandArgs(segment: string): string[] {
@@ -122,24 +122,22 @@ function windowsBunSegment(segment: string, configRoot: string): string {
 
   const script = resolveInstallPath(parts[0], configRoot);
   const args = parts.slice(1).map((arg) => resolveInstallPath(arg, configRoot));
-  if (script.endsWith(".sh")) {
-    return [
-      "$bash = Get-Command bash.exe -ErrorAction SilentlyContinue",
-      `if ($bash) { & $bash.Source ${psString(script)} ${args.map(psString).join(" ")} }`,
-    ].join("; ");
-  }
-  return `bun ${psString(script)} ${args.map(psString).join(" ")}`.trim();
+  const runner = script.endsWith(".sh") ? "bash.exe" : "bun";
+  return `${runner} ${winString(script)} ${args.map(winString).join(" ")}`.trim();
 }
 
+// The harness runs hook commands through Git Bash on Windows, so a
+// `powershell.exe -Command "..."` wrapper is destroyed before powershell ever
+// parses it: bash strips the double quotes and expands the `$`, turning
+// `$env:HOME` into `:HOME` and `if ($bash)` into `if ()` (ParserError). Emit the
+// runner directly instead. HOME/LIFEOS_DIR reach the hook process via the `env`
+// block in settings.json, which the harness injects into hook subprocesses.
 function toWindowsHookCommand(command: string, configRoot: string): string {
-  const segments = command.split(";").map((part) => windowsBunSegment(part, configRoot)).filter(Boolean);
-  const prelude = [
-    `$env:HOME = ${psString(process.env.HOME || process.env.USERPROFILE || homedir())}`,
-    `$env:CLAUDE_CONFIG_DIR = ${psString(configRoot)}`,
-    `$env:LIFEOS_DIR = ${psString(join(configRoot, "LIFEOS"))}`,
-  ];
-  const script = [...prelude, ...segments].join("; ");
-  return `powershell.exe -NoProfile -ExecutionPolicy Bypass -Command ${JSON.stringify(script)}`;
+  return command
+    .split(";")
+    .map((part) => windowsBunSegment(part, configRoot))
+    .filter(Boolean)
+    .join("; ");
 }
 
 function normalizeHooksForPlatform(hooks: HooksMap, configRoot: string): HooksMap {

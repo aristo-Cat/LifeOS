@@ -75,10 +75,17 @@ describe("Windows compatibility guardrails", () => {
     const installHooks = readSkill("Tools/InstallHooks.ts");
     expect(installHooks).toContain("normalizeHooksForPlatform");
     expect(installHooks).toContain("toWindowsHookCommand");
-    expect(installHooks).toContain("powershell.exe -NoProfile -ExecutionPolicy Bypass -Command");
-    expect(installHooks).toContain("$env:CLAUDE_CONFIG_DIR");
     expect(installHooks).toContain("bash.exe");
-    expect(installHooks).toContain("bun ${psString(script)}");
+    expect(installHooks).toContain("winString(script)");
+    // Regression (2026-07-16): the harness runs hook commands through Git Bash on
+    // Windows. A `powershell.exe -Command "<script>"` wrapper never survived it —
+    // bash stripped the double quotes and expanded the `$` first, so powershell saw
+    // `:HOME` for `$env:HOME` and `if ()` for `if ($bash)`, and every wrapped hook
+    // died with a ParserError (47 of 58 wirings dead). The runner is emitted
+    // directly now; HOME/LIFEOS_DIR arrive via the settings.json `env` block.
+    expect(installHooks).not.toContain("-ExecutionPolicy Bypass -Command");
+    expect(installHooks).not.toContain("$env:HOME =");
+    expect(installHooks).not.toContain("$env:CLAUDE_CONFIG_DIR =");
     // Update-path hygiene: --prune removes LifeOS hook artifacts upstream retired,
     // scoped so it never deletes a user's own files.
     expect(installHooks).toContain("--prune");
