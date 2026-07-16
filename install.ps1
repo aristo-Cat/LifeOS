@@ -20,7 +20,7 @@ param(
   [string]$Version = "",
   [string]$Tag = "",
   [string]$Ref = "windows-compat-v6",
-  [string]$FallbackTag = "v6.0.5",
+  [string]$FallbackTag = "v7.1.1-win",
   [string]$ArchiveUrl = "",
   [string]$Source = "",
   [string]$SkillsDir = "",

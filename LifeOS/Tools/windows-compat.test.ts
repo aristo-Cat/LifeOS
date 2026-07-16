@@ -25,7 +25,7 @@ describe("Windows compatibility guardrails", () => {
     expect(rootInstaller).toContain('[string]$Target = "claude"');
     expect(rootInstaller).toContain('[string]$Version = ""');
     expect(rootInstaller).toContain('[string]$Ref = "windows-compat-v6"');
-    expect(rootInstaller).toContain('[string]$FallbackTag = "v6.0.5"');
+    expect(rootInstaller).toContain('[string]$FallbackTag = "v7.1.1-win"');
     expect(rootInstaller).toContain("releases/latest");
     expect(rootInstaller).toContain("archive/refs/heads/$Ref.zip");
     expect(rootInstaller).not.toContain('[string]$Version = "6.0.3"');
