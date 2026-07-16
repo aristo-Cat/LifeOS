@@ -41,7 +41,7 @@
 
 ---
 
-https://github.com/user-attachments/assets/31668ca9-25bf-4823-a7d2-85df9140ecf6
+https://github.com/user-attachments/assets/329897f5-828b-4c23-b607-1cf9c71cb4ec
 
 **LifeOS** is a General Purpose AI Harness for doing anything you want to do in life and work with AI. It captures who you are, what you care about, and where you're trying to go, then uses AI that knows you to help you get there. 
 
