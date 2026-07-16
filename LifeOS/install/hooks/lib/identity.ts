@@ -12,10 +12,15 @@
 
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
+import { homedir } from 'os';
 import { parse as parseYaml } from 'yaml';
 import { loadLifeosConfig } from '../../LIFEOS/TOOLS/LifeosConfig';
 
-const HOME = process.env.HOME!;
+// Windows has no HOME. Hooks get one from InstallHooks' PowerShell prelude, but the CLI
+// tools importing this module (lifeos, MemoryStatus, WorkSweep, UpdateTelos, PULSE…) run
+// outside that wrapper, so resolve it here and publish it for their sake too.
+const HOME = process.env.HOME || process.env.USERPROFILE || homedir();
+process.env.HOME ||= HOME;
 const SETTINGS_PATH = join(HOME, '.claude/settings.json');
 
 // Identity-file paths derive from LifeosConfig's userDir. On fresh installs where

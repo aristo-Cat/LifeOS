@@ -134,4 +134,19 @@ describe("Windows compatibility guardrails", () => {
     expect(memHealth).toContain("process.env.HOME || process.env.USERPROFILE || homedir()");
     expect(memHealth).not.toContain('process.env.HOME || ""');
   });
+
+  test("hooks/lib modules imported by CLI tools resolve HOME without the hook wrapper", () => {
+    // These two live under hooks/ but are imported by tools that run outside
+    // InstallHooks' PowerShell prelude (lifeos, MemoryStatus, WorkSweep, UpdateTelos,
+    // the sweeps, PULSE), so they cannot lean on $env:HOME being set for them.
+    const identity = readSkill("install/hooks/lib/identity.ts");
+    expect(identity).toContain("process.env.HOME || process.env.USERPROFILE || homedir()");
+    expect(identity).not.toContain("process.env.HOME!");
+    expect(identity).toContain('import { homedir } from');
+
+    const workConfig = readSkill("install/hooks/lib/work-config.ts");
+    expect(workConfig).toContain("process.env.HOME || process.env.USERPROFILE || homedir()");
+    expect(workConfig).not.toContain('const HOME = process.env.HOME || ""');
+    expect(workConfig).toContain('import { homedir } from');
+  });
 });
