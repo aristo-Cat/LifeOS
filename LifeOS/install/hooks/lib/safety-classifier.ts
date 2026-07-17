@@ -1,5 +1,6 @@
 import { homedir } from "node:os";
 import { resolve } from "node:path";
+import { isUnder, toPosix } from "./paths";
 
 export type Decision = "allow" | "neutral";
 
@@ -163,9 +164,10 @@ function escapeRegex(value: string): string {
 function trustedCommandForms(): readonly string[] {
   const forms: string[] = [];
   for (const prefix of TRUSTED_PREFIXES) {
-    forms.push(prefix);
-    if (prefix.startsWith(HOME + "/")) {
-      const suffix = prefix.slice(HOME.length);
+    const posixPrefix = toPosix(prefix);
+    forms.push(posixPrefix);
+    if (isUnder(HOME, prefix)) {
+      const suffix = toPosix(prefix).slice(toPosix(HOME).length);
       forms.push("~" + suffix, "$HOME" + suffix, "${HOME}" + suffix);
     }
   }
@@ -181,9 +183,7 @@ export function isTrustedPath(filePath: string): boolean {
   if (p.startsWith("~")) p = HOME + p.slice(1);
   p = p.replace(/\$\{?HOME\}?/g, HOME);
   const resolved = resolve(p);
-  return TRUSTED_PREFIXES.some(
-    (prefix) => resolved === prefix || resolved.startsWith(prefix + "/"),
-  );
+  return TRUSTED_PREFIXES.some((prefix) => isUnder(prefix, resolved));
 }
 
 export function bashTargetsTrustedPath(command: string): boolean {

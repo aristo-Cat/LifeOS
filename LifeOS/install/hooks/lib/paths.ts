@@ -114,3 +114,26 @@ export function getSkillsDir(): string {
 export function getMemoryDir(): string {
   return paiPath('MEMORY');
 }
+
+/** Normalize a path for platform-neutral comparisons and relative paths. */
+export function toPosix(p: string): string {
+  return p.replace(/\\/g, "/");
+}
+
+function cmpKey(p: string): string {
+  const posix = toPosix(p);
+  return process.platform === "win32" ? posix.toLowerCase() : posix;
+}
+
+/** True when child is parent itself or one of its descendants. */
+export function isUnder(parent: string, child: string): boolean {
+  const P = cmpKey(parent).replace(/\/+$/, "");
+  const C = cmpKey(child);
+  return C === P || C.startsWith(P + "/");
+}
+
+/** Return a POSIX relative path, or null when child is outside parent. */
+export function relUnder(parent: string, child: string): string | null {
+  if (!isUnder(parent, child)) return null;
+  return toPosix(child).slice(toPosix(parent).replace(/\/+$/, "").length).replace(/^\/+/, "");
+}

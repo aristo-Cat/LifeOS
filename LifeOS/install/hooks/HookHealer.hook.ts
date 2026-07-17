@@ -36,6 +36,7 @@ import {
 } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
+import { isUnder } from './lib/paths';
 
 const CLAUDE_DIR = join(homedir(), '.claude');
 const OBS_DIR = join(CLAUDE_DIR, 'LIFEOS', 'MEMORY', 'OBSERVABILITY');
@@ -71,12 +72,13 @@ function hasShebang(p: string): boolean {
  * never be healed), only when needed.
  */
 function heal(p: string, source: string): boolean {
-  if (!p.startsWith(CLAUDE_DIR + '/')) return false;
+  if (process.platform === 'win32') return false;
+  if (!isUnder(CLAUDE_DIR, p)) return false;
   if (!existsSync(p) || isExecutable(p)) return false;
   try {
     const realClaudeDir = realpathSync(CLAUDE_DIR);
     const real = realpathSync(p);
-    if (!real.startsWith(realClaudeDir + '/')) {
+    if (!isUnder(realClaudeDir, real)) {
       log({ event: 'containment-refused', path: p, resolved: real, source });
       return false;
     }
@@ -118,7 +120,7 @@ function directExecPaths(): Set<string> {
           for (const segment of cmd.split(/;|&&|\|\|/)) {
             const first = segment.trim().split(/\s+/)[0] ?? '';
             const p = expandHome(first);
-            if (/\.(ts|js|sh)$/.test(p) && p.startsWith(CLAUDE_DIR + '/')) paths.add(p);
+            if (/\.(ts|js|sh)$/.test(p) && isUnder(CLAUDE_DIR, p)) paths.add(p);
           }
         }
       }
@@ -168,7 +170,7 @@ async function posttool(): Promise<void> {
   try { data = JSON.parse(input); } catch { return; }
   const fp = data?.tool_input?.file_path;
   if (typeof fp !== 'string') return;
-  if (!fp.startsWith(CLAUDE_DIR + '/')) return;
+  if (!isUnder(CLAUDE_DIR, fp)) return;
   if (existsSync(fp) && hasShebang(fp) && !isExecutable(fp)) heal(fp, 'posttool');
 }
 

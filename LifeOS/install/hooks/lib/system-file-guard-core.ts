@@ -15,6 +15,7 @@ import { join } from "node:path";
 import { homedir } from "node:os";
 import { createHash } from "node:crypto";
 import { isContained, isPatternAllowlisted, relativeToClaudeRoot } from "./containment-zones";
+import { isUnder } from "./paths";
 
 const HOME = process.env.HOME ?? homedir();
 const CLAUDE_ROOT = join(HOME, ".claude");
@@ -50,7 +51,7 @@ export function classifyTarget(
   absolutePath: string,
   claudeRoot = CLAUDE_ROOT,
 ): { classification: GuardClassification; relPath: string } {
-  if (!absolutePath || !absolutePath.startsWith(claudeRoot + "/") && absolutePath !== claudeRoot) {
+  if (!absolutePath || !isUnder(claudeRoot, absolutePath)) {
     return { classification: "out-of-tree", relPath: absolutePath };
   }
   const rel = relativeToClaudeRoot(absolutePath, claudeRoot);

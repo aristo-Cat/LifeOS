@@ -1,6 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, mkdtempSync, writeFileSync } from "node:fs";
 import { resolve, join } from "node:path";
+import { tmpdir } from "node:os";
+import { classifyTarget, evaluateWrite } from "../install/hooks/lib/system-file-guard-core";
 
 const skillRoot = resolve(import.meta.dir, "..");
 const repoRoot = resolve(skillRoot, "..");
@@ -14,6 +16,23 @@ function readSkill(path: string): string {
 }
 
 describe("Windows compatibility guardrails", () => {
+  test("path guards are separator-safe", () => {
+    const root = "C:\\Users\\Example\\.claude";
+    expect(classifyTarget("C:\\Users\\Example\\.claude\\hooks\\guard.ts", root).classification).toBe("system");
+    expect(classifyTarget("C:/Users/Example/.claude/LIFEOS/USER/note.md", root).classification).toBe("user");
+    expect(classifyTarget("c:\\users\\example\\.claude\\hooks\\guard.ts", root).classification).toBe("system");
+    expect(classifyTarget("C:\\tmp\\outside.md", root).classification).toBe("out-of-tree");
+
+    const fixture = mkdtempSync(join(tmpdir(), "lifeos-guard-"));
+    const deny = join(fixture, "DENY_LIST.txt");
+    writeFileSync(deny, "private-token\n");
+    expect(evaluateWrite(`${fixture}\\system.ts`, "private-token", { claudeRoot: fixture, denyListPath: deny }).block).toBe(true);
+
+    const guard = readSkill("install/hooks/lib/system-file-guard-core.ts");
+    expect(guard).toContain("isUnder(");
+    expect(guard).not.toContain('claudeRoot + "/"');
+  });
+
   test("repo and payload expose native PowerShell installers", () => {
     expect(existsSync(join(repoRoot, "install.ps1"))).toBe(true);
     expect(existsSync(join(repoRoot, "install.cmd"))).toBe(true);

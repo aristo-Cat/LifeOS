@@ -32,7 +32,7 @@
 
 import { readFileSync, writeFileSync, existsSync, readdirSync } from 'fs';
 import { join, basename } from 'path';
-import { paiPath, getLifeosDir, getClaudeDir } from '../lib/paths';
+import { paiPath, getLifeosDir, getClaudeDir, relUnder } from '../lib/paths';
 import { getIdentity } from '../lib/identity';
 import { inference } from '../../LIFEOS/TOOLS/Inference';
 import type { ParsedTranscript } from '../../LIFEOS/TOOLS/TranscriptParser';
@@ -164,8 +164,9 @@ function isSystemFileModified(modifiedFiles: Set<string>): boolean {
 
   for (const filePath of modifiedFiles) {
     // --- Check ~/.claude/ paths ---
-    if (filePath.startsWith(CLAUDE_DIR + '/')) {
-      const relPath = filePath.slice(CLAUDE_DIR.length + 1);
+    const claudeRelPath = relUnder(CLAUDE_DIR, filePath);
+    if (claudeRelPath !== null) {
+      const relPath = claudeRelPath;
       if (CLAUDE_EXCLUDED.some(ex => relPath.includes(ex))) continue;
 
       if (relPath.startsWith('hooks/') && (relPath.endsWith('.ts') || relPath.endsWith('.sh'))) return true;
@@ -179,8 +180,9 @@ function isSystemFileModified(modifiedFiles: Set<string>): boolean {
     }
 
     // --- Check ~/.claude/LIFEOS/ paths ---
-    if (filePath.startsWith(LIFEOS_DIR + '/')) {
-      const relPath = filePath.slice(LIFEOS_DIR.length + 1);
+    const lifeosRelPath = relUnder(LIFEOS_DIR, filePath);
+    if (lifeosRelPath !== null) {
+      const relPath = lifeosRelPath;
       if (LIFEOS_EXCLUDED.some(ex => relPath.includes(ex))) continue;
 
       if ((relPath.startsWith('PAI/') || relPath.includes('skills/')) && (relPath.endsWith('.md') || relPath.endsWith('.ts') || relPath.endsWith('.yaml') || relPath.endsWith('.yml'))) return true;

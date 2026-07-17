@@ -182,12 +182,13 @@ function matchesPattern(relPath: string, pattern: string): boolean {
   return i === pathParts.length;
 }
 
+import { relUnder, toPosix } from "./paths";
+
 // Normalize an absolute path to the path relative to CLAUDE_ROOT. Returns
 // the input unchanged if it does not live under CLAUDE_ROOT.
 export function relativeToClaudeRoot(absolutePath: string, claudeRoot: string): string {
-  if (absolutePath === claudeRoot) return "";
-  const prefix = claudeRoot.endsWith("/") ? claudeRoot : claudeRoot + "/";
-  return absolutePath.startsWith(prefix) ? absolutePath.slice(prefix.length) : absolutePath;
+  const rel = relUnder(claudeRoot, absolutePath);
+  return rel === null ? toPosix(absolutePath) : rel;
 }
 
 // Predicate: is this path inside any configured containment zone?
