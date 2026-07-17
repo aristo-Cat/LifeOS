@@ -9,6 +9,7 @@ import { parse } from "smol-toml"
 import { join } from "path"
 import { existsSync } from "fs"
 import { rename } from "fs/promises"
+import { homedir } from "os"
 import { modelForEffort } from "../TOOLS/models.ts"
 
 // ── Types ──
@@ -313,19 +314,25 @@ export function isSentinel(output: string): boolean {
 // inherited PATH is sparse (observed on Linux when Pulse runs under a
 // minimal-env service manager). /bin/bash is the POSIX fallback — present on
 // macOS natively and on every mainstream Linux distro.
-const BASH_PATH = Bun.which("bash") ?? (process.platform === "win32"
+function isWindowsSystemBash(candidate: string): boolean {
+  return /^[a-z]:\\windows\\system32\\/i.test(candidate)
+}
+
+const BASH_PATH = process.platform === "win32"
   ? [
+      Bun.which("bash"),
       "C:\\Program Files\\Git\\bin\\bash.exe",
       "C:\\Program Files (x86)\\Git\\bin\\bash.exe",
       process.env.LOCALAPPDATA ? join(process.env.LOCALAPPDATA, "Programs", "Git", "bin", "bash.exe") : "",
-    ].find((candidate) => candidate && existsSync(candidate)) ?? ""
-  : "/bin/bash")
+    ].find((candidate): candidate is string => Boolean(candidate) && !isWindowsSystemBash(candidate) && existsSync(candidate))
+  : Bun.which("bash") ?? "/bin/bash"
 
 export async function spawnScript(command: string, timeoutMs = 60_000): Promise<string> {
+  if (!BASH_PATH) throw new Error("Git Bash is required on Windows to run Pulse script jobs")
   const proc = Bun.spawn([BASH_PATH, "-c", command], {
     stdout: "pipe",
     stderr: "pipe",
-    cwd: join(process.env.HOME ?? "~", ".claude", "LIFEOS", "PULSE"),
+    cwd: join(process.env.HOME || process.env.USERPROFILE || homedir(), ".claude", "LIFEOS", "PULSE"),
     env: { ...process.env },
   })
 

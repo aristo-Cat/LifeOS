@@ -20,7 +20,8 @@ const CLAUDE_DIR = join(HOME, ".claude");
 // ═══════════════════════════════════════════════════════════════════════════
 
 function getTerminalWidth(): number {
-  let width: number | null = null;
+  const terminalColumns = process.stdout.columns;
+  let width: number | null = terminalColumns && terminalColumns > 0 ? terminalColumns : process.platform === "win32" ? 80 : null;
 
   const kittyWindowId = process.env.KITTY_WINDOW_ID;
   if (kittyWindowId) {

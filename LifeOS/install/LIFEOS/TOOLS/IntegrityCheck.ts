@@ -33,8 +33,9 @@
 import { readFileSync, existsSync, readdirSync, statSync, type Dirent } from 'fs';
 import { join } from 'path';
 import { execFileSync } from 'child_process';
+import { homedir } from 'os';
 
-const HOME = process.env.HOME || '';
+const HOME = process.env.HOME || process.env.USERPROFILE || homedir();
 const CLAUDE_DIR = join(HOME, '.claude');
 const LIFEOS_DIR = join(CLAUDE_DIR, 'LIFEOS');
 const TOOLS_DIR = join(LIFEOS_DIR, 'TOOLS');

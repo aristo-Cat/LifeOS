@@ -30,7 +30,8 @@ const CLAUDE_DIR = join(HOME, ".claude");
 type DisplayMode = "compact" | "normal" | "wide";
 
 function getTerminalWidth(): number {
-  let width: number | null = null;
+  const terminalColumns = process.stdout.columns;
+  let width: number | null = terminalColumns && terminalColumns > 0 ? terminalColumns : process.platform === "win32" ? 80 : null;
 
   // Tier 1: Kitty IPC
   const kittyWindowId = process.env.KITTY_WINDOW_ID;

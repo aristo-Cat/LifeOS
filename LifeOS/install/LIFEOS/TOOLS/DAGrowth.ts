@@ -13,9 +13,10 @@
  */
 
 import { join } from "path"
+import { homedir } from "os"
 import { getDAName } from "../../hooks/lib/identity"
 
-const HOME = process.env.HOME ?? "~"
+const HOME = process.env.HOME || process.env.USERPROFILE || homedir()
 const LifeOS = join(HOME, ".claude", "LIFEOS")
 const REGISTRY_PATH = join(LifeOS, "USER", "DA", "_registry.yaml")
 

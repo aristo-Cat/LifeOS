@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+if (process.platform === "win32") { console.log(JSON.stringify({ ok: false, skipped: "launchd is macOS-only; Windows uses LIFEOS/PULSE/manage.ps1 scheduled tasks" })); process.exit(0); }
 /**
  * Conduit INSIGHT launchd installer. Registers `com.lifeos.conduit.insight` to run
  * `BuildInsight.ts` HOURLY — the cheap-inference content-type read. Separate from the

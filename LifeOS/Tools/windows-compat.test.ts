@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { existsSync, readFileSync, mkdtempSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, mkdtempSync, readdirSync, writeFileSync } from "node:fs";
 import { resolve, join } from "node:path";
 import { tmpdir } from "node:os";
 import { classifyTarget, evaluateWrite } from "../install/hooks/lib/system-file-guard-core";
@@ -13,6 +13,14 @@ function read(path: string): string {
 
 function readSkill(path: string): string {
   return readFileSync(join(skillRoot, path), "utf-8");
+}
+
+function listTypeScriptFiles(dir: string): string[] {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const path = join(dir, entry.name);
+    if (entry.isDirectory()) return listTypeScriptFiles(path);
+    return entry.isFile() && entry.name.endsWith(".ts") ? [path] : [];
+  });
 }
 
 describe("Windows compatibility guardrails", () => {
@@ -60,6 +68,24 @@ describe("Windows compatibility guardrails", () => {
     for (const installer of ["InstallBookmarkSweep.ts", "InstallHealthSync.ts", "InstallConveyorRunner.ts", "InstallConveyorWatcher.ts", "InstallWorkSweep.ts", "InstallUsageAggregator.ts", "InstallCodexUpdate.ts", "InstallBlogDiscovery.ts", "InstallCommitmentSweep.ts", "InstallDerivedSync.ts"]) {
       expect(readSkill(`install/LIFEOS/TOOLS/${installer}`)).toContain("launchd is macOS-only");
     }
+    expect(readSkill("install/LIFEOS/PULSE/Conduit/InstallConduit.ts")).toContain("launchd is macOS-only");
+    expect(readSkill("install/LIFEOS/PULSE/Conduit/InstallConduitInsight.ts")).toContain("launchd is macOS-only");
+
+    const runtimeSources = [
+      ...listTypeScriptFiles(join(skillRoot, "install", "LIFEOS", "TOOLS")),
+      ...listTypeScriptFiles(join(skillRoot, "install", "hooks", "lib")),
+    ].map((path) => readFileSync(path, "utf-8")).join("\n");
+    expect(runtimeSources).not.toMatch(/process\.env\.HOME!|process\.env\.HOME \|\| ['\"]{2}|process\.env\.HOME \?\? ['\"]{2}/);
+
+    for (const banner of ["Banner.ts", "BannerMatrix.ts", "BannerNeofetch.ts", "BannerRetro.ts", "NeofetchBanner.ts"]) {
+      const source = readSkill(`install/LIFEOS/TOOLS/${banner}`);
+      expect(source).toContain("process.stdout.columns");
+      expect(source).toContain('process.platform === "win32" ? 80');
+    }
+
+    const pulse = readSkill("install/LIFEOS/PULSE/lib.ts");
+    expect(pulse).toContain("isWindowsSystemBash");
+    expect(pulse).toContain("Git Bash is required on Windows");
   });
 
   test("CodexExport remains a mirrored, guarded dry-run exporter", () => {

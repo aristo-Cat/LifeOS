@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+if (process.platform === "win32") { console.log(JSON.stringify({ ok: false, skipped: "launchd is macOS-only; Windows uses LIFEOS/PULSE/manage.ps1 scheduled tasks" })); process.exit(0); }
 /**
  * Conduit launchd installer. Registers `com.lifeos.conduit` to run `conduit capture`
  * on a fixed interval — the stable pattern (stateless one-shot polls restarted by

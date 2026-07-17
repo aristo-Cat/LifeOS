@@ -44,6 +44,7 @@ import { spawn } from "child_process";
 import { appendFileSync, existsSync, mkdirSync } from "fs";
 import { join } from "path";
 import { homedir } from "os";
+import { homedir } from "os";
 
 /**
  * Resolve the claude binary explicitly. launchd jobs run with a minimal PATH
@@ -177,7 +178,7 @@ export function verifyExecutedModel(modelUsage: unknown, expectedTier: string): 
  * exact drift this catches and makes auditable. Logging must never break inference. */
 function logModelVerification(entry: Record<string, unknown>): void {
   try {
-    const dir = join(process.env.HOME || '', '.claude', 'LIFEOS', 'MEMORY', 'OBSERVABILITY');
+    const dir = join(process.env.HOME || process.env.USERPROFILE || homedir(), '.claude', 'LIFEOS', 'MEMORY', 'OBSERVABILITY');
     mkdirSync(dir, { recursive: true });
     appendFileSync(join(dir, 'model-verification.jsonl'), JSON.stringify({ ts: new Date().toISOString(), ...entry }) + '\n');
   } catch { /* observability must never break inference */ }
