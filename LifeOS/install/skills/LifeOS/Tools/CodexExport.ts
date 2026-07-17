@@ -11,21 +11,26 @@ import { basename, dirname, join, relative, resolve } from "node:path";
 import { detectDevTree } from "./InstallEngine";
 
 type Mode = "link" | "copy";
-type Args = { codexHome: string; source: string; mode: Mode; apply: boolean; withHooks: boolean; allowDev: boolean };
+type Args = { codexHome: string; agentsHome: string; source: string; mode: Mode; apply: boolean; withHooks: boolean; allowDev: boolean };
 type Report = {
   apply: boolean; mode: Mode; codexHome: string; source: string;
   wouldCopy: string[]; wouldGenerate: string[]; wouldArchive: string[]; protectedUntouched: string[];
   warnings: string[];
 };
+type HookCommand = { type: "command"; command: string; timeout?: number; async?: boolean; statusMessage?: string };
+type HookGroup = { matcher?: string; hooks: HookCommand[] };
+type HookMap = Record<string, HookGroup[]>;
 
 const PROTECTED = ["auth.json", "history.jsonl", "sessions", "config.toml", "settings.json", "memories", "cache", "installation_id"];
 const SYSTEM_EXCLUDES = new Set(["USER", "MEMORY", "node_modules", ".git"]);
 const START = "<!-- LIFEOS-CODEX-COMPAT:START -->";
 const END = "<!-- LIFEOS-CODEX-COMPAT:END -->";
+const CODEX_HOOK_EXCLUDES = ["TabState.hook.ts", "SettingsBackport.ts"];
 
 function parseArgs(argv: string[]): Args {
   const args: Args = {
     codexHome: process.env.CODEX_HOME || join(homedir(), ".codex"),
+    agentsHome: process.env.LIFEOS_AGENTS_HOME || join(homedir(), ".agents"),
     source: resolve(import.meta.dir, ".."),
     mode: "link", apply: false, withHooks: false, allowDev: false,
   };
@@ -35,13 +40,14 @@ function parseArgs(argv: string[]): Args {
     else if (value === "--with-hooks") args.withHooks = true;
     else if (value === "--allow-dev") args.allowDev = true;
     else if (value === "--codex-home") args.codexHome = resolve(argv[++i] || "");
+    else if (value === "--agents-home") args.agentsHome = resolve(argv[++i] || "");
     else if (value === "--source") args.source = resolve(argv[++i] || "");
     else if (value === "--mode") {
       const mode = argv[++i];
       if (mode !== "link" && mode !== "copy") throw new Error("--mode must be link or copy");
       args.mode = mode;
     } else if (value === "--help" || value === "-h") {
-      console.log("Usage: bun CodexExport.ts [--codex-home <dir>] [--source <root>] [--mode link|copy] [--with-hooks] [--apply] [--allow-dev]");
+      console.log("Usage: bun CodexExport.ts [--codex-home <dir>] [--agents-home <dir>] [--source <root>] [--mode link|copy] [--with-hooks] [--apply] [--allow-dev]");
       process.exit(0);
     } else throw new Error(`unknown argument: ${value}`);
   }
@@ -62,7 +68,7 @@ function listTree(root: string, excluded = SYSTEM_EXCLUDES): string[] {
   const walk = (dir: string): void => {
     if (!existsSync(dir)) return;
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
-      if (entry.isDirectory() && excluded.has(entry.name)) continue;
+      if (excluded.has(entry.name)) continue;
       const file = join(dir, entry.name);
       if (entry.isDirectory()) walk(file);
       else if (entry.isFile()) files.push(file);
@@ -177,18 +183,107 @@ function mergeCodexConfig(codexHome: string, report: Report, apply: boolean): vo
   }
 }
 
-function syncSkills(payload: string, codexHome: string, report: Report, apply: boolean): void {
+function syncSkills(payload: string, codexHome: string, agentsHome: string, report: Report, apply: boolean): void {
   const skills = join(payload, "skills", "LifeOS");
   if (!existsSync(skills)) { report.warnings.push(`missing skill payload: ${skills}`); return; }
   copyTree(skills, join(codexHome, "skills", "LifeOS"), codexHome, report, apply, new Set(["node_modules", ".git"]));
-  copyTree(skills, join(homedir(), ".agents", "skills", "LifeOS"), join(homedir(), ".agents"), report, apply, new Set(["node_modules", ".git"]));
+  copyTree(skills, join(agentsHome, "skills", "LifeOS"), agentsHome, report, apply, new Set(["node_modules", ".git"]));
+}
+
+function codexMatcher(matcher: string | undefined): string | undefined {
+  if (!matcher) return undefined;
+  const tools = matcher.split("|").flatMap((tool) => ({
+    Bash: ["Bash", "shell_command"],
+    Write: ["Write", "apply_patch"],
+    Edit: ["Edit", "apply_patch"],
+    MultiEdit: ["Edit", "apply_patch"],
+    Agent: ["Agent", "Task", "multi_tool_use.parallel"],
+    WebFetch: ["web.run"],
+    WebSearch: ["web.run"],
+  }[tool] ?? [tool]));
+  return [...new Set(tools)].join("|");
+}
+
+function isCodexHookCommand(hook: { type?: string; command?: string }): hook is HookCommand {
+  return hook.type === "command" && typeof hook.command === "string" && !CODEX_HOOK_EXCLUDES.some((name) => hook.command.includes(name));
+}
+
+function codexHookPath(command: string, codexHome: string): { target: string; args: string[]; shell: boolean } | null {
+  const tokens = command.match(/"[^"]*"|'[^']*'|\S+/g)?.map((part) => part.replace(/^['"]|['"]$/g, "")) ?? [];
+  if (tokens[0] === "bun") tokens.shift();
+  const target = tokens.shift();
+  if (!target) return null;
+  const mapped = target
+    .replace(/^\$HOME\/.claude\/hooks\//, join(codexHome, "hooks") + "/")
+    .replace(/^\$HOME\/.claude\/LIFEOS\/TOOLS\//, join(codexHome, "LIFEOS", "TOOLS") + "/")
+    .replace(/^~\/.claude\/hooks\//, join(codexHome, "hooks") + "/")
+    .replace(/^~\/.claude\/LIFEOS\/TOOLS\//, join(codexHome, "LIFEOS", "TOOLS") + "/");
+  return { target: mapped, args: tokens, shell: mapped.endsWith(".sh") };
+}
+
+function codexLauncher(codexHome: string): string {
+  return `import { homedir } from "node:os";
+import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
+
+const codexHome = ${JSON.stringify(codexHome)};
+process.env.HOME ||= process.env.USERPROFILE || homedir();
+process.env.CODEX_HOME = codexHome;
+process.env.LIFEOS_ENGINE = "codex";
+process.env.LIFEOS_TARGET = "codex";
+process.env.LIFEOS_RUNTIME_ROOT = codexHome;
+process.env.LIFEOS_INSTALL_ROOT = codexHome;
+process.env.LIFEOS_DIR = ${JSON.stringify(join(codexHome, "LIFEOS"))};
+process.env.CLAUDE_PLUGIN_ROOT = codexHome;
+process.env.LIFEOS_SETTINGS_PATH = ${JSON.stringify(join(codexHome, "settings.json"))};
+
+const target = process.argv[2];
+if (!target) throw new Error("Codex hook launcher requires a target module");
+await import(pathToFileURL(resolve(target)).href);
+`;
+}
+
+function buildCodexHooks(payload: string, codexHome: string, report: Report): HookMap {
+  const source = join(payload, "hooks", "hooks.json");
+  const raw = JSON.parse(readFileSync(source, "utf8")) as { hooks?: Record<string, Array<{ matcher?: string; hooks?: Array<{ type?: string; command?: string; timeout?: number; async?: boolean }> }>> };
+  const launcher = join(codexHome, "hooks", "_codex-env.ts");
+  const result: HookMap = {};
+  let skipped = 0;
+
+  for (const [event, groups] of Object.entries(raw.hooks ?? {})) {
+    const mapped = groups.map((group) => {
+      const hooks = (group.hooks ?? []).flatMap((hook) => {
+        if (!isCodexHookCommand(hook)) { skipped++; return []; }
+        const parsed = codexHookPath(hook.command, codexHome);
+        if (!parsed) { skipped++; return []; }
+        const command = parsed.shell
+          ? `bash.exe ${JSON.stringify(parsed.target)} ${parsed.args.map(JSON.stringify).join(" ")}`.trim()
+          : `bun run ${JSON.stringify(launcher)} ${JSON.stringify(parsed.target)} ${parsed.args.map(JSON.stringify).join(" ")}`.trim();
+        return [{ type: "command" as const, command, timeout: hook.timeout, async: hook.async }];
+      });
+      return hooks.length > 0 ? [{ matcher: codexMatcher(group.matcher), hooks }] : [];
+    }).flat();
+    if (mapped.length > 0) result[event] = mapped;
+  }
+
+  report.warnings.push(`Codex hook export: ${Object.values(result).flatMap((group) => group.flatMap((entry) => entry.hooks)).length} commands generated; ${skipped} Claude-only or unsupported entries omitted.`);
+  return result;
 }
 
 function syncHooks(payload: string, codexHome: string, report: Report, apply: boolean): void {
   const hooks = join(payload, "hooks");
   if (!existsSync(hooks)) { report.warnings.push(`missing hook payload: ${hooks}`); return; }
-  copyTree(hooks, join(codexHome, "hooks"), codexHome, report, apply, new Set(["node_modules", ".git"]));
-  report.warnings.push("hooks copied only; hooks.json is intentionally written after the phase-7 probe.");
+  const launcher = join(codexHome, "hooks", "_codex-env.ts");
+  const config = join(codexHome, "hooks.json");
+  const generated = buildCodexHooks(payload, codexHome, report);
+  copyTree(hooks, join(codexHome, "hooks"), codexHome, report, apply, new Set(["node_modules", ".git", "hooks.json"]));
+  copyTree(join(payload, "LIFEOS", "TOOLS"), join(codexHome, "LIFEOS", "TOOLS"), codexHome, report, apply);
+  report.wouldGenerate.push(launcher, config);
+  if (!apply) return;
+  assertWritable(codexHome, launcher);
+  assertWritable(codexHome, config);
+  writeFileSync(launcher, codexLauncher(codexHome));
+  writeFileSync(config, `${JSON.stringify({ hooks: generated }, null, 2)}\n`);
 }
 
 function main(): void {
@@ -204,7 +299,7 @@ function main(): void {
   if (args.mode === "link") archiveStaleSystemTree(lifeos, args.codexHome, report, args.apply);
   else copyTree(join(payload, "LIFEOS"), lifeos, args.codexHome, report, args.apply);
   if (args.mode === "link" && args.apply) mkdirSync(lifeos, { recursive: true });
-  syncSkills(payload, args.codexHome, report, args.apply);
+  syncSkills(payload, args.codexHome, args.agentsHome, report, args.apply);
   if (args.withHooks) syncHooks(payload, args.codexHome, report, args.apply);
   writeAgentsBlock(args.codexHome, readVersion(payload), args.withHooks, report, args.apply);
   writeCodexAgents(payload, args.codexHome, report, args.apply);
