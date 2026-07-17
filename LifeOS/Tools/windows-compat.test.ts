@@ -95,6 +95,8 @@ describe("Windows compatibility guardrails", () => {
     expect(exporter).toContain("--apply");
     expect(exporter).toContain("auth.json");
     expect(exporter).toContain("detectDevTree");
+    expect(exporter).toContain("lifeos-${slug}.toml");
+    expect(exporter).toContain("developer_instructions");
   });
 
   test("the Bun statusline is shipped and settings mirrors select it", () => {
