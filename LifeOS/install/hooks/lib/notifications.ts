@@ -7,15 +7,16 @@
 
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { join } from 'path';
+import { homedir, tmpdir } from 'os';
 
-const HOME = process.env.HOME!;
+const HOME = process.env.HOME || process.env.USERPROFILE || homedir();
 const PULSE_TOML_PATH = join(HOME, '.claude/LIFEOS/PULSE/PULSE.toml');
 
 // ============================================================================
 // Session Timing
 // ============================================================================
 
-const SESSION_START_FILE = '/tmp/pai-session-start.txt';
+const SESSION_START_FILE = join(tmpdir(), 'pai-session-start.txt');
 
 export function recordSessionStart(): void {
   try { writeFileSync(SESSION_START_FILE, Date.now().toString()); } catch {}

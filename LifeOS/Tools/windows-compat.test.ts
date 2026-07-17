@@ -33,6 +33,24 @@ describe("Windows compatibility guardrails", () => {
     expect(guard).not.toContain('claudeRoot + "/"');
   });
 
+  test("session hooks avoid POSIX-only process assumptions", () => {
+    const sessionHooks = [
+      "install/hooks/PromptProcessing.hook.ts",
+      "install/hooks/lib/isa-utils.ts",
+      "install/hooks/lib/notifications.ts",
+      "install/hooks/TaskGovernance.hook.ts",
+      "install/hooks/ReminderRouter.hook.ts",
+      "install/hooks/lib/tab-setter.ts",
+    ].map(readSkill).join("\n");
+    expect(sessionHooks).not.toContain("/dev/stdin");
+    expect(sessionHooks).not.toContain("tail -200");
+    expect(sessionHooks).not.toContain("spawnSync(['find'");
+    expect(sessionHooks).not.toContain("/tmp/");
+    expect(sessionHooks).not.toContain("command -v");
+    expect(sessionHooks).toContain("tmpdir()");
+    expect(sessionHooks).toContain("Bun.which('kitten')");
+  });
+
   test("repo and payload expose native PowerShell installers", () => {
     expect(existsSync(join(repoRoot, "install.ps1"))).toBe(true);
     expect(existsSync(join(repoRoot, "install.cmd"))).toBe(true);

@@ -207,7 +207,7 @@ async function main(): Promise<void> {
 
   let input: HookInput;
   try {
-    input = JSON.parse(readFileSync("/dev/stdin", "utf-8"));
+    input = JSON.parse(readFileSync(0, "utf-8"));
   } catch {
     process.exit(0);
   }

@@ -17,7 +17,7 @@
 // module reads ISA.md first and falls back to PRD.md for sessions created
 // before the rename. New sessions always write ISA.md.
 
-import { writeFileSync, readdirSync, statSync, existsSync, mkdirSync, appendFileSync } from 'fs';
+import { writeFileSync, readdirSync, statSync, existsSync, mkdirSync, appendFileSync, openSync, closeSync, fstatSync, readSync } from 'fs';
 import { join, basename } from 'path';
 import { createHash } from 'crypto';
 import { paiPath } from './paths';
@@ -460,12 +460,18 @@ export function getSessionAgents(sessionUUID: string): AgentEntry[] {
     const eventsPath = paiPath('MEMORY', 'OBSERVABILITY', 'subagent-events.jsonl');
     if (!existsSync(eventsPath)) return [];
 
-    // Use execSync with tail for performance — only read last 200 lines
-    const { execSync } = require('child_process');
-    const raw: string = execSync(`tail -200 "${eventsPath}"`, {
-      encoding: 'utf-8',
-      timeout: 30, // 30ms hard cap
-    });
+    // Read a bounded tail directly so this remains shell-free on Windows.
+    const fd = openSync(eventsPath, 'r');
+    let raw = '';
+    try {
+      const size = fstatSync(fd).size;
+      const bytes = Math.min(size, 256 * 1024);
+      const buffer = Buffer.alloc(bytes);
+      readSync(fd, buffer, 0, bytes, Math.max(0, size - bytes));
+      raw = buffer.toString('utf-8').split('\n').slice(-200).join('\n');
+    } finally {
+      closeSync(fd);
+    }
 
     const agents: Map<string, AgentEntry> = new Map();
 

@@ -12,7 +12,8 @@
 
 import { existsSync, writeFileSync, mkdirSync, readdirSync, unlinkSync, readFileSync } from 'fs';
 import { join } from 'path';
-import { execSync, execFileSync } from 'child_process';
+import { tmpdir } from 'os';
+import { execFileSync } from 'child_process';
 import { TAB_COLORS, PHASE_TAB_CONFIG, ACTIVE_TAB_BG, ACTIVE_TAB_FG, INACTIVE_TAB_FG, type TabState, type AlgorithmTabPhase } from './tab-constants';
 
 /** Detect if we're running inside cmux */
@@ -54,6 +55,7 @@ function phaseToCmuxLogLevel(phase: string): string {
  * Uses status pills for phase/session, log for activity, progress for ISC completion.
  */
 function setCmuxState(title: string, state: TabState, phase?: string): void {
+  if (process.platform === 'win32') return;
   try {
     const logLevel = phase ? phaseToCmuxLogLevel(phase) : stateToCmuxLogLevel(state);
     const config = phase ? PHASE_TAB_CONFIG[phase] : null;
@@ -101,10 +103,8 @@ const KITTY_SESSIONS_DIR = paiPath('MEMORY', 'STATE', 'kitty-sessions');
 let kittenBinCached: string | null = null;
 function kittenBin(): string {
   if (kittenBinCached) return kittenBinCached;
-  try {
-    const path = execSync('command -v kitten', { encoding: 'utf-8', timeout: 1000 }).trim();
-    if (path) { kittenBinCached = path; return path; }
-  } catch { /* fall through */ }
+  const path = Bun.which('kitten');
+  if (path) { kittenBinCached = path; return path; }
   kittenBinCached = '/Applications/kitty.app/Contents/MacOS/kitten';
   return kittenBinCached;
 }
@@ -115,7 +115,7 @@ function kittenBin(): string {
  * Resolution order:
  * 1. Process env vars (direct terminal context — always correct)
  * 2. Per-session file: kitty-sessions/{sessionId}.json (no shared state, no races)
- * 3. Default socket at /tmp/kitty-$USER (fallback for socket-only configs)
+ * 3. Default socket under the system temp directory (fallback for socket-only configs)
  *
  * IMPORTANT: listenOn MUST be set for remote control to work safely.
  * Without it, kitten @ commands fall back to escape-sequence IPC which
@@ -144,7 +144,7 @@ function getKittyEnv(sessionId?: string): { listenOn: string | null; windowId: s
   // This prevents escape-sequence IPC when KITTY_LISTEN_ON isn't propagated
   // to subprocess contexts (the root cause of terminal garbage in #493).
   if (!listenOn) {
-    const defaultSocket = `/tmp/kitty-${process.env.USER}`;
+    const defaultSocket = join(tmpdir(), `kitty-${process.env.USER}`);
     try {
       if (existsSync(defaultSocket)) {
         listenOn = `unix:${defaultSocket}`;
@@ -206,13 +206,14 @@ interface SetTabOptions {
  * Runs opportunistically on each setTabState call (lightweight).
  */
 function cleanupStaleStateFiles(): void {
+  if (process.platform === 'win32') return;
   try {
     if (!existsSync(TAB_TITLES_DIR)) return;
     const files = readdirSync(TAB_TITLES_DIR).filter(f => f.endsWith('.json'));
     if (files.length === 0) return;
 
     // Get live window IDs from kitty via socket (prevents escape sequence leaks)
-    const defaultSocket = `/tmp/kitty-${process.env.USER}`;
+    const defaultSocket = join(tmpdir(), `kitty-${process.env.USER}`);
     const socketPath = process.env.KITTY_LISTEN_ON || (existsSync(defaultSocket) ? `unix:${defaultSocket}` : null);
     if (!socketPath) return; // No socket — skip cleanup to avoid escape sequence IPC
     // Validate socket path shape before passing to kitten (defense-in-depth even with execFileSync)
@@ -242,6 +243,7 @@ function cleanupStaleStateFiles(): void {
 }
 
 export function setTabState(opts: SetTabOptions): void {
+  if (process.platform === 'win32') return;
   const { state, previousTitle, sessionId, modeToken } = opts;
   // Lead the title with the mode/tier token when supplied (e.g. "N ⚙️ Fixing tabs.").
   // Idempotent: never double-stamp if the caller already prefixed a token.
@@ -484,6 +486,7 @@ export function getSessionOneWord(sessionId: string): string | null {
  * Called on algorithm phase transitions.
  */
 export function setPhaseTab(phase: AlgorithmTabPhase, sessionId: string, summary?: string, eLevel?: string): void {
+  if (process.platform === 'win32') return;
   const config = PHASE_TAB_CONFIG[phase];
   if (!config) return;
 

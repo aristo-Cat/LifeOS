@@ -36,7 +36,7 @@ for (const __k of ["LIFEOS_DIR", "LIFEOS_CONFIG_DIR", "PROJECTS_DIR"]) {
  * - Inference path: ~1-1.5s (one Haiku call for tab title + session name)
  */
 
-import { appendFileSync, mkdirSync, existsSync, readFileSync, writeFileSync, rmdirSync, renameSync, statSync } from 'fs';
+import { appendFileSync, mkdirSync, existsSync, readFileSync, writeFileSync, rmdirSync, renameSync, statSync, readdirSync } from 'fs';
 import { join, dirname } from 'path';
 
 import { inference } from '../LIFEOS/TOOLS/Inference';
@@ -631,10 +631,16 @@ function findSessionJsonl(sessionId: string): string | null {
   try {
     for (const dir of [paiPath('projects'), paiPath('Projects')]) {
       if (!existsSync(dir)) continue;
-      const r = Bun.spawnSync(['find', dir, '-maxdepth', '2', '-name', `${sessionId}.jsonl`],
-        { stdout: 'pipe', stderr: 'pipe', timeout: 2000 });
-      const p = r.stdout.toString().trim().split('\n')[0];
-      if (p && existsSync(p)) return p;
+      const target = sessionId + '.jsonl';
+      const firstLevel = readdirSync(dir, { withFileTypes: true });
+      for (const entry of firstLevel) {
+        const candidate = join(dir, entry.name);
+        if (entry.isFile() && entry.name === target) return candidate;
+        if (!entry.isDirectory()) continue;
+        for (const nested of readdirSync(candidate, { withFileTypes: true })) {
+          if (nested.isFile() && nested.name === target) return join(candidate, nested.name);
+        }
+      }
     }
   } catch {}
   return null;
