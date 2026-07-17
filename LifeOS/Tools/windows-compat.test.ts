@@ -207,6 +207,8 @@ describe("Windows compatibility guardrails", () => {
     expect(readSkill("install/skills/LifeOS/INSTALL.md")).toBe(readSkill("INSTALL.md"));
     expect(readSkill("install/skills/LifeOS/Workflows/Setup.md")).toBe(readSkill("Workflows/Setup.md"));
     expect(readSkill("install/skills/LifeOS/install/install.ps1")).toBe(readSkill("install/install.ps1"));
+    expect(readSkill("INSTALL.md")).toContain("CodexExport.ts --with-hooks");
+    expect(readSkill("Workflows/Setup.md")).toContain("Codex-native `hooks.json` arrays");
   });
 
   test("v7.1.1 new files resolve HOME and PATH the Windows way", () => {

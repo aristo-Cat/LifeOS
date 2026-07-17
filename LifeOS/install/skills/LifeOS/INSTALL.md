@@ -91,7 +91,9 @@ This is the one place harnesses genuinely differ. Show the exact change and get 
 
 - **Claude Code** — run `bun Tools/InstallHooks.ts` (merges the hook set into `settings.json`, backing it up first) and `bun Tools/ActivateImports.ts` (turns on the identity context imports). This is what lights up the always-on behavior: the LifeOS response format, the memory loop, and per-turn context injection.
 
-- **Any other harness (Cursor / Cline / Codex / Gemini / other)** — LifeOS's always-on behavior is enforced by Claude Code *hooks*, which are a Claude Code mechanism. They don't auto-wire on other harnesses **yet**. So instead:
+- **Codex** — run `bun Tools/CodexExport.ts --with-hooks` first as a dry-run, then with `--apply` after review. It exports LifeOS hooks using Codex's `hooks.json` array schema and the `_codex-env.ts` launcher; it never writes a Claude `settings.json` hooks block. Review and trust the generated hooks in Codex before relying on enforcement.
+
+- **Other harnesses (Cursor / Cline / Gemini / other)** — LifeOS's always-on behavior is enforced by Claude Code hooks, which they do not auto-wire yet. So instead:
   1. Write an `AGENTS.md` (or the harness's own context file — e.g. `.cursor/rules`) that points the harness at the LifeOS tree, so it loads the LifeOS context every session.
   2. Tell your human, plainly and honestly: *"On <harness>, the always-on hooks aren't wired yet. You get the skill, your USER data, Pulse, and context loading every session, and you run Setup and Interview on request. Full always-on behavior is on the roadmap for this harness."*
   3. **Do not** write Claude hook files or a Claude `settings.json` `hooks` block into a non-Claude harness — it would sit there inert and do nothing.
@@ -163,7 +165,8 @@ Run the **Setup** workflow (`Workflows/Setup.md`) to finish integration and veri
 |---|---|---|
 | **Claude Code — macOS / Linux** | ✅ | ✅ full (native hooks) |
 | **Claude Code — Windows** | ✅ (directory junction first, copy fallback if links are blocked) | ✅ full |
-| **Cursor / Cline / Codex / Gemini / other** | ✅ | ⚠️ context loads every session via `AGENTS.md`; workflows run on request; always-on hooks not wired yet (roadmap) |
+| **Codex** | ✅ | ✅ after `CodexExport --with-hooks` and interactive hook trust; otherwise `AGENTS.md` + workflows |
+| **Cursor / Cline / Gemini / other** | ✅ | ⚠️ context loads every session via `AGENTS.md`; workflows run on request; always-on hooks not wired yet (roadmap) |
 | **Chat-only assistants (no files / no commands)** | ❌ | ❌ — install stops at the capability gate |
 
 Full-doctrine features additionally depend on the external tools in step 8.5 (codex, browser, Cloudflare, ElevenLabs). Without one, the dependent feature runs degraded **and says so** — it never silently pretends. The Doctor table is the live source of truth for what's on.

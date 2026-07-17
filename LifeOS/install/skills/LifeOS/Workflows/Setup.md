@@ -41,7 +41,7 @@ The skill ships everything for both tiers in its payload; nothing activates with
 
    | Component | What it deploys | Default |
    |-----------|-----------------|---------|
-   | `hooks` | Claude Code only: mode routing, memory, voice | **recommended on Claude Code** |
+   | `hooks` | Claude Code: native hooks; Codex: exported array-schema hooks | **recommended on Claude Code and Codex** |
    | `statusline` | `LIFEOS_StatusLine.sh` + `settings.json` `statusLine` | optional |
    | `tooltips` | `settings.json` `spinnerTipsOverride` — 265 LifeOS Claude-Code tips, shipped public-clean in `install/settings.enhancements.json` | optional |
    | `spinnerverbs` | `settings.json` `spinnerVerbs` — 523 custom spinner verbs, shipped in `install/settings.enhancements.json` | optional |
@@ -50,7 +50,7 @@ The skill ships everything for both tiers in its payload; nothing activates with
    | `worksweep` / `derivedsync` | background `launchd` jobs | optional |
 
    - **Claude Code hooks → `bun Tools/InstallHooks.ts`** (trust-gated): reads `install/hooks/hooks.json`, shows the EXACT change (file + settings-entry + event count), waits for explicit permission, backs up `settings.json`, merges additively per matcher bucket (idempotent via normalized-command dedup, preserves `type:"http"` verbatim). On Windows, commands are normalized to PowerShell/Bun wrappers with absolute config-root paths.
-   - **Codex hooks → skip.** Do not write Claude Code hook blocks into Codex. Codex compatibility is the `AGENTS.md` bridge plus the installed `LifeOS` skill/runtime; always-on Claude hook behavior is not a Codex mechanism.
+   - **Codex hooks → `bun Tools/CodexExport.ts --with-hooks`** (trust-gated): dry-run first, then `--apply`; writes Codex-native `hooks.json` arrays, a `_codex-env.ts` launcher, the current hook payload and required `LIFEOS/TOOLS`. Never copy Claude `settings.json` hook blocks. Review/trust the generated hooks in Codex before claiming they enforce anything.
    - **everything else → `bun Tools/DeployComponents.ts`**: dry-run first (no `--apply`, `--all` shows the full plan), then `--apply --components <csv>` with ONLY what the user picked. Reads enhancement settings from `install/settings.enhancements.json` (the keys split out of `settings.system.json` so they're genuinely opt-in, not force-bundled). A component whose prerequisite is absent reports a LOUD blocker and fails — never a silent no-op. Pulse deploys on macOS/Windows; `worksweep` and `derivedsync` are macOS `launchd` jobs and skip cleanly elsewhere.
    - **Verify (two evidence classes)** per applied component: Pulse → `127.0.0.1:31337/healthz` = 200; statusline/tooltips/spinnerverbs → re-read `settings.json` shows the key set; agents → files present under `agents/`; macOS launchd jobs → `launchctl print` shows the label loaded; Windows Pulse → Scheduled Task or Startup fallback plus the health probe.
 8. **ActivateImports** — `bun Tools/ActivateImports.ts` → uncomment the identity `@`-imports in `CLAUDE.md`, each guarded by `existsSync` of the symlink-resolved target. Path literals stay as the canonical `@`-import form.
@@ -60,4 +60,4 @@ The skill ships everything for both tiers in its payload; nothing activates with
 
 ## Notes
 - Cross-platform: branch on `DetectEnv.os` for hook command shapes and path separators.
-- Cross-harness: branch on `DetectEnv.harness` for skills-dir and integration. Claude Code gets permissioned hooks; Codex gets `AGENTS.md` plus the skill/runtime and should not receive Claude hook settings.
+- Cross-harness: branch on `DetectEnv.harness` for skills-dir and integration. Claude Code gets permissioned native hooks; Codex gets exported native-array hooks plus `AGENTS.md`, never Claude hook settings.
