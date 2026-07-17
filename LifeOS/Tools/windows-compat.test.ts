@@ -101,6 +101,8 @@ describe("Windows compatibility guardrails", () => {
     expect(exporter).toContain("CODEX_HOOK_EXCLUDES");
     expect(exporter).toContain("_codex-env.ts");
     expect(exporter).toContain("commands generated;");
+    expect(exporter).toContain("async hooks downgraded to synchronous");
+    expect(exporter).toContain("const codexName = `LifeOS ${slug}`");
     expect(exporter).toContain("--agents-home");
   });
 
