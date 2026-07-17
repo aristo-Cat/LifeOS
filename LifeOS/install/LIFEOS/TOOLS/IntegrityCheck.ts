@@ -30,7 +30,7 @@
  *   2 — scan error
  */
 
-import { readFileSync, existsSync, readdirSync, statSync } from 'fs';
+import { readFileSync, existsSync, readdirSync, statSync, type Dirent } from 'fs';
 import { join } from 'path';
 import { execFileSync } from 'child_process';
 
@@ -94,17 +94,21 @@ function record(name: string, findings: Finding[], note?: string): void {
 // Enumerate files via `find` (guaranteed-available, recurses at any depth, no reimplemented
 // tree walker). `extraArgs` are appended to the base `find <root>` invocation.
 // install-payload copies and build/cache noise are pruned so counts reflect the LIVE system.
-function findFiles(root: string, extraArgs: string[]): string[] {
-  try {
-    const out = execFileSync('find', [
-      root,
-      '(', '-path', '*/node_modules', '-o', '-path', '*/.git', '-o', '-path', '*/install',
-      '-o', '-path', '*/LIFEOS_RELEASES', '-o', '-path', '*/Backups', '-o', '-path', '*/Archive',
-      '-o', '-path', '*/dist', '-o', '-path', '*/.next', ')', '-prune', '-o',
-      ...extraArgs, '-print',
-    ], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
-    return out.split('\n').filter(Boolean);
-  } catch { return []; }
+const PRUNE_DIRS = new Set(['node_modules', '.git', 'install', 'LIFEOS_RELEASES', 'Backups', 'Archive', 'dist', '.next']);
+function findFiles(root: string, matches: (name: string, entry: Dirent, path: string) => boolean): string[] {
+  const found: string[] = [];
+  const walk = (dir: string): void => {
+    let entries: Dirent[];
+    try { entries = readdirSync(dir, { withFileTypes: true }); } catch { return; }
+    for (const entry of entries) {
+      if (entry.isDirectory() && PRUNE_DIRS.has(entry.name)) continue;
+      const path = join(dir, entry.name);
+      if (matches(entry.name, entry, path)) found.push(path.replace(/\\/g, '/'));
+      if (entry.isDirectory()) walk(path);
+    }
+  };
+  walk(root);
+  return found;
 }
 
 // ── Check 1: references (delegate to ReferenceCheck.ts) ──
@@ -149,7 +153,7 @@ function checkVersionAnchors(): void {
   catch { scanError('version_anchors: ALGORITHM/LATEST unreadable'); record('version_anchors', [], 'SCAN ERROR (no LATEST)'); return; }
 
   const specRefRe = /(?:Algorithm|LIFEOS\/ALGORITHM)\/v(\d+\.\d+\.\d+)\.md/g;
-  const docFiles = findFiles(DOC_DIR, ['-name', '*.md', '-type', 'f']);
+  const docFiles = findFiles(DOC_DIR, (name, entry) => entry.isFile() && name.endsWith('.md'));
   for (const file of docFiles) {
     let content = '';
     try { content = readFileSync(file, 'utf8'); } catch { continue; }
@@ -229,7 +233,7 @@ function checkFrontmatterUnits(name: string, dir: string, requireName: boolean):
 // ── Check 4: claude_imports (@-imports across every CLAUDE.md) ──
 function checkClaudeImports(): void {
   const findings: Finding[] = [];
-  const claudeMds = findFiles(CLAUDE_DIR, ['(', '-name', 'CLAUDE.md', '-o', '-name', 'CLAUDE.user.md', ')', '-type', 'f']);
+  const claudeMds = findFiles(CLAUDE_DIR, (name, entry) => entry.isFile() && (name === 'CLAUDE.md' || name === 'CLAUDE.user.md'));
   let importCount = 0;
   for (const file of claudeMds) {
     let content = '';
@@ -251,7 +255,7 @@ function checkClaudeImports(): void {
 function checkSkills(): void {
   const findings: Finding[] = [];
   const skillsDir = join(CLAUDE_DIR, 'skills');
-  const skillMds = findFiles(skillsDir, ['-name', 'SKILL.md', '-type', 'f']);
+  const skillMds = findFiles(skillsDir, (name, entry) => entry.isFile() && name === 'SKILL.md');
   for (const skillMd of skillMds) {
     const rel = skillMd.replace(CLAUDE_DIR + '/', '');
     let content = '';
@@ -263,7 +267,7 @@ function checkSkills(): void {
     if (!/^description:\s*\S/m.test(fm)) findings.push({ detail: `${rel}: missing frontmatter 'description:'`, blocking: true });
   }
   // Structural: a Workflows/ or Tools/ dir with no sibling SKILL.md is a broken skill.
-  const structureDirs = findFiles(skillsDir, ['(', '-name', 'Workflows', '-o', '-name', 'Tools', ')', '-type', 'd']);
+  const structureDirs = findFiles(skillsDir, (name, entry) => entry.isDirectory() && (name === 'Workflows' || name === 'Tools'));
   const flagged = new Set<string>();
   for (const sd of structureDirs) {
     const skillRoot = sd.slice(0, sd.lastIndexOf('/'));
@@ -285,7 +289,7 @@ function checkSkills(): void {
 function checkWorkflows(): void {
   const findings: Finding[] = [];
   const skillsDir = join(CLAUDE_DIR, 'skills');
-  const wfFiles = findFiles(skillsDir, ['-path', '*/Workflows/*', '-name', '*.md', '-type', 'f']);
+  const wfFiles = findFiles(skillsDir, (name, entry, path) => entry.isFile() && name.endsWith('.md') && path.replace(/\\/g, '/').includes('/Workflows/'));
   const cache = new Map<string, string>();
   for (const wf of wfFiles) {
     const rel = wf.replace(CLAUDE_DIR + '/', '');
