@@ -62,6 +62,17 @@ describe("Windows compatibility guardrails", () => {
     }
   });
 
+  test("the Bun statusline is shipped and settings mirrors select it", () => {
+    const statusline = readSkill("install/LIFEOS/LIFEOS_StatusLine.ts");
+    expect(statusline).toContain("Bun.stdin.text()");
+    expect(statusline).toContain("--refresh");
+    expect(statusline).not.toContain("execSync(");
+    const rootSettings = readSkill("install/settings.system.json");
+    const mirroredSettings = readSkill("install/skills/LifeOS/install/settings.system.json");
+    expect(rootSettings).toBe(mirroredSettings);
+    expect(rootSettings).toContain('bun \\"$HOME/.claude/LIFEOS/LIFEOS_StatusLine.ts\\"');
+  });
+
   test("repo and payload expose native PowerShell installers", () => {
     expect(existsSync(join(repoRoot, "install.ps1"))).toBe(true);
     expect(existsSync(join(repoRoot, "install.cmd"))).toBe(true);

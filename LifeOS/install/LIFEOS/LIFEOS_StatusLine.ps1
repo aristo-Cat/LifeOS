@@ -31,9 +31,32 @@ $LifeOSDir = if ($env:LIFEOS_DIR) {
 
 $ConfigRoot = Split-Path -Parent $LifeOSDir
 $BashStatusline = Join-Path $LifeOSDir "LIFEOS_StatusLine.sh"
-$Bash = Get-Command bash.exe -ErrorAction SilentlyContinue
 
-if ($Bash -and (Test-Path -LiteralPath $BashStatusline)) {
+# Resolve Git-for-Windows bash specifically. `Get-Command bash.exe` cannot be
+# trusted: on a machine with WSL installed it resolves to C:\Windows\System32\bash.exe,
+# which is the WSL launcher, not an MSYS bash. WSL parses the Windows script path with
+# Linux escaping rules, eats the backslashes, and dies with exit 127 and no output —
+# a blank statusline. Prefer known Git install roots, then fall back to any bash.exe on
+# PATH that is NOT the System32 (WSL) one.
+function Resolve-GitBash {
+  $candidates = @(
+    (Join-Path $env:ProgramFiles      "Git\bin\bash.exe"),
+    (Join-Path ${env:ProgramFiles(x86)} "Git\bin\bash.exe"),
+    (Join-Path $env:LOCALAPPDATA      "Programs\Git\bin\bash.exe")
+  )
+  foreach ($c in $candidates) {
+    if ($c -and (Test-Path -LiteralPath $c)) { return $c }
+  }
+  $sys32 = Join-Path $env:WINDIR "System32\bash.exe"
+  foreach ($c in @(Get-Command bash.exe -All -ErrorAction SilentlyContinue)) {
+    if ($c.Source -and ($c.Source -ne $sys32)) { return $c.Source }
+  }
+  return $null
+}
+
+$BashExe = Resolve-GitBash
+
+if ($BashExe -and (Test-Path -LiteralPath $BashStatusline)) {
   # Expand any leading $HOME/${HOME}/~ that arrived literal (pre-#1404 settings.json),
   # then export HOME + LIFEOS_DIR as MSYS paths so the bash fail-closed guard accepts
   # them (POSIX-absolute, no literal $HOME/~) instead of collapsing to bare "LifeOS".
@@ -43,7 +66,7 @@ if ($Bash -and (Test-Path -LiteralPath $BashStatusline)) {
   $LifeOSForBash = $LifeOSForBash -replace '^~', $HomeDir
   $env:LIFEOS_DIR = ConvertTo-MsysPath $LifeOSForBash
   $env:HOME = ConvertTo-MsysPath $HomeDir
-  & $Bash.Source $BashStatusline
+  & $BashExe (ConvertTo-MsysPath $BashStatusline)
   exit $LASTEXITCODE
 }
 
