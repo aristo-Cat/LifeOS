@@ -62,6 +62,15 @@ describe("Windows compatibility guardrails", () => {
     }
   });
 
+  test("CodexExport remains a mirrored, guarded dry-run exporter", () => {
+    const exporter = readSkill("Tools/CodexExport.ts");
+    expect(readSkill("install/skills/LifeOS/Tools/CodexExport.ts")).toBe(exporter);
+    expect(exporter).toContain("LIFEOS-CODEX-COMPAT:START");
+    expect(exporter).toContain("--apply");
+    expect(exporter).toContain("auth.json");
+    expect(exporter).toContain("detectDevTree");
+  });
+
   test("the Bun statusline is shipped and settings mirrors select it", () => {
     const statusline = readSkill("install/LIFEOS/LIFEOS_StatusLine.ts");
     expect(statusline).toContain("Bun.stdin.text()");
