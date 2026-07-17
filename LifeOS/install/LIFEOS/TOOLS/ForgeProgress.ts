@@ -1,10 +1,11 @@
 #!/usr/bin/env bun
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { createInterface } from "node:readline";
-import { accessSync, constants, createWriteStream, existsSync, type WriteStream } from "node:fs";
+import { createWriteStream, existsSync, type WriteStream } from "node:fs";
 import { mkdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import process from "node:process";
+import { codexArgv, resolveCodexBin } from "./CodexBin";
 
 type Args = { slug: string; prompt?: string; model: string; effort: string; sandbox: string; timeoutMs: number; pulseUrl: string };
 type JsonRecord = Record<string, unknown>;
@@ -60,12 +61,8 @@ function validUrl(flag: string, value: string): string {
   try { return new URL(nonEmpty(flag, value)).toString(); }
   catch (error: unknown) { throw new Error(`${flag} must be a valid URL: ${String(error)}`); }
 }
-function homeDir(): string { const home = process.env.HOME; if (!home) throw new Error("HOME is not set"); return home; }
-function preflightCodex(home: string): string | null {
-  const codexPath = join(home, ".bun", "bin", "codex");
-  try { accessSync(codexPath, constants.X_OK); return codexPath; }
-  catch (_error: unknown) { return null; } // Safe: caller emits the exact unavailable JSON.
-}
+function homeDir(): string { return process.env.HOME || process.env.USERPROFILE || require("node:os").homedir(); }
+function preflightCodex(): string | null { return resolveCodexBin(); }
 async function ensureSlugDir(home: string, slug: string): Promise<Paths> {
   const slugDir = join(home, ".claude", "LIFEOS", "MEMORY", "WORK", slug);
   await mkdir(slugDir, { recursive: true }); // Local artifact I/O is unbounded so errors can surface naturally.
@@ -81,7 +78,8 @@ async function readPrompt(prompt: string | undefined): Promise<string> {
   return text;
 }
 function spawnCodex(codexPath: string, args: Args, finalFile: string, prompt: string): ChildProcessWithoutNullStreams {
-  const argv = [codexPath, "exec", "--model", args.model, "-c", `model_reasoning_effort=${args.effort}`, "--sandbox", args.sandbox, "--skip-git-repo-check", "--cd", process.cwd(), "--json", "-o", finalFile, "-"];
+  const argv = codexArgv(["exec", "--model", args.model, "-c", `model_reasoning_effort=${args.effort}`, "--sandbox", args.sandbox, "--skip-git-repo-check", "--cd", process.cwd(), "--json", "-o", finalFile, "-"]);
+  if (!argv) throw new Error("codex CLI not found");
   const child = spawn(argv[0], argv.slice(1), { stdio: ["pipe", "pipe", "pipe"], detached: true });
   child.stdin.end(prompt);
   return child;
@@ -221,8 +219,8 @@ function formatFinalLine(input: FinalInput): string {
 }
 export default async function main(argv: string[]): Promise<number> {
   try {
-    const args = parseArgs(argv), home = homeDir(), codexPath = preflightCodex(home);
-    if (!codexPath) { process.stdout.write('{"verdict":"unavailable","reason":"codex CLI not found at ~/.bun/bin/codex"}\n'); return 2; }
+    const args = parseArgs(argv), home = homeDir(), codexPath = preflightCodex();
+    if (!codexPath) { process.stdout.write('{"verdict":"unavailable","reason":"codex CLI not found"}\n'); return 2; }
     const prompt = await readPrompt(args.prompt);
     if (prompt.length === 0) throw new Error("no prompt provided; pass --prompt or pipe stdin data");
     const paths = await ensureSlugDir(home, args.slug), state: RunState = { startMs: Date.now(), childAlive: true, timedOut: false, interrupted: false }, ring: RingEntry[] = [];

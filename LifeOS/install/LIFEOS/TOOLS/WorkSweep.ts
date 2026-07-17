@@ -46,7 +46,7 @@ for (const k of ["LIFEOS_DIR", "LIFEOS_CONFIG_DIR", "PROJECTS_DIR"]) {
 
 declare const Bun: { spawn: (cmd: string[], opts?: any) => any };
 
-const HOME = process.env.HOME || "";
+const HOME = process.env.HOME || process.env.USERPROFILE || require("os").homedir();
 const LIFEOS_DIR = process.env.LIFEOS_DIR || join(HOME, ".claude", "LIFEOS");
 const WORK_DIR = join(LIFEOS_DIR, "MEMORY", "WORK");
 const OBS_DIR = join(LIFEOS_DIR, "MEMORY", "OBSERVABILITY");

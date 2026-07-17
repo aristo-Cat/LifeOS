@@ -34,7 +34,7 @@ for (const k of ["LIFEOS_DIR", "LIFEOS_CONFIG_DIR", "PROJECTS_DIR"]) {
 }
 
 
-const LIFEOS_DIR = process.env.LIFEOS_DIR || join(process.env.HOME!, ".claude", "LIFEOS");
+const LIFEOS_DIR = process.env.LIFEOS_DIR || join(process.env.HOME || process.env.USERPROFILE || require("os").homedir(), ".claude", "LIFEOS");
 const OBS_DIR = join(LIFEOS_DIR, "MEMORY", "OBSERVABILITY");
 const ACTIVITY_FILE = join(OBS_DIR, "tool-activity.jsonl");
 const STARTS_FILE = join(OBS_DIR, "subagent-starts.json");

@@ -50,7 +50,7 @@ for (const k of ["LIFEOS_DIR", "LIFEOS_CONFIG_DIR", "PROJECTS_DIR"]) {
 }
 
 
-const HOME = process.env.HOME!;
+const HOME = process.env.HOME || process.env.USERPROFILE || require("os").homedir();
 const CLAUDE_DIR = join(HOME, ".claude");
 // skills/, hooks/, settings.json live under CLAUDE_DIR.
 // MEMORY/, USER/ live under LIFEOS_DIR (which is CLAUDE_DIR/PAI).

@@ -31,7 +31,7 @@ for (const k of ["LIFEOS_DIR", "LIFEOS_CONFIG_DIR", "PROJECTS_DIR"]) {
 }
 
 
-const BASE_DIR = process.env.LIFEOS_DIR || join(process.env.HOME!, '.claude');
+const BASE_DIR = process.env.LIFEOS_DIR || join(process.env.HOME || process.env.USERPROFILE || require("os").homedir(), '.claude');
 const FRAMES_DIR = join(BASE_DIR, 'MEMORY', 'WISDOM', 'FRAMES');
 
 // ── Domain Keyword Map ──

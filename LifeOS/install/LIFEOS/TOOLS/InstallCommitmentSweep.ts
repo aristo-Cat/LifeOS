@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+if (process.platform === "win32") { console.log(JSON.stringify({ ok: false, skipped: "launchd is macOS-only; Windows uses LIFEOS/PULSE/manage.ps1 scheduled tasks" })); process.exit(0); }
 /**
  * InstallCommitmentSweep.ts — Materialize com.lifeos.commitmentsweep.plist.template and bootstrap.
  *
@@ -13,7 +14,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync, unlinkSync } from "
 import { join } from "path";
 import { spawnSync } from "child_process";
 
-const HOME = process.env.HOME || "";
+const HOME = process.env.HOME || process.env.USERPROFILE || require("os").homedir();
 const TEMPLATE = join(HOME, ".claude", "LIFEOS", "TOOLS", "com.lifeos.commitmentsweep.plist.template");
 const TARGET_DIR = join(HOME, "Library", "LaunchAgents");
 const TARGET = join(TARGET_DIR, "com.lifeos.commitmentsweep.plist");

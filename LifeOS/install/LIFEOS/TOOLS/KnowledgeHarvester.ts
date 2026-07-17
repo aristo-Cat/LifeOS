@@ -48,7 +48,7 @@ for (const k of ["LIFEOS_DIR", "LIFEOS_CONFIG_DIR", "PROJECTS_DIR"]) {
 // Configuration
 // ============================================================================
 
-const HOME = process.env.HOME!;
+const HOME = process.env.HOME || process.env.USERPROFILE || require("os").homedir();
 const LIFEOS_DIR = process.env.LIFEOS_DIR || path.join(HOME, ".claude", "LIFEOS");
 const MEMORY_DIR = path.join(LIFEOS_DIR, "MEMORY");
 const KNOWLEDGE_DIR = path.join(MEMORY_DIR, "KNOWLEDGE");
@@ -619,8 +619,10 @@ function regenerateMOC(domain: string): void {
     // Count backlinks across all KNOWLEDGE/ files
     let backlinkCount = 0;
     try {
-      const { execSync } = require("child_process");
-      const result = execSync(`rg -c '\\[\\[${slug}' "${KNOWLEDGE_DIR}" 2>/dev/null || echo "0"`, { encoding: "utf-8" });
+      const { execFileSync } = require("child_process");
+      let result = "";
+      try { result = execFileSync("rg", ["-c", `\\[\\[${slug}`, KNOWLEDGE_DIR], { encoding: "utf-8" }); }
+      catch (error: any) { result = error?.stdout ? String(error.stdout) : ""; }
       backlinkCount = result.split("\n").reduce((acc: number, line: string) => {
         const match = line.match(/:(\d+)$/);
         return acc + (match ? parseInt(match[1]) : 0);
@@ -870,8 +872,10 @@ function expireStaleSeedlings(): string[] {
       // Check for inbound references
       try {
         const slug = file.replace(/\.md$/, "");
-        const { execSync } = require("child_process");
-        const result = execSync(`rg -c '\\[\\[${slug}' "${KNOWLEDGE_DIR}" 2>/dev/null || echo ""`, { encoding: "utf-8" });
+        const { execFileSync } = require("child_process");
+        let result = "";
+        try { result = execFileSync("rg", ["-c", `\\[\\[${slug}`, KNOWLEDGE_DIR], { encoding: "utf-8" }); }
+        catch (error: any) { result = error?.stdout ? String(error.stdout) : ""; }
         const totalRefs = result.split("\n").reduce((acc: number, line: string) => {
           const match = line.match(/:(\d+)$/);
           return acc + (match ? parseInt(match[1]) : 0);

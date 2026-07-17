@@ -20,7 +20,7 @@
 
 import { spawn, spawnSync } from "bun";
 import { getIdentity, getStartupCatchphrase } from "../../hooks/lib/identity";
-import { existsSync, readFileSync, writeFileSync, readdirSync, symlinkSync, unlinkSync, lstatSync } from "fs";
+import { existsSync, readFileSync, writeFileSync, readdirSync, symlinkSync, unlinkSync, lstatSync, copyFileSync } from "fs";
 import { homedir } from "os";
 import { join, basename } from "path";
 
@@ -235,7 +235,12 @@ function setMcpProfile(profile: string) {
   }
 
   // Create symlink
-  symlinkSync(profileFile, ACTIVE_MCP);
+  if (process.platform === "win32") {
+    copyFileSync(profileFile, ACTIVE_MCP);
+    log("Copied MCP profile on Windows (file symlinks require Developer Mode)", "⚠️");
+  } else {
+    symlinkSync(profileFile, ACTIVE_MCP);
+  }
   log(`Switched to '${profile}' profile`, "✅");
   log("Restart Claude Code to apply", "⚠️");
 }
@@ -351,6 +356,10 @@ function setWallpaper(filename: string): boolean {
 }
 
 function cmdWallpaper(args: string[]) {
+  if (process.platform !== "darwin") {
+    log("Wallpaper controls are macOS-only", "⚠️");
+    return;
+  }
   const wallpapers = getWallpapers();
 
   if (wallpapers.length === 0) {
@@ -460,6 +469,10 @@ async function cmdLaunch(options: { mcp?: string; resume?: boolean; resumeId?: s
 }
 
 async function cmdUpdate() {
+  if (process.platform === "win32") {
+    log("Automatic brew/curl update is unavailable on Windows; use the native installer.", "⚠️");
+    return;
+  }
   log("Checking for updates...", "🔍");
 
   const current = getCurrentVersion();

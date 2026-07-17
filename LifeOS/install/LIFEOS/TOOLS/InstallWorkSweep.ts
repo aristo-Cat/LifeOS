@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+if (process.platform === "win32") { console.log(JSON.stringify({ ok: false, skipped: "launchd is macOS-only; Windows uses LIFEOS/PULSE/manage.ps1 scheduled tasks" })); process.exit(0); }
 /**
  * InstallWorkSweep.ts — Materialize com.lifeos.worksweep.plist.template and bootstrap it.
  *
@@ -18,7 +19,7 @@ import { join } from "path";
 
 declare const Bun: { spawn: (cmd: string[], opts?: any) => any };
 
-const HOME = process.env.HOME || "";
+const HOME = process.env.HOME || process.env.USERPROFILE || require("os").homedir();
 const TEMPLATE_PATH = join(HOME, ".claude", "LIFEOS", "TOOLS", "com.lifeos.worksweep.plist.template");
 const LAUNCH_AGENTS_DIR = join(HOME, "Library", "LaunchAgents");
 const TARGET_PLIST = join(LAUNCH_AGENTS_DIR, "com.lifeos.worksweep.plist");

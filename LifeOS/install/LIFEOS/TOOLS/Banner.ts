@@ -12,7 +12,7 @@ import { join } from "path";
 import { spawnSync } from "child_process";
 import { parse as parseYaml } from "yaml";
 
-const HOME = process.env.HOME!;
+const HOME = process.env.HOME || process.env.USERPROFILE || require("os").homedir();
 const CLAUDE_DIR = join(HOME, ".claude");
 
 // ═══════════════════════════════════════════════════════════════════════════

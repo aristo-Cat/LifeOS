@@ -26,7 +26,7 @@ for (const k of ["LIFEOS_DIR", "LIFEOS_CONFIG_DIR", "PROJECTS_DIR"]) {
 }
 
 
-const HOME = process.env.HOME || "";
+const HOME = process.env.HOME || process.env.USERPROFILE || require("os").homedir();
 const LIFEOS_DIR = process.env.LIFEOS_DIR || join(HOME, ".claude", "LIFEOS");
 const CLAUDE_DIR = dirname(LIFEOS_DIR);
 const AUDIT_PATH = join(

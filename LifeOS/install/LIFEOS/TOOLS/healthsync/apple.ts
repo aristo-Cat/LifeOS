@@ -16,7 +16,7 @@ import {
   writeDayFile,
 } from "./store";
 
-const HOME = process.env.HOME || "";
+const HOME = process.env.HOME || process.env.USERPROFILE || require("os").homedir();
 export const APPLE_EXPORT_PATH = join(
   HOME,
   "Library",

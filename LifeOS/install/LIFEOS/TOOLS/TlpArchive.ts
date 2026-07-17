@@ -14,12 +14,13 @@
 
 import { writeFileSync, existsSync, readFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
+import { tmpdir } from "node:os";
 
-const HOME = process.env.HOME!;
+const HOME = process.env.HOME || process.env.USERPROFILE || require("os").homedir();
 const KNOWLEDGE_DIR = join(HOME, ".claude/LIFEOS/MEMORY/KNOWLEDGE/Blogs");
-const URL_FILE = "/tmp/tlp-urls.txt";
-const FAILED_FILE = "/tmp/tlp-failed.txt";
-const SUCCESS_FILE = "/tmp/tlp-success.txt";
+const URL_FILE = join(tmpdir(), "tlp-urls.txt");
+const FAILED_FILE = join(tmpdir(), "tlp-failed.txt");
+const SUCCESS_FILE = join(tmpdir(), "tlp-success.txt");
 const ARCHIVE_URL = "https://thelastpsychiatrist.com/archives.html";
 const TODAY = new Date().toISOString().slice(0, 10);
 

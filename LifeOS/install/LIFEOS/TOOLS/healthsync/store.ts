@@ -9,7 +9,7 @@ import type {
   TokenStore,
 } from "./types";
 
-const HOME = process.env.HOME || "";
+const HOME = process.env.HOME || process.env.USERPROFILE || require("os").homedir();
 const ENV_PATH = join(HOME, ".claude", ".env");
 const STATE_DIR = join(HOME, ".claude", "LIFEOS", "MEMORY", "STATE");
 const DATA_DIR = join(HOME, ".claude", "LIFEOS", "USER", "HEALTH", "DATA");

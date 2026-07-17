@@ -30,7 +30,7 @@
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync, appendFileSync } from "fs";
 import { join } from "path";
-import { execSync } from "child_process";
+import { execFileSync } from "child_process";
 
 const HOME = process.env.HOME ?? "";
 const LIFEOS_DIR = join(HOME, ".claude", "LIFEOS");
@@ -219,14 +219,16 @@ export function classifyCallSite(file: string, reason: string): { classification
 
 function scanCallSites(): CallSite[] {
   const hits: CallSite[] = [];
-  const excludeArgs = SCAN_EXCLUDES.map((e) => `-g '!${e}/**'`).join(" ");
-
   for (const root of SCAN_ROOTS) {
     if (!existsSync(root)) continue;
     for (const { pattern, reason } of RISK_PATTERNS) {
       try {
-        const cmd = `rg --line-number --no-heading ${excludeArgs} -e '${pattern}' '${root}' 2>/dev/null`;
-        const output = execSync(cmd, { encoding: "utf-8", maxBuffer: 4 * 1024 * 1024 }).trim();
+        let output = "";
+        try {
+          output = execFileSync("rg", ["--line-number", "--no-heading", ...SCAN_EXCLUDES.flatMap((e) => ["-g", `!${e}/**`]), "-e", pattern, root], { encoding: "utf-8", maxBuffer: 4 * 1024 * 1024 }).trim();
+        } catch (error: any) {
+          output = error?.stdout ? String(error.stdout).trim() : "";
+        }
         if (!output) continue;
         for (const line of output.split("\n")) {
           const match = line.match(/^([^:]+):(\d+):(.*)$/);

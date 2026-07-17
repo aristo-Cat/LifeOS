@@ -51,6 +51,17 @@ describe("Windows compatibility guardrails", () => {
     expect(sessionHooks).toContain("Bun.which('kitten')");
   });
 
+  test("runtime tools resolve HOME, Codex, and macOS-only services safely", () => {
+    const codexBin = readSkill("install/LIFEOS/TOOLS/CodexBin.ts");
+    expect(codexBin).toContain("resolveCodexBin");
+    expect(codexBin).toContain("codexArgv");
+    expect(readSkill("install/LIFEOS/TOOLS/ForgeProgress.ts")).toContain("resolveCodexBin");
+    expect(readSkill("install/LIFEOS/TOOLS/CrossVendorAudit.ts")).toContain("resolveCodexBin");
+    for (const installer of ["InstallBookmarkSweep.ts", "InstallHealthSync.ts", "InstallConveyorRunner.ts", "InstallConveyorWatcher.ts", "InstallWorkSweep.ts", "InstallUsageAggregator.ts", "InstallCodexUpdate.ts", "InstallBlogDiscovery.ts", "InstallCommitmentSweep.ts", "InstallDerivedSync.ts"]) {
+      expect(readSkill(`install/LIFEOS/TOOLS/${installer}`)).toContain("launchd is macOS-only");
+    }
+  });
+
   test("repo and payload expose native PowerShell installers", () => {
     expect(existsSync(join(repoRoot, "install.ps1"))).toBe(true);
     expect(existsSync(join(repoRoot, "install.cmd"))).toBe(true);

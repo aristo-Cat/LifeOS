@@ -75,7 +75,7 @@ type RunSummary = {
   ts: string;
 };
 
-const HOME = process.env.HOME || "";
+const HOME = process.env.HOME || process.env.USERPROFILE || require("os").homedir();
 const CLAUDE_DIR = join(HOME, ".claude");
 const LIFEOS_DIR = join(CLAUDE_DIR, "LIFEOS");
 const USER_DIR = join(LIFEOS_DIR, "USER");

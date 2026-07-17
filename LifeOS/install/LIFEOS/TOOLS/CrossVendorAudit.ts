@@ -20,13 +20,13 @@ import { readFile, writeFile, appendFile, mkdir, stat } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
+import { codexArgv, resolveCodexBin } from "./CodexBin";
 
 const HOME = homedir();
 const LIFEOS_DIR = join(HOME, ".claude", "LIFEOS");
 const WORK_DIR = join(LIFEOS_DIR, "MEMORY", "WORK");
 const FINDINGS_LOG = join(LIFEOS_DIR, "MEMORY", "VERIFICATION", "cato-findings.jsonl");
 const TOOL_ACTIVITY_LOG = join(LIFEOS_DIR, "MEMORY", "OBSERVABILITY", "tool-activity.jsonl");
-const CODEX_BIN = join(HOME, ".bun", "bin", "codex");
 
 const BUNDLE_TOKEN_CAP = 80_000;
 const CHARS_PER_TOKEN = 4; // rough estimate for bundle sizing
@@ -243,9 +243,14 @@ function invokeCodex(bundle: string, schemaPath: string): Promise<{ stdout: stri
       delete env.OPENAI_API_KEY;
       delete env.OPENAI_BASE_URL;
     }
+    const argv = codexArgv(["exec", "--sandbox", "read-only", "--skip-git-repo-check", "--ephemeral", "--output-schema", schemaPath, "--model", "gpt-5.6-sol", "-"]);
+    if (!argv) {
+      resolvePromise({ stdout: "", stderr: "codex CLI not found", code: null });
+      return;
+    }
     const proc = spawn(
-      CODEX_BIN,
-      ["exec", "--sandbox", "read-only", "--skip-git-repo-check", "--ephemeral", "--output-schema", schemaPath, "--model", "gpt-5.6-sol", "-"],
+      argv[0],
+      argv.slice(1),
       { stdio: ["pipe", "pipe", "pipe"], env }
     );
     let stdout = "";
@@ -318,7 +323,9 @@ async function writeVerdictSchema(): Promise<string> {
 // or parse, proceed — the preflight must never become a new failure source. 30s cap.
 function codexDoctor(): Promise<{ healthy: boolean; summary: string }> {
   return new Promise((resolvePromise) => {
-    const proc = spawn(CODEX_BIN, ["doctor", "--json"], { stdio: ["ignore", "pipe", "pipe"] });
+    const argv = codexArgv(["doctor", "--json"]);
+    if (!argv) { resolvePromise({ healthy: true, summary: "doctor unavailable (proceeding)" }); return; }
+    const proc = spawn(argv[0], argv.slice(1), { stdio: ["ignore", "pipe", "pipe"] });
     let out = "";
     const timer = setTimeout(() => { proc.kill("SIGTERM"); resolvePromise({ healthy: true, summary: "doctor timed out (proceeding)" }); }, 30_000);
     proc.stdout.on("data", (c) => (out += c.toString()));
@@ -344,7 +351,7 @@ async function main() {
     process.exit(2);
   }
 
-  if (!existsSync(CODEX_BIN)) {
+  if (!resolveCodexBin()) {
     const resp = { verdict: "skipped" as const, reason: "codex CLI not installed" };
     await appendFinding(args.slug, resp, "unknown");
     console.log(JSON.stringify(resp));

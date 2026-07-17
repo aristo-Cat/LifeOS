@@ -527,7 +527,7 @@ async function runCli(argv: string[]): Promise<number> {
 
     // The harness exports env values verbatim — expand leading $HOME/${HOME}/~ so
     // LIFEOS_DIR et al. resolve to real paths on a fresh install (#1404 / #1422).
-    expandEnvHomeReferences(merged, process.env.HOME || "");
+    expandEnvHomeReferences(merged, process.env.HOME || process.env.USERPROFILE || require("os").homedir());
 
     const dropped = prunePermissionRules(merged);
     if (dropped.length > 0) {

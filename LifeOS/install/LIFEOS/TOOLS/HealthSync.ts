@@ -39,7 +39,7 @@ type SourcePull = (ctx: Ctx) => Promise<SourceResult>;
 type SourceModule = { pull: SourcePull };
 type CliCommand = "pull" | "status" | "current" | "auth";
 
-const HOME = process.env.HOME || "";
+const HOME = process.env.HOME || process.env.USERPROFILE || require("os").homedir();
 const PREFIX = "[HealthSync]";
 const SOURCE_NAMES: readonly SourceName[] = ["oura", "eightsleep", "apple", "function"];
 const CURRENT_PATH = join(HOME, ".claude", "LIFEOS", "USER", "HEALTH", "current.json");
@@ -424,7 +424,10 @@ function requiredEnv(ctx: Ctx, name: string): string {
 }
 
 async function openBrowser(url: string): Promise<void> {
-  const proc = Bun.spawn(["open", url], {
+  const command = process.platform === "win32"
+    ? ["cmd", "/c", "start", "", url]
+    : process.platform === "darwin" ? ["open", url] : ["xdg-open", url];
+  const proc = Bun.spawn(command, {
     stdout: "ignore",
     stderr: "ignore",
   });
